@@ -29,4 +29,5 @@ document.addEventListener('DOMContentLoaded', () => {
         header.classList.remove('is-menu-open');
         navToggle.setAttribute('aria-expanded', 'false');
     });
+
 });

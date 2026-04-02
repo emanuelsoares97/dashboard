@@ -30,11 +30,10 @@
             </button>
 
             <nav id="site-navigation" class="site-nav" data-nav-menu>
-                <a class="site-nav-link {% if request.path == '/' %}is-active{% endif %}" href="/">Inicio</a>
                 <a class="site-nav-link site-nav-link-primary {% if '/imports/' in request.path and '/imports/history/' not in request.path %}is-active{% endif %}" href="/imports/">Importar Excel</a>
                 <a class="site-nav-link {% if '/imports/history/' in request.path %}is-active{% endif %}" href="/imports/history/">Historico Imports</a>
-                <a class="site-nav-link {% if '/dashboards/teams/' in request.path %}is-active{% endif %}" href="/dashboards/teams/">Dashboard Times</a>
-                <a class="site-nav-link {% if '/dashboards/agents/' in request.path %}is-active{% endif %}" href="/dashboards/agents/">Dashboard Agentes</a>
+
+                <a class="site-nav-link {% if '/dashboards/' in request.path %}is-active{% endif %}" href="/dashboards/">Dashboard</a>
             </nav>
         </div>
     </header>

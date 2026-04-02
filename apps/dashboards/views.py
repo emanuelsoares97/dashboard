@@ -92,7 +92,7 @@ def _build_common_context(*, page_title, active_section, filters, dashboard_payl
 
 def overview(request):
 	"""Renderiza a pagina principal com KPIs, graficos e resumo executivo."""
-	filters = _resolve_filters(request)
+	filters = _resolve_filters(request, force_assistant_name='')
 	payload = build_dashboard_payload(
 		granularity=filters['period'],
 		assistant_name=filters['assistant_name'],
@@ -111,7 +111,7 @@ def overview(request):
 
 def churn_reasons(request):
 	"""Renderiza pagina dedicada aos motivos de churn."""
-	filters = _resolve_filters(request)
+	filters = _resolve_filters(request, force_assistant_name='')
 	payload = build_dashboard_payload(
 		granularity=filters['period'],
 		assistant_name=filters['assistant_name'],
@@ -131,7 +131,7 @@ def churn_reasons(request):
 
 def retention_actions(request):
 	"""Renderiza pagina dedicada as acoes de retencao."""
-	filters = _resolve_filters(request)
+	filters = _resolve_filters(request, force_assistant_name='')
 	payload = build_dashboard_payload(
 		granularity=filters['period'],
 		assistant_name=filters['assistant_name'],
@@ -151,7 +151,7 @@ def retention_actions(request):
 
 def services(request):
 	"""Renderiza pagina dedicada ao desempenho por servico."""
-	filters = _resolve_filters(request)
+	filters = _resolve_filters(request, force_assistant_name='')
 	payload = build_dashboard_payload(
 		granularity=filters['period'],
 		assistant_name=filters['assistant_name'],
@@ -217,7 +217,7 @@ def assistant_detail(request, assistant_id):
 
 def inconsistencies(request):
 	"""Renderiza pagina dedicada a inconsistencias de tipificacao."""
-	filters = _resolve_filters(request)
+	filters = _resolve_filters(request, force_assistant_name='')
 	payload = build_dashboard_payload(
 		granularity=filters['period'],
 		assistant_name=filters['assistant_name'],

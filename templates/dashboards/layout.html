@@ -31,6 +31,7 @@
                 <label class="filter-label" for="end_date">Data fim</label>
                 <input id="end_date" name="end_date" type="date" value="{{ end_date }}">
             </div>
+            {% if active_section == 'assistants' %}
             <div class="filter-group">
                 <label class="filter-label" for="assistant_name">Assistente</label>
                 <input
@@ -46,6 +47,7 @@
                     {% endfor %}
                 </datalist>
             </div>
+            {% endif %}
             <div class="filter-group">
                 <label class="filter-label" for="period">Escala temporal</label>
                 <select id="period" name="period">
