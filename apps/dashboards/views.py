@@ -6,6 +6,8 @@ from apps.quality.models import DataQualityFlag
 
 
 def team_dashboard(request):
+	"""Mostra a agregacao de resultados por equipa para o contexto inbound."""
+	# O dashboard consome apenas dados normalizados, sem depender do ficheiro Excel.
 	rows = (
 		Interaction.objects.values('team__name')
 		.annotate(
@@ -29,11 +31,13 @@ def team_dashboard(request):
 
 
 def agent_dashboard(request):
+	"""Mostra a agregacao de resultados por agente, com filtro opcional por equipa."""
 	team_filter = request.GET.get('team', '').strip()
 	qs = Interaction.objects.all()
 	if team_filter:
 		qs = qs.filter(team__name=team_filter)
 
+	# O filtro e aplicado antes da agregacao para manter a query simples e escalavel.
 	rows = (
 		qs.values('team__name', 'agent__name')
 		.annotate(

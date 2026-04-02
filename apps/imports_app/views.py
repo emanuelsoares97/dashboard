@@ -10,10 +10,12 @@ from apps.imports_app.services import import_excel
 
 
 def upload_excel(request):
+	"""Recebe um ficheiro Excel manual, cria o lote e desencadeia a importacao."""
 	form = ExcelUploadForm(request.POST or None, request.FILES or None)
 
 	if request.method == 'POST' and form.is_valid():
 		excel_file = form.cleaned_data['file']
+		# O ficheiro fica guardado localmente para manter rastreabilidade do lote importado.
 		destination_dir = Path(settings.MEDIA_ROOT) / 'imports'
 		destination_dir.mkdir(parents=True, exist_ok=True)
 		destination_path = destination_dir / excel_file.name
@@ -30,6 +32,7 @@ def upload_excel(request):
 		)
 
 		try:
+			# A logica de ingestao fica fora da view para nao misturar UI com processamento.
 			summary = import_excel(destination_path, batch)
 			messages.success(
 				request,
