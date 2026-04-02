@@ -13,8 +13,8 @@
             <h2 class="dashboard-topbar-title">{{ page_title }}</h2>
         </div>
         <form class="dashboard-topbar-filters" method="get">
-            <div>
-                <label for="date_preset">Intervalo rapido</label>
+            <div class="filter-group">
+                <label class="filter-label" for="date_preset">Intervalo rapido</label>
                 <select id="date_preset" name="date_preset">
                     <option value="custom" {% if date_preset == 'custom' %}selected{% endif %}>Personalizado</option>
                     <option value="today" {% if date_preset == 'today' %}selected{% endif %}>Hoje</option>
@@ -23,27 +23,40 @@
                     <option value="previous_month" {% if date_preset == 'previous_month' %}selected{% endif %}>Mes anterior</option>
                 </select>
             </div>
-            <div>
-                <label for="start_date">Data inicio</label>
+            <div class="filter-group">
+                <label class="filter-label" for="start_date">Data inicio</label>
                 <input id="start_date" name="start_date" type="date" value="{{ start_date }}">
             </div>
-            <div>
-                <label for="end_date">Data fim</label>
+            <div class="filter-group">
+                <label class="filter-label" for="end_date">Data fim</label>
                 <input id="end_date" name="end_date" type="date" value="{{ end_date }}">
             </div>
-            <div>
-                <label for="assistant_name">Assistente</label>
-                <input id="assistant_name" name="assistant_name" value="{{ assistant_name|default:'' }}" placeholder="Nome do assistente">
+            <div class="filter-group">
+                <label class="filter-label" for="assistant_name">Assistente</label>
+                <input
+                    id="assistant_name"
+                    name="assistant_name"
+                    list="assistant-options"
+                    value="{{ assistant_name|default:'' }}"
+                    placeholder="Nome do assistente"
+                >
+                <datalist id="assistant-options">
+                    {% for option in dashboard.assistant_ranking_table %}
+                    <option value="{{ option.assistant_name }}"></option>
+                    {% endfor %}
+                </datalist>
             </div>
-            <div>
-                <label for="period">Escala temporal</label>
+            <div class="filter-group">
+                <label class="filter-label" for="period">Escala temporal</label>
                 <select id="period" name="period">
                     <option value="day" {% if period == 'day' %}selected{% endif %}>Dia</option>
                     <option value="week" {% if period == 'week' %}selected{% endif %}>Semana</option>
                     <option value="month" {% if period == 'month' %}selected{% endif %}>Mes</option>
                 </select>
             </div>
-            <button class="btn btn-primary" type="submit">Aplicar</button>
+            <div class="filter-actions">
+                <button class="btn btn-primary" type="submit">Aplicar filtros</button>
+            </div>
         </form>
     </header>
 
