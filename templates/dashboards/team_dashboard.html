@@ -7,31 +7,97 @@
 
 {% block content %}
 <section class="card" data-page="dashboard">
-    <h2 class="card-title">Dashboard por Time</h2>
+    <h2 class="card-title">Dashboard Geral de Retencao</h2>
+    <form class="form form-row" method="get">
+        <div>
+            <label for="date_preset">Intervalo rapido:</label>
+            <select id="date_preset" name="date_preset">
+                <option value="custom" {% if date_preset == 'custom' %}selected{% endif %}>Personalizado</option>
+                <option value="today" {% if date_preset == 'today' %}selected{% endif %}>Hoje</option>
+                <option value="last_7_days" {% if date_preset == 'last_7_days' %}selected{% endif %}>Ultimos 7 dias</option>
+                <option value="current_month" {% if date_preset == 'current_month' %}selected{% endif %}>Mes atual</option>
+                <option value="previous_month" {% if date_preset == 'previous_month' %}selected{% endif %}>Mes anterior</option>
+            </select>
+        </div>
+        <div>
+            <label for="start_date">Data inicio:</label>
+            <input id="start_date" name="start_date" type="date" value="{{ start_date }}">
+        </div>
+        <div>
+            <label for="end_date">Data fim:</label>
+            <input id="end_date" name="end_date" type="date" value="{{ end_date }}">
+        </div>
+        <div>
+            <label for="period">Periodo:</label>
+            <select id="period" name="period">
+                <option value="day" {% if period == 'day' %}selected{% endif %}>Dia</option>
+                <option value="week" {% if period == 'week' %}selected{% endif %}>Semana</option>
+                <option value="month" {% if period == 'month' %}selected{% endif %}>Mes</option>
+            </select>
+        </div>
+        <button class="btn btn-primary" type="submit">Aplicar</button>
+    </form>
     <p>Inconsistencias de tipificacao detectadas: <strong class="dashboard-highlight">{{ inconsistencies }}</strong></p>
 </section>
 
 <section class="card">
-    <table class="table">
+    <h3 class="card-title">KPIs Gerais</h3>
+    <table class="table table-sortable">
         <thead>
             <tr>
-                <th>Time</th>
-                <th>Total de chamadas</th>
-                <th>Retidas</th>
-                <th>Duracao media (s)</th>
+                <th>Total Chamadas</th>
+                <th>Total Retidos</th>
+                <th>Total Nao Retidos</th>
+                <th>Total Call Drop</th>
+                <th>Taxa Retencao (%)</th>
+                <th>Taxa Nao Retencao (%)</th>
+                <th>Taxa Call Drop (%)</th>
+                <th>Duracao Media (s)</th>
             </tr>
         </thead>
         <tbody>
-            {% for row in rows %}
             <tr>
-                <td>{{ row.team__name }}</td>
+                <td>{{ dashboard.general_kpis.total_calls }}</td>
+                <td>{{ dashboard.general_kpis.total_retained }}</td>
+                <td>{{ dashboard.general_kpis.total_non_retained }}</td>
+                <td>{{ dashboard.general_kpis.total_call_drop }}</td>
+                <td>{{ dashboard.general_kpis.retention_rate|floatformat:2 }}</td>
+                <td>{{ dashboard.general_kpis.non_retention_rate|floatformat:2 }}</td>
+                <td>{{ dashboard.general_kpis.call_drop_rate|floatformat:2 }}</td>
+                <td>{{ dashboard.general_kpis.avg_duration_seconds|floatformat:2 }}</td>
+            </tr>
+        </tbody>
+    </table>
+</section>
+
+<section class="card">
+    <h3 class="card-title">Analise por Motivo de Corte</h3>
+    <table class="table table-sortable">
+        <thead>
+            <tr>
+                <th>Motivo de Corte</th>
+                <th>Total de chamadas</th>
+                <th>% do total</th>
+                <th>Total Retidos</th>
+                <th>Total Nao Retidos</th>
+                <th>Total Call Drop</th>
+                <th>Taxa Retencao (%)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in dashboard.churn_reason_table %}
+            <tr>
+                <td>{{ row.churn_reason }}</td>
                 <td>{{ row.total_calls }}</td>
-                <td>{{ row.retained_calls }}</td>
-                <td>{{ row.avg_duration_seconds|floatformat:0 }}</td>
+                <td>{{ row.pct_total|floatformat:2 }}</td>
+                <td>{{ row.total_retained }}</td>
+                <td>{{ row.total_non_retained }}</td>
+                <td>{{ row.total_call_drop }}</td>
+                <td>{{ row.retention_rate|floatformat:2 }}</td>
             </tr>
             {% empty %}
             <tr>
-                <td class="table-empty" colspan="4">Sem dados importados.</td>
+                <td class="table-empty" colspan="7">Sem dados importados.</td>
             </tr>
             {% endfor %}
         </tbody>

@@ -7,42 +7,82 @@
 
 {% block content %}
 <section class="card" data-page="dashboard">
-    <h2 class="card-title">Dashboard por Agente</h2>
+    <h2 class="card-title">Dashboard por Assistente</h2>
     <form class="form form-row" method="get">
         <div>
-            <label for="team">Filtrar por time:</label>
-            <input id="team" name="team" value="{{ team_filter }}">
+            <label for="assistant_name">Assistente (nome):</label>
+            <input id="assistant_name" name="assistant_name" value="{{ assistant_name|default:'' }}">
+        </div>
+        <div>
+            <label for="date_preset">Intervalo rapido:</label>
+            <select id="date_preset" name="date_preset">
+                <option value="custom" {% if date_preset == 'custom' %}selected{% endif %}>Personalizado</option>
+                <option value="today" {% if date_preset == 'today' %}selected{% endif %}>Hoje</option>
+                <option value="last_7_days" {% if date_preset == 'last_7_days' %}selected{% endif %}>Ultimos 7 dias</option>
+                <option value="current_month" {% if date_preset == 'current_month' %}selected{% endif %}>Mes atual</option>
+                <option value="previous_month" {% if date_preset == 'previous_month' %}selected{% endif %}>Mes anterior</option>
+            </select>
+        </div>
+        <div>
+            <label for="start_date">Data inicio:</label>
+            <input id="start_date" name="start_date" type="date" value="{{ start_date }}">
+        </div>
+        <div>
+            <label for="end_date">Data fim:</label>
+            <input id="end_date" name="end_date" type="date" value="{{ end_date }}">
+        </div>
+        <div>
+            <label for="period">Periodo:</label>
+            <select id="period" name="period">
+                <option value="day" {% if period == 'day' %}selected{% endif %}>Dia</option>
+                <option value="week" {% if period == 'week' %}selected{% endif %}>Semana</option>
+                <option value="month" {% if period == 'month' %}selected{% endif %}>Mes</option>
+            </select>
         </div>
         <button class="btn btn-primary" type="submit">Aplicar</button>
     </form>
 </section>
 
 <section class="card">
-    <table class="table">
+    <h3 class="card-title">Ranking de Assistentes</h3>
+    <table class="table table-sortable">
         <thead>
             <tr>
-                <th>Time</th>
-                <th>Agente</th>
+                <th>Assistente</th>
                 <th>Total de chamadas</th>
                 <th>Duracao media (s)</th>
+                <th>Retencao (%)</th>
+                <th>Nao Retencao (%)</th>
+                <th>Call Drop (%)</th>
+                <th>Inconsistencia (%)</th>
             </tr>
         </thead>
         <tbody>
             {% for row in rows %}
             <tr>
-                <td>{{ row.team__name }}</td>
-                <td>{{ row.agent__name }}</td>
+                <td>{{ row.assistant_name }}</td>
                 <td>{{ row.total_calls }}</td>
-                <td>{{ row.avg_duration_seconds|floatformat:0 }}</td>
+                <td>{{ row.avg_duration_seconds|floatformat:2 }}</td>
+                <td>{{ row.retention_rate|floatformat:2 }}</td>
+                <td>{{ row.non_retention_rate|floatformat:2 }}</td>
+                <td>{{ row.call_drop_rate|floatformat:2 }}</td>
+                <td>{{ row.inconsistency_rate|floatformat:2 }}</td>
             </tr>
             {% empty %}
             <tr>
-                <td class="table-empty" colspan="4">Sem dados para o filtro atual.</td>
+                <td class="table-empty" colspan="8">Sem dados para o filtro atual.</td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
 </section>
+
+{% if dashboard.assistant_detail %}
+<section class="card">
+    <h3 class="card-title">Detalhe do Assistente</h3>
+    <p>Duracao media: <strong>{{ dashboard.assistant_detail.avg_duration_seconds|floatformat:2 }}</strong> segundos</p>
+</section>
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}

@@ -14,3 +14,22 @@
     color: var(--color-muted);
     font-style: italic;
 }
+
+.table th.is-sortable {
+    cursor: pointer;
+    user-select: none;
+}
+
+.table th.is-sortable::after {
+    content: ' \2195';
+    color: var(--color-muted);
+    font-size: 0.85em;
+}
+
+.table th.is-sortable[data-sort-order='asc']::after {
+    content: ' \2191';
+}
+
+.table th.is-sortable[data-sort-order='desc']::after {
+    content: ' \2193';
+}
