@@ -1,0 +1,26 @@
+{% extends 'dashboards/layout.html' %}
+{% load static %}
+
+{% block dashboard_content %}
+<div class="dashboard-page">
+    <section class="insights-grid">
+        {% for insight in insights %}
+        <article class="insight-card insight-{{ insight.type }} card">
+            <span class="insight-title">{{ insight.title }}</span>
+            {% if insight.url %}
+            <strong class="insight-value"><a class="insight-link" href="{{ insight.url }}">{{ insight.value }}</a></strong>
+            {% else %}
+            <strong class="insight-value">{{ insight.value }}</strong>
+            {% endif %}
+            <p class="insight-description">{{ insight.description }}</p>
+        </article>
+        {% empty %}
+        <article class="insight-card insight-info card">
+            <span class="insight-title">Sem insights disponiveis</span>
+            <strong class="insight-value">N/A</strong>
+            <p class="insight-description">Nao existem dados suficientes para gerar insights no periodo selecionado.</p>
+        </article>
+        {% endfor %}
+    </section>
+</div>
+{% endblock %}

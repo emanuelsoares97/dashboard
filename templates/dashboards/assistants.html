@@ -32,7 +32,7 @@
                     <td>{{ row.avg_duration_seconds|floatformat:2 }}</td>
                     <td>{{ row.total_retained }}</td>
                     <td>{{ row.total_non_retained }}</td>
-                    <td>{{ row.retention_rate|floatformat:2 }}</td>
+                    <td><span class="{{ row.retention_status_class }}">{{ row.retention_rate|floatformat:2 }}</span></td>
                     <td>{{ row.non_retention_rate|floatformat:2 }}</td>
                     <td>{{ row.call_drop_rate|floatformat:2 }}</td>
                     <td>{{ row.inconsistency_rate|floatformat:2 }}</td>

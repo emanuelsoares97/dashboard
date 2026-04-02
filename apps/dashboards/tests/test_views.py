@@ -10,6 +10,7 @@ def test_overview_view_returns_200(client):
 
     assert response.status_code == 200
     assert 'dashboard' in response.context
+    assert 'insights' not in response.context
     assert response.context['active_section'] == 'overview'
     assert response.context['period'] == 'day'
 
@@ -95,6 +96,7 @@ def test_legacy_team_redirect_keeps_querystring(client):
         ('dashboards:retention_actions', 'rows', 'actions'),
         ('dashboards:services', 'rows', 'services'),
         ('dashboards:inconsistencies', 'section', 'inconsistencies'),
+        ('dashboards:insights', 'insights', 'insights'),
     ],
 )
 def test_auxiliary_dashboard_pages_with_invalid_date_filters(client, route_name, context_key, active_section):

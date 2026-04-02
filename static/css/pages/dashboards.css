@@ -156,6 +156,62 @@
     gap: 1rem;
 }
 
+.insights-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.insight-card {
+    position: relative;
+    min-height: 7rem;
+    display: grid;
+    gap: 0.35rem;
+    align-content: start;
+    overflow: hidden;
+}
+
+.insight-card::before {
+    content: '';
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 0.35rem;
+    border-radius: 999px;
+}
+
+.insight-warning::before { background: #c8801e; }
+.insight-success::before { background: #1f8a5b; }
+.insight-info::before { background: #0f4c81; }
+
+.insight-title {
+    color: var(--color-muted);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 700;
+}
+
+.insight-value {
+    font-size: 1.15rem;
+}
+
+.insight-link {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+}
+
+.insight-link:hover {
+    text-decoration-color: currentColor;
+    opacity: 0.85;
+}
+
+.insight-description {
+    margin: 0;
+    color: var(--color-muted);
+    font-size: 0.9rem;
+}
+
 .kpi-card {
     position: relative;
     overflow: hidden;
@@ -309,6 +365,31 @@
     font-weight: 700;
 }
 
+.badge-good,
+.badge-warning,
+.badge-critical {
+    display: inline-block;
+    padding: 0.12rem 0.4rem;
+    border-radius: 999px;
+    font-weight: 700;
+    line-height: 1.3;
+}
+
+.badge-good {
+    color: #186142;
+    background: #e7f5ee;
+}
+
+.badge-warning {
+    color: #7a5610;
+    background: #faf2df;
+}
+
+.badge-critical {
+    color: #9f3232;
+    background: #fbe9e9;
+}
+
 @media (max-width: 1100px) {
     .dashboard-shell {
         grid-template-columns: 1fr;
@@ -329,6 +410,7 @@
 
     .dashboard-hero,
     .executive-grid,
+    .insights-grid,
     .overview-summary-grid,
     .analytics-grid-top,
     .analytics-grid-middle,
@@ -358,6 +440,7 @@
 
     .dashboard-hero,
     .executive-grid,
+    .insights-grid,
     .overview-summary-grid,
     .analytics-grid-top,
     .analytics-grid-middle,

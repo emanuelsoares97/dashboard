@@ -27,7 +27,7 @@
                     <td>{{ row.total_used }}</td>
                     <td>{{ row.total_retained }}</td>
                     <td>{{ row.total_non_retained }}</td>
-                    <td>{{ row.success_rate|floatformat:2 }}</td>
+                    <td><span class="{{ row.success_status_class }}">{{ row.success_rate|floatformat:2 }}</span></td>
                     <td>{{ row.failure_rate|floatformat:2 }}</td>
                 </tr>
                 {% empty %}

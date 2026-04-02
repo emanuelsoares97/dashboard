@@ -1,5 +1,7 @@
 from datetime import date, timedelta
 
+from django.urls import reverse
+
 from apps.dashboards import selectors
 
 
@@ -22,6 +24,49 @@ def _totals_with_non_retained(total_calls, total_retained, total_call_drop):
 
 def _take_top(rows, key, limit=8):
     return sorted(rows, key=lambda item: item.get(key, 0), reverse=True)[:limit]
+
+
+def _fmt_pct(value):
+    return f'{_round2(value):.2f}%'
+
+
+def _assistant_detail_url(assistant_id):
+    return reverse('dashboards:assistant_detail', args=[assistant_id])
+
+
+def get_status_class(value, avg):
+    """Classifica visualmente uma taxa para leitura executiva."""
+    if value is None:
+        return 'badge-warning'
+
+    numeric_value = float(value)
+    if numeric_value >= 35:
+        return 'badge-good'
+    if numeric_value < 28:
+        return 'badge-critical'
+    return 'badge-warning'
+
+
+def _apply_status_badges(rows, *, metric_key, status_key):
+    """Aplica classe base e realca melhor/pior valor para leitura rapida."""
+    if not rows:
+        return rows
+
+    values = [row.get(metric_key, 0) for row in rows]
+    avg_value = sum(values) / len(values)
+    max_value = max(values)
+    min_value = min(values)
+
+    for row in rows:
+        value = row.get(metric_key, 0)
+        status_class = get_status_class(value, avg_value)
+        if len(rows) > 1 and value == max_value:
+            status_class = 'badge-good'
+        elif len(rows) > 1 and value == min_value:
+            status_class = 'badge-critical'
+        row[status_key] = status_class
+
+    return rows
 
 
 def _normalize_period(period):
@@ -115,6 +160,7 @@ def build_churn_reason_table(queryset, sort='volume'):
     else:
         rows.sort(key=lambda item: (-item['total_calls'], item['retention_rate']))
 
+    _apply_status_badges(rows, metric_key='retention_rate', status_key='retention_status_class')
     return rows
 
 
@@ -141,6 +187,7 @@ def build_retention_action_table(queryset):
             }
         )
 
+    _apply_status_badges(rows, metric_key='success_rate', status_key='success_status_class')
     return rows
 
 
@@ -166,6 +213,7 @@ def build_service_type_table(queryset):
             }
         )
 
+    _apply_status_badges(rows, metric_key='retention_rate', status_key='retention_status_class')
     return rows
 
 
@@ -233,6 +281,7 @@ def build_assistant_ranking_table(queryset):
             }
         )
 
+    _apply_status_badges(rows, metric_key='retention_rate', status_key='retention_status_class')
     return rows
 
 
@@ -374,6 +423,154 @@ def build_inconsistency_section(queryset):
             'by_assistant': by_assistant_rates,
         },
     }
+
+
+def generate_insights(filters):
+    """Gera insights automaticos para leitura executiva na visao geral."""
+    base_qs = selectors.get_inbound_queryset()
+    filtered_qs = selectors.apply_filters(
+        base_qs,
+        assistant_name=filters.get('assistant_name'),
+        start_date=filters.get('start_date'),
+        end_date=filters.get('end_date'),
+    )
+
+    if not filtered_qs.exists():
+        return []
+
+    insights = []
+    general_kpis = calculate_general_kpis(filtered_qs)
+
+    churn_rows = [row for row in build_churn_reason_table(filtered_qs, sort='retention_asc') if row['total_calls'] > 0]
+    if churn_rows:
+        # Considera apenas motivos com volume acima da media para evitar ruido estatistico.
+        avg_reason_calls = sum(row['total_calls'] for row in churn_rows) / len(churn_rows)
+        eligible_reasons = [row for row in churn_rows if row['total_calls'] >= avg_reason_calls]
+        worst_reason = eligible_reasons[0] if eligible_reasons else None
+    else:
+        worst_reason = None
+
+    if worst_reason:
+        insights.append(
+            {
+                'type': 'warning',
+                'title': 'Pior motivo de corte',
+                'value': worst_reason['churn_reason'],
+                'description': f"Retencao de {_fmt_pct(worst_reason['retention_rate'])} em {worst_reason['total_calls']} chamadas.",
+            }
+        )
+
+    top_reason = selectors.select_top_churn_reason_by_volume(filtered_qs)
+    if top_reason and (top_reason.get('total_calls') or 0) > 0:
+        insights.append(
+            {
+                'type': 'info',
+                'title': 'Motivo com maior volume',
+                'value': top_reason.get('churn_reason__label') or 'Sem motivo',
+                'description': f"{top_reason['total_calls']} chamadas no periodo analisado",
+            }
+        )
+
+    best_actions = [row for row in build_retention_action_table(filtered_qs) if row['total_used'] > 0]
+    if best_actions:
+        best_action = max(best_actions, key=lambda row: (row['success_rate'], row['total_used']))
+        insights.append(
+            {
+                'type': 'success',
+                'title': 'Melhor acao de retencao',
+                'value': best_action['retention_action'],
+                'description': f"Taxa de sucesso de {_fmt_pct(best_action['success_rate'])} em {best_action['total_used']} usos.",
+            }
+        )
+
+    top_action = selectors.select_top_retention_action_by_volume(filtered_qs)
+    if top_action and (top_action.get('total_used') or 0) > 0:
+        insights.append(
+            {
+                'type': 'info',
+                'title': 'Acao mais utilizada',
+                'value': top_action.get('retention_action__label') or 'Sem acao',
+                'description': f"Aplicada em {top_action['total_used']} chamadas",
+            }
+        )
+
+    service_rows = [row for row in build_service_type_table(filtered_qs) if row['total_calls'] > 0]
+    if service_rows:
+        worst_service = max(service_rows, key=lambda row: (row['non_retention_rate'], row['total_calls']))
+        insights.append(
+            {
+                'type': 'warning',
+                'title': 'Servico com maior nao retencao',
+                'value': worst_service['service_type'],
+                'description': f"Nao retencao de {_fmt_pct(worst_service['non_retention_rate'])}.",
+            }
+        )
+
+    assistant_rows = [row for row in build_assistant_ranking_table(filtered_qs) if row['total_calls'] > 0]
+    average_rate = general_kpis['retention_rate']
+    average_calls = 0
+    if assistant_rows:
+        average_calls = sum(row['total_calls'] for row in assistant_rows) / len(assistant_rows)
+
+    eligible_assistants = [row for row in assistant_rows if row['total_calls'] >= average_calls]
+
+    assistants_above_avg = [row for row in eligible_assistants if row['retention_rate'] > average_rate]
+    if assistants_above_avg:
+        top_assistant = max(assistants_above_avg, key=lambda row: (row['retention_rate'], row['total_calls']))
+        insights.append(
+            {
+                'type': 'success',
+                'title': 'Assistente acima da media',
+                'value': top_assistant['assistant_name'],
+                'url': _assistant_detail_url(top_assistant['assistant_id']),
+                'description': (
+                    f"Retencao de {_fmt_pct(top_assistant['retention_rate'])} "
+                    f"(media geral: {_fmt_pct(average_rate)})."
+                ),
+            }
+        )
+
+    assistants_below_avg = [row for row in eligible_assistants if row['retention_rate'] < average_rate]
+    if assistants_below_avg:
+        low_assistant = min(assistants_below_avg, key=lambda row: (row['retention_rate'], -row['total_calls']))
+        insights.append(
+            {
+                'type': 'info',
+                'title': 'Assistente abaixo da media',
+                'value': low_assistant['assistant_name'],
+                'url': _assistant_detail_url(low_assistant['assistant_id']),
+                'description': (
+                    f"Retencao de {_fmt_pct(low_assistant['retention_rate'])} "
+                    f"(media geral: {_fmt_pct(average_rate)})."
+                ),
+            }
+        )
+
+    inconsistency_kpis = build_inconsistency_section(filtered_qs)['kpis']
+    insights.append(
+        {
+            'type': 'info',
+            'title': 'Total de inconsistencias',
+            'value': str(inconsistency_kpis['total_inconsistencies']),
+            # Mostra contexto de qualidade mesmo quando o total e zero.
+            'description': f"Taxa global de {_fmt_pct(inconsistency_kpis['global_inconsistency_rate'])}.",
+        }
+    )
+
+    top_inconsistency = selectors.select_inconsistency_by_assistant(filtered_qs).first()
+    if top_inconsistency and (top_inconsistency.get('total_inconsistencies') or 0) > 0:
+        total_inconsistencies = top_inconsistency['total_inconsistencies']
+        inconsistency_rate = _pct(total_inconsistencies, general_kpis['total_calls'])
+        insights.append(
+            {
+                'type': 'warning',
+                'title': 'Assistente com mais inconsistencias',
+                'value': top_inconsistency.get('interaction__agent__name') or 'Sem assistente',
+                'description': f"{total_inconsistencies} inconsistencias ({_fmt_pct(inconsistency_rate)})",
+            }
+        )
+
+    return insights
 
 
 def build_frontend_payload(*, general_kpis, temporal_table, churn_reason_table, retention_action_table):

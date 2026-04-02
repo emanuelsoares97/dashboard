@@ -62,6 +62,16 @@ def select_by_churn_reason(queryset):
     )
 
 
+def select_top_churn_reason_by_volume(queryset):
+    """Devolve o motivo com maior volume de chamadas."""
+    return (
+        queryset.values('churn_reason__label')
+        .annotate(total_calls=Count('id'))
+        .order_by('-total_calls', 'churn_reason__label')
+        .first()
+    )
+
+
 def select_by_retention_action(queryset):
     """Agrega resultados por acao de retencao."""
     return (
@@ -72,6 +82,16 @@ def select_by_retention_action(queryset):
             total_call_drop=Count('id', filter=Q(is_call_drop=True)),
         )
         .order_by('-total_used', 'retention_action__label')
+    )
+
+
+def select_top_retention_action_by_volume(queryset):
+    """Devolve a acao de retencao mais utilizada."""
+    return (
+        queryset.values('retention_action__label')
+        .annotate(total_used=Count('id'))
+        .order_by('-total_used', 'retention_action__label')
+        .first()
     )
 
 
@@ -133,6 +153,19 @@ def select_inconsistency_count_by_agent(queryset):
         row['interaction__agent_id']: row['count']
         for row in base.values('interaction__agent_id').annotate(count=Count('id'))
     }
+
+
+def select_inconsistency_by_assistant(queryset):
+    """Devolve contagem de inconsistencias por assistente para leitura operacional."""
+    return (
+        DataQualityFlag.objects.filter(
+            interaction__in=queryset,
+            flag_type=DataQualityFlag.FlagType.TIPIFICATION_INCONSISTENCY,
+        )
+        .values('interaction__agent_id', 'interaction__agent__name')
+        .annotate(total_inconsistencies=Count('id'))
+        .order_by('-total_inconsistencies', 'interaction__agent__name')
+    )
 
 
 def select_assistant_churn_breakdown(queryset):

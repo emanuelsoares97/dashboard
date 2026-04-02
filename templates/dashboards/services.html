@@ -24,7 +24,7 @@
                 <tr>
                     <td>{{ row.service_type }}</td>
                     <td>{{ row.total_calls }}</td>
-                    <td>{{ row.retention_rate|floatformat:2 }}</td>
+                    <td><span class="{{ row.retention_status_class }}">{{ row.retention_rate|floatformat:2 }}</span></td>
                     <td>{{ row.non_retention_rate|floatformat:2 }}</td>
                     <td>{{ row.call_drop_rate|floatformat:2 }}</td>
                 </tr>

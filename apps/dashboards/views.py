@@ -5,7 +5,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.dateparse import parse_date
 
-from apps.dashboards.services import build_dashboard_payload
+from apps.dashboards.services import build_dashboard_payload, generate_insights
 from apps.inbound.models import Agent
 
 
@@ -235,6 +235,26 @@ def inconsistencies(request):
 	)
 	context['section'] = payload['inconsistency_section']
 	return render(request, 'dashboards/inconsistencies.html', context)
+
+
+def insights(request):
+	"""Renderiza pagina dedicada a insights automaticos."""
+	filters = _resolve_filters(request, force_assistant_name='')
+	payload = build_dashboard_payload(
+		granularity=filters['period'],
+		assistant_name=filters['assistant_name'],
+		start_date=filters['start_date'],
+		end_date=filters['end_date'],
+	)
+
+	context = _build_common_context(
+		page_title='Insights Automaticos',
+		active_section='insights',
+		filters=filters,
+		dashboard_payload=payload,
+	)
+	context['insights'] = generate_insights(filters)
+	return render(request, 'dashboards/insights.html', context)
 
 
 def team_dashboard(request):
