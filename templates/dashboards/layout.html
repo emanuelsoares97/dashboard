@@ -71,6 +71,7 @@
             <a class="dashboard-menu-link {% if active_section == 'assistants' %}is-active{% endif %}" href="{% url 'dashboards:assistants' %}?{{ dashboard_querystring }}">Assistentes</a>
             <a class="dashboard-menu-link {% if active_section == 'inconsistencies' %}is-active{% endif %}" href="{% url 'dashboards:inconsistencies' %}?{{ dashboard_querystring }}">Inconsistencias</a>
             <a class="dashboard-menu-link {% if active_section == 'insights' %}is-active{% endif %}" href="{% url 'dashboards:insights' %}?{{ dashboard_querystring }}">Insights</a>
+            <a class="dashboard-menu-link {% if active_section == 'monthly_rates' %}is-active{% endif %}" href="{% url 'dashboards:monthly_rates' %}?{{ dashboard_querystring }}">Taxas Mensais</a>
         </nav>
     </aside>
 

@@ -7,6 +7,7 @@ from apps.dashboards.views import (
     churn_reasons,
     insights,
     inconsistencies,
+    monthly_rates,
     overview,
     retention_actions,
     services,
@@ -25,6 +26,7 @@ urlpatterns = [
     path('assistants/<int:assistant_id>/', assistant_detail, name='assistant_detail'),
     path('inconsistencies/', inconsistencies, name='inconsistencies'),
     path('insights/', insights, name='insights'),
+    path('monthly-rates/', monthly_rates, name='monthly_rates'),
     path('teams/', team_dashboard, name='team_dashboard'),
     path('agents/', agent_dashboard, name='agent_dashboard'),
 ]

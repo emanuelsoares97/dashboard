@@ -5,7 +5,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.dateparse import parse_date
 
-from apps.dashboards.services import build_dashboard_payload, generate_insights
+from apps.dashboards.services import build_dashboard_payload, build_monthly_rates_summary, generate_insights
 from apps.inbound.models import Agent
 
 
@@ -255,6 +255,27 @@ def insights(request):
 	)
 	context['insights'] = generate_insights(filters)
 	return render(request, 'dashboards/insights.html', context)
+
+
+def monthly_rates(request):
+	"""Renderiza pagina com leitura mensal de retidos, nao retidos e call drop."""
+	filters = _resolve_filters(request, force_assistant_name='')
+	payload = build_dashboard_payload(
+		granularity=filters['period'],
+		assistant_name=filters['assistant_name'],
+		start_date=filters['start_date'],
+		end_date=filters['end_date'],
+	)
+
+	context = _build_common_context(
+		page_title='Taxas Mensais',
+		active_section='monthly_rates',
+		filters=filters,
+		dashboard_payload=payload,
+	)
+	context['rows'] = payload['monthly_rates_table']
+	context['summary'] = build_monthly_rates_summary(context['rows'])
+	return render(request, 'dashboards/monthly_rates.html', context)
 
 
 def team_dashboard(request):

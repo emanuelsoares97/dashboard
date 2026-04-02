@@ -97,6 +97,7 @@ def test_legacy_team_redirect_keeps_querystring(client):
         ('dashboards:services', 'rows', 'services'),
         ('dashboards:inconsistencies', 'section', 'inconsistencies'),
         ('dashboards:insights', 'insights', 'insights'),
+        ('dashboards:monthly_rates', 'rows', 'monthly_rates'),
     ],
 )
 def test_auxiliary_dashboard_pages_with_invalid_date_filters(client, route_name, context_key, active_section):
@@ -113,6 +114,14 @@ def test_auxiliary_dashboard_pages_with_invalid_date_filters(client, route_name,
     assert response.status_code == 200
     assert response.context['active_section'] == active_section
     assert context_key in response.context
+
+
+@pytest.mark.django_db
+def test_monthly_rates_view_includes_summary_context(client):
+    response = client.get(reverse('dashboards:monthly_rates'))
+
+    assert response.status_code == 200
+    assert 'summary' in response.context
 
 
 @pytest.mark.django_db

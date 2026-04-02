@@ -4,6 +4,8 @@ from apps.quality.models import DataQualityFlag
 from apps.dashboards.services import (
     build_dashboard_payload,
     build_churn_reason_table,
+    build_monthly_rates_summary,
+    build_monthly_rates_table,
     build_retention_action_table,
     build_service_type_table,
     build_temporal_table,
@@ -237,3 +239,56 @@ def test_table_rows_include_status_classes(interaction_factory, base_dimensions)
     assert churn_rows[0]['retention_status_class'].startswith('badge-')
     assert action_rows[0]['success_status_class'].startswith('badge-')
     assert service_rows[0]['retention_status_class'].startswith('badge-')
+
+
+def test_build_monthly_rates_table_returns_monthly_totals(interaction_factory, base_dimensions):
+    interaction_factory(
+        call_id_external='m-1',
+        start_at=datetime(2026, 1, 10, 10, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 1, 10, 10, 5, tzinfo=timezone.utc),
+        final_outcome=base_dimensions['retained'],
+    )
+    interaction_factory(
+        call_id_external='m-2',
+        start_at=datetime(2026, 2, 10, 10, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 2, 10, 10, 5, tzinfo=timezone.utc),
+        final_outcome=base_dimensions['not_retained'],
+    )
+
+    rows = build_monthly_rates_table(
+        Interaction.objects.all(),
+        start_date=date(2026, 1, 1),
+        end_date=date(2026, 2, 28),
+    )
+
+    assert len(rows) == 2
+    assert rows[0]['month'] == '2026-01'
+    assert rows[0]['total_retained'] == 1
+    assert rows[1]['month'] == '2026-02'
+    assert rows[1]['total_non_retained'] == 1
+
+
+def test_build_monthly_rates_summary_returns_best_and_worst_month(interaction_factory, base_dimensions):
+    interaction_factory(
+        call_id_external='s-jan-1',
+        start_at=datetime(2026, 1, 5, 10, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 1, 5, 10, 5, tzinfo=timezone.utc),
+        final_outcome=base_dimensions['retained'],
+    )
+    interaction_factory(
+        call_id_external='s-feb-1',
+        start_at=datetime(2026, 2, 5, 10, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 2, 5, 10, 5, tzinfo=timezone.utc),
+        final_outcome=base_dimensions['not_retained'],
+    )
+
+    rows = build_monthly_rates_table(
+        Interaction.objects.all(),
+        start_date=date(2026, 1, 1),
+        end_date=date(2026, 2, 28),
+    )
+    summary = build_monthly_rates_summary(rows)
+
+    assert summary['months_with_data'] == 2
+    assert summary['best_month']['month'] == '2026-01'
+    assert summary['worst_month']['month'] == '2026-02'
