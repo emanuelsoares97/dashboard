@@ -47,7 +47,7 @@ class ImportRowRaw(models.Model):
 	batch = models.ForeignKey(ImportBatch, on_delete=models.CASCADE, related_name='raw_rows')
 	source_row_number = models.PositiveIntegerField()
 	raw_payload = models.JSONField()
-	raw_hash = models.CharField(max_length=64, blank=True)
+	raw_hash = models.CharField(max_length=64, blank=True, db_index=True)
 	processed_interaction = models.OneToOneField(
 		'inbound.Interaction',
 		on_delete=models.SET_NULL,

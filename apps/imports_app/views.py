@@ -39,6 +39,7 @@ def upload_excel(request):
 				(
 					'Importacao concluida com sucesso. '
 					f"Linhas: {summary['imported_rows']} | "
+					f"Duplicadas ignoradas: {summary['duplicate_rows']} | "
 					f"Inconsistencias: {summary['inconsistencies']}"
 				),
 			)

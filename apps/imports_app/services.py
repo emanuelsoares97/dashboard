@@ -2,7 +2,7 @@ from pathlib import Path
 
 from django.db import transaction
 
-from apps.imports_app.models import ImportBatch
+from apps.imports_app.models import ImportBatch, ImportRowRaw
 from apps.imports_app.parsers.excel_reader import iter_row_payloads, read_excel_dataframe
 from apps.imports_app.parsers.row_mapper import build_raw_hash, map_row
 from apps.imports_app.persistence.import_writer import create_raw_row, persist_interaction
@@ -17,6 +17,7 @@ def import_excel(file_path: Path, batch: ImportBatch) -> dict:
     validate_required_columns(dataframe.columns)
 
     summary = ImportSummary(total_rows=len(dataframe))
+    seen_hashes: set[str] = set()
 
     with transaction.atomic():
         batch.status = ImportBatch.Status.PROCESSING
@@ -25,11 +26,21 @@ def import_excel(file_path: Path, batch: ImportBatch) -> dict:
 
         for row_number, row_payload in iter_row_payloads(dataframe):
             row_data = map_row(row_number, row_payload)
+            row_hash = build_raw_hash(row_data.raw_payload)
+
+            # Evita duplicados no mesmo ficheiro e entre imports anteriores ja processados.
+            if row_hash in seen_hashes:
+                summary.duplicate_rows += 1
+                continue
+            if ImportRowRaw.objects.filter(raw_hash=row_hash, processed_interaction__isnull=False).exists():
+                summary.duplicate_rows += 1
+                continue
+
             raw_row = create_raw_row(
                 batch=batch,
                 row_number=row_data.row_number,
                 raw_payload=row_data.raw_payload,
-                raw_hash=build_raw_hash(row_data.raw_payload),
+                raw_hash=row_hash,
             )
 
             try:
@@ -47,6 +58,7 @@ def import_excel(file_path: Path, batch: ImportBatch) -> dict:
 
                 summary.imported_rows += 1
                 summary.inconsistencies += created_flags
+                seen_hashes.add(row_hash)
             except Exception as exc:
                 summary.failed_rows += 1
                 batch.error_log = f'{batch.error_log}\nLinha {row_number}: {exc}'.strip()
@@ -63,6 +75,7 @@ def import_excel(file_path: Path, batch: ImportBatch) -> dict:
         )
         batch.notes = (
             f'Linhas importadas: {summary.imported_rows} | '
+            f'Duplicadas ignoradas: {summary.duplicate_rows} | '
             f'Flags: {summary.inconsistencies}'
         )
         batch.save(
