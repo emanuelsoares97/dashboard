@@ -33,6 +33,7 @@ def _resolve_date_range(start_date_raw, end_date_raw, preset):
 def team_dashboard(request):
 	"""Renderiza o dashboard geral sem incluir analise por equipa."""
 	granularity = request.GET.get('period', 'day')
+	assistant_name = request.GET.get('assistant_name', '').strip()
 	date_preset = request.GET.get('date_preset', 'custom').strip() or 'custom'
 	start_date_raw = request.GET.get('start_date', '').strip()
 	end_date_raw = request.GET.get('end_date', '').strip()
@@ -40,6 +41,7 @@ def team_dashboard(request):
 
 	payload = build_dashboard_payload(
 		granularity=granularity,
+		assistant_name=assistant_name,
 		start_date=start_date,
 		end_date=end_date,
 	)
@@ -50,6 +52,7 @@ def team_dashboard(request):
 		'inconsistencies': payload['inconsistency_section']['kpis']['total_inconsistencies'],
 		'dashboard': payload,
 		'period': granularity,
+		'assistant_name': assistant_name,
 		'start_date': start_date.isoformat() if start_date else '',
 		'end_date': end_date.isoformat() if end_date else '',
 		'date_preset': date_preset,

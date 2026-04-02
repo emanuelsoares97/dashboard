@@ -6,6 +6,166 @@ document.addEventListener('DOMContentLoaded', () => {
 
     dashboard.classList.add('is-ready');
 
+    const payloadNode = document.getElementById('dashboard-data');
+    const payload = payloadNode ? JSON.parse(payloadNode.textContent) : null;
+
+    const presetField = document.getElementById('date_preset');
+    const startDateField = document.getElementById('start_date');
+    const endDateField = document.getElementById('end_date');
+
+    const syncDateInputs = () => {
+        const isCustom = !presetField || presetField.value === 'custom';
+        [startDateField, endDateField].forEach((field) => {
+            if (!field) {
+                return;
+            }
+            field.disabled = !isCustom;
+        });
+    };
+
+    if (presetField) {
+        presetField.addEventListener('change', syncDateInputs);
+        syncDateInputs();
+    }
+
+    const chartDefaults = {
+        plugins: {
+            legend: {
+                labels: {
+                    color: '#374151',
+                    boxWidth: 12,
+                },
+            },
+            tooltip: {
+                backgroundColor: '#111827',
+                titleColor: '#ffffff',
+                bodyColor: '#ffffff',
+            },
+        },
+        maintainAspectRatio: false,
+        responsive: true,
+    };
+
+    const markChartReady = (canvasId) => {
+        const canvas = document.getElementById(canvasId);
+        const shell = canvas?.closest('.chart-shell');
+        if (shell) {
+            shell.classList.add('is-ready');
+        }
+        return canvas;
+    };
+
+    const renderOutcomesChart = () => {
+        if (!payload?.outcomes_chart || typeof Chart === 'undefined') {
+            return;
+        }
+        const canvas = markChartReady('outcomes-chart');
+        if (!canvas) {
+            return;
+        }
+
+        new Chart(canvas, {
+            type: 'doughnut',
+            data: {
+                labels: payload.outcomes_chart.labels,
+                datasets: [
+                    {
+                        data: payload.outcomes_chart.datasets[0].data,
+                        backgroundColor: ['#1f8a5b', '#cf3f3f', '#c8801e'],
+                        borderColor: '#ffffff',
+                        borderWidth: 3,
+                    },
+                ],
+            },
+            options: {
+                ...chartDefaults,
+                cutout: '62%',
+            },
+        });
+    };
+
+    const renderTemporalChart = () => {
+        if (!payload?.temporal_chart || typeof Chart === 'undefined') {
+            return;
+        }
+        const canvas = markChartReady('temporal-chart');
+        if (!canvas) {
+            return;
+        }
+
+        const palette = ['#0f4c81', '#cf3f3f', '#c8801e'];
+        new Chart(canvas, {
+            type: 'line',
+            data: {
+                labels: payload.temporal_chart.labels,
+                datasets: payload.temporal_chart.datasets.map((dataset, index) => ({
+                    ...dataset,
+                    borderColor: palette[index],
+                    backgroundColor: palette[index],
+                    tension: 0.28,
+                    fill: false,
+                })),
+            },
+            options: {
+                ...chartDefaults,
+                scales: {
+                    x: {
+                        ticks: { color: '#6b7280' },
+                        grid: { color: '#eef2f7' },
+                    },
+                    y: {
+                        ticks: { color: '#6b7280' },
+                        grid: { color: '#eef2f7' },
+                    },
+                },
+            },
+        });
+    };
+
+    const renderBarChart = (canvasId, chartKey, color) => {
+        if (!payload?.[chartKey] || typeof Chart === 'undefined') {
+            return;
+        }
+        const canvas = markChartReady(canvasId);
+        if (!canvas) {
+            return;
+        }
+
+        new Chart(canvas, {
+            type: 'bar',
+            data: {
+                labels: payload[chartKey].labels,
+                datasets: payload[chartKey].datasets.map((dataset) => ({
+                    ...dataset,
+                    backgroundColor: color,
+                    borderRadius: 8,
+                })),
+            },
+            options: {
+                ...chartDefaults,
+                plugins: {
+                    ...chartDefaults.plugins,
+                    legend: { display: false },
+                },
+                scales: {
+                    x: {
+                        ticks: { color: '#6b7280' },
+                        grid: { display: false },
+                    },
+                    y: {
+                        ticks: { color: '#6b7280' },
+                        grid: { color: '#eef2f7' },
+                    },
+                },
+            },
+        });
+    };
+
+    renderOutcomesChart();
+    renderTemporalChart();
+    renderBarChart('churn-chart', 'churn_chart', '#9aa7b8');
+    renderBarChart('actions-chart', 'actions_chart', '#0f4c81');
+
     const sortableTables = document.querySelectorAll('.table-sortable');
     sortableTables.forEach((table) => {
         const headers = table.querySelectorAll('thead th');
@@ -46,7 +206,52 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
 
                 dataRows.forEach((row) => tbody.appendChild(row));
+                applyMetricHighlights(table);
             });
         });
+
+        applyMetricHighlights(table);
     });
+
+    function applyMetricHighlights(table) {
+        const highlightColumn = Number(table.dataset.highlightColumn);
+        if (Number.isNaN(highlightColumn)) {
+            return;
+        }
+
+        const rows = Array.from(table.querySelectorAll('tbody tr')).filter(
+            (row) => !row.querySelector('.table-empty')
+        );
+        const cells = rows
+            .map((row) => row.children[highlightColumn - 1])
+            .filter(Boolean);
+
+        cells.forEach((cell) => {
+            cell.classList.remove('metric-good', 'metric-bad');
+        });
+
+        const values = cells
+            .map((cell) => Number((cell.textContent || '').trim().replace('%', '').replace(',', '.')))
+            .filter((value) => !Number.isNaN(value));
+
+        if (!values.length) {
+            return;
+        }
+
+        const maxValue = Math.max(...values);
+        const minValue = Math.min(...values);
+
+        cells.forEach((cell) => {
+            const value = Number((cell.textContent || '').trim().replace('%', '').replace(',', '.'));
+            if (Number.isNaN(value)) {
+                return;
+            }
+            if (value === maxValue) {
+                cell.classList.add('metric-good');
+            }
+            if (value === minValue) {
+                cell.classList.add('metric-bad');
+            }
+        });
+    }
 });

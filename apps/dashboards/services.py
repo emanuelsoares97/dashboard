@@ -18,6 +18,10 @@ def _totals_with_non_retained(total_calls, total_retained, total_call_drop):
     return total_non_retained
 
 
+def _take_top(rows, key, limit=8):
+    return sorted(rows, key=lambda item: item.get(key, 0), reverse=True)[:limit]
+
+
 def calculate_general_kpis(queryset):
     """Calcula os KPIs gerais do dashboard com arredondamento a 2 casas."""
     raw = selectors.select_kpis_base(queryset)
@@ -74,6 +78,7 @@ def build_churn_reason_table(queryset, sort='volume'):
 def build_retention_action_table(queryset):
     """Gera tabela por acao de retencao e respetiva eficacia."""
     rows = []
+    total_calls = queryset.count()
 
     for row in selectors.select_by_retention_action(queryset):
         used = row['total_used'] or 0
@@ -85,6 +90,7 @@ def build_retention_action_table(queryset):
             {
                 'retention_action': row['retention_action__label'] or 'Sem acao',
                 'total_used': used,
+                'pct_total': _pct(used, total_calls),
                 'total_retained': retained,
                 'total_non_retained': non_retained,
                 'success_rate': _pct(retained, used),
@@ -98,6 +104,7 @@ def build_retention_action_table(queryset):
 def build_service_type_table(queryset):
     """Gera tabela de desempenho por tipo de servico."""
     rows = []
+    total_all_calls = queryset.count()
 
     for row in selectors.select_by_service_type(queryset):
         total_calls = row['total_calls'] or 0
@@ -109,6 +116,7 @@ def build_service_type_table(queryset):
             {
                 'service_type': row['service_type__label'] or 'Sem tipo de servico',
                 'total_calls': total_calls,
+                'pct_total': _pct(total_calls, total_all_calls),
                 'retention_rate': _pct(retained, total_calls),
                 'non_retention_rate': _pct(non_retained, total_calls),
                 'call_drop_rate': _pct(call_drop, total_calls),
@@ -260,6 +268,62 @@ def build_inconsistency_section(queryset):
     }
 
 
+def build_frontend_payload(*, general_kpis, temporal_table, churn_reason_table, retention_action_table):
+    """Prepara estruturas simples e diretas para o frontend e para o Chart.js."""
+    top_reasons = _take_top(churn_reason_table, 'total_calls')
+    top_actions = _take_top(retention_action_table, 'total_used')
+
+    return {
+        'outcomes_chart': {
+            'labels': ['Retidos', 'Nao Retidos', 'Call Drop'],
+            'datasets': [
+                {
+                    'data': [
+                        general_kpis['total_retained'],
+                        general_kpis['total_non_retained'],
+                        general_kpis['total_call_drop'],
+                    ]
+                }
+            ],
+        },
+        'temporal_chart': {
+            'labels': [row['period'] for row in temporal_table],
+            'datasets': [
+                {
+                    'label': 'Taxa Retencao (%)',
+                    'data': [row['retention_rate'] for row in temporal_table],
+                },
+                {
+                    'label': 'Taxa Nao Retencao (%)',
+                    'data': [row['non_retention_rate'] for row in temporal_table],
+                },
+                {
+                    'label': 'Taxa Call Drop (%)',
+                    'data': [row['call_drop_rate'] for row in temporal_table],
+                },
+            ],
+        },
+        'churn_chart': {
+            'labels': [row['churn_reason'] for row in top_reasons],
+            'datasets': [
+                {
+                    'label': 'Total Chamadas',
+                    'data': [row['total_calls'] for row in top_reasons],
+                }
+            ],
+        },
+        'actions_chart': {
+            'labels': [row['retention_action'] for row in top_actions],
+            'datasets': [
+                {
+                    'label': 'Taxa Sucesso (%)',
+                    'data': [row['success_rate'] for row in top_actions],
+                }
+            ],
+        },
+    }
+
+
 def build_dashboard_payload(*, granularity='day', assistant_name=None, start_date=None, end_date=None):
     """Constroi todo o payload do dashboard sem logica nas views."""
     base_qs = selectors.get_inbound_queryset()
@@ -270,14 +334,28 @@ def build_dashboard_payload(*, granularity='day', assistant_name=None, start_dat
         end_date=end_date,
     )
 
+    general_kpis = calculate_general_kpis(base_qs)
+    churn_reason_table = build_churn_reason_table(base_qs)
+    retention_action_table = build_retention_action_table(base_qs)
+    service_type_table = build_service_type_table(base_qs)
+    temporal_table = build_temporal_table(base_qs, granularity=granularity)
+    assistant_ranking_table = build_assistant_ranking_table(base_qs)
+    inconsistency_section = build_inconsistency_section(base_qs)
+
     payload = {
-        'general_kpis': calculate_general_kpis(base_qs),
-        'churn_reason_table': build_churn_reason_table(base_qs),
-        'retention_action_table': build_retention_action_table(base_qs),
-        'service_type_table': build_service_type_table(base_qs),
-        'temporal_table': build_temporal_table(base_qs, granularity=granularity),
-        'assistant_ranking_table': build_assistant_ranking_table(base_qs),
-        'inconsistency_section': build_inconsistency_section(base_qs),
+        'general_kpis': general_kpis,
+        'churn_reason_table': churn_reason_table,
+        'retention_action_table': retention_action_table,
+        'service_type_table': service_type_table,
+        'temporal_table': temporal_table,
+        'assistant_ranking_table': assistant_ranking_table,
+        'inconsistency_section': inconsistency_section,
+        'frontend_payload': build_frontend_payload(
+            general_kpis=general_kpis,
+            temporal_table=temporal_table,
+            churn_reason_table=churn_reason_table,
+            retention_action_table=retention_action_table,
+        ),
     }
 
     assistant_id = selectors.get_single_assistant_id(base_qs, assistant_name)
