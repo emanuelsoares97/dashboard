@@ -1,0 +1,23 @@
+[run]
+branch = True
+source =
+    apps
+omit =
+    */migrations/*
+    */tests/*
+    */__init__.py
+    */apps.py
+    */admin.py
+    */asgi.py
+    */wsgi.py
+
+[report]
+show_missing = True
+skip_empty = True
+fail_under = 85
+exclude_lines =
+    pragma: no cover
+    if __name__ == .__main__.:
+
+[html]
+directory = htmlcov

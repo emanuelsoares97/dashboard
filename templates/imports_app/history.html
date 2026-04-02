@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/pages/imports.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="card">
+    <div class="import-header">
+        <h2 class="card-title">Historico de Importacoes</h2>
+        <a class="btn btn-secondary" href="{% url 'imports_app:upload_excel' %}">Nova importacao</a>
+    </div>
+
+    <div class="table-wrap-ops">
+        <table class="table table-sortable table-analytic">
+            <thead>
+                <tr>
+                    <th>Ficheiro</th>
+                    <th>Importado em</th>
+                    <th>Total linhas</th>
+                    <th>Importadas</th>
+                    <th>Duplicadas</th>
+                    <th>Falhadas</th>
+                    <th>Inconsistentes</th>
+                    <th>Status</th>
+                    <th>Detalhe</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for batch in batches_page %}
+                <tr>
+                    <td>{{ batch.original_filename }}</td>
+                    <td>{{ batch.imported_at|date:'Y-m-d H:i' }}</td>
+                    <td>{{ batch.total_rows }}</td>
+                    <td>{{ batch.success_rows }}</td>
+                    <td>{{ batch.duplicate_rows }}</td>
+                    <td>{{ batch.failed_rows }}</td>
+                    <td>{{ batch.flagged_rows }}</td>
+                    <td>{{ batch.get_status_display }}</td>
+                    <td><a class="table-link" href="{% url 'imports_app:batch_detail' batch.id %}">Abrir</a></td>
+                </tr>
+                {% empty %}
+                <tr><td class="table-empty" colspan="9">Nenhum lote importado ainda.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if batches_page.paginator.num_pages > 1 %}
+    <nav class="pager" aria-label="Paginacao de lotes">
+        {% if batches_page.has_previous %}
+        <a class="btn btn-secondary" href="?page={{ batches_page.previous_page_number }}">Anterior</a>
+        {% endif %}
+        <span class="pager-info">Pagina {{ batches_page.number }} de {{ batches_page.paginator.num_pages }}</span>
+        {% if batches_page.has_next %}
+        <a class="btn btn-secondary" href="?page={{ batches_page.next_page_number }}">Seguinte</a>
+        {% endif %}
+    </nav>
+    {% endif %}
+</section>
+{% endblock %}

@@ -24,12 +24,16 @@ def create_raw_row(
     row_number: int,
     raw_payload: dict[str, str],
     raw_hash: str,
+    processing_status: str = ImportRowRaw.ProcessingStatus.IMPORTED,
+    processing_error: str = '',
 ) -> ImportRowRaw:
     return ImportRowRaw.objects.create(
         batch=batch,
         source_row_number=row_number,
         raw_payload=raw_payload,
         raw_hash=raw_hash,
+        processing_status=processing_status,
+        processing_error=processing_error,
     )
 
 

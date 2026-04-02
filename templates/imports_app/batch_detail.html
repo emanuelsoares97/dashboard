@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/pages/imports.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="card">
+    <div class="import-header">
+        <h2 class="card-title">Detalhe do Lote #{{ batch.id }}</h2>
+        <a class="btn btn-secondary" href="{% url 'imports_app:history' %}">Voltar ao historico</a>
+    </div>
+
+    <div class="ops-kpi-grid">
+        <article class="card ops-kpi"><span>Ficheiro</span><strong>{{ batch.original_filename }}</strong></article>
+        <article class="card ops-kpi"><span>Status</span><strong>{{ batch.get_status_display }}</strong></article>
+        <article class="card ops-kpi"><span>Total linhas</span><strong>{{ batch.total_rows }}</strong></article>
+        <article class="card ops-kpi"><span>Importadas</span><strong>{{ batch.success_rows }}</strong></article>
+        <article class="card ops-kpi"><span>Duplicadas</span><strong>{{ batch.duplicate_rows }}</strong></article>
+        <article class="card ops-kpi"><span>Falhadas</span><strong>{{ batch.failed_rows }}</strong></article>
+        <article class="card ops-kpi"><span>Inconsistentes</span><strong>{{ inconsistency_total }}</strong></article>
+        <article class="card ops-kpi"><span>Importado em</span><strong>{{ batch.imported_at|date:'Y-m-d H:i' }}</strong></article>
+    </div>
+</section>
+
+<section class="card">
+    <h3 class="card-title">Resumo Operacional</h3>
+    <table class="table">
+        <tbody>
+            <tr><th>Importadas com sucesso</th><td>{{ batch.success_rows }}</td></tr>
+            <tr><th>Duplicadas no mesmo ficheiro</th><td>{{ batch.duplicate_in_file_rows }}</td></tr>
+            <tr><th>Duplicadas de import anterior</th><td>{{ batch.duplicate_previous_rows }}</td></tr>
+            <tr><th>Total duplicadas ignoradas</th><td>{{ batch.duplicate_rows }}</td></tr>
+            <tr><th>Falhadas</th><td>{{ batch.failed_rows }}</td></tr>
+            <tr><th>Inconsistentes</th><td>{{ batch.flagged_rows }}</td></tr>
+        </tbody>
+    </table>
+</section>
+
+{% if batch.error_log %}
+<section class="card">
+    <h3 class="card-title">Erros Encontrados</h3>
+    <pre class="ops-log">{{ batch.error_log }}</pre>
+</section>
+{% endif %}
+
+<section class="card">
+    <h3 class="card-title">Amostra de Linhas Ignoradas ou Invalidas</h3>
+    <div class="ops-sample-grid">
+        <article>
+            <h4>Duplicadas no ficheiro</h4>
+            <ul class="ops-list">
+                {% for row in samples.duplicate_in_file %}
+                <li>Linha {{ row.source_row_number }} - {{ row.processing_error }}</li>
+                {% empty %}<li>Sem ocorrencias.</li>{% endfor %}
+            </ul>
+        </article>
+        <article>
+            <h4>Duplicadas de import anterior</h4>
+            <ul class="ops-list">
+                {% for row in samples.duplicate_previous %}
+                <li>Linha {{ row.source_row_number }} - {{ row.processing_error }}</li>
+                {% empty %}<li>Sem ocorrencias.</li>{% endfor %}
+            </ul>
+        </article>
+        <article>
+            <h4>Falhadas por validacao</h4>
+            <ul class="ops-list">
+                {% for row in samples.failed_rows %}
+                <li>Linha {{ row.source_row_number }} - {{ row.processing_error }}</li>
+                {% empty %}<li>Sem ocorrencias.</li>{% endfor %}
+            </ul>
+        </article>
+    </div>
+</section>
+
+<section class="card">
+    <h3 class="card-title">Amostra de Inconsistencias</h3>
+    <div class="table-wrap-ops">
+        <table class="table table-analytic">
+            <thead>
+                <tr>
+                    <th>Assistente</th>
+                    <th>Tipo</th>
+                    <th>Regra</th>
+                    <th>Descricao</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for flag in inconsistency_samples %}
+                <tr>
+                    <td>{{ flag.interaction.agent.name }}</td>
+                    <td>{{ flag.get_flag_type_display }}</td>
+                    <td>{{ flag.rule_code }}</td>
+                    <td>{{ flag.description }}</td>
+                </tr>
+                {% empty %}
+                <tr><td class="table-empty" colspan="4">Sem inconsistencias neste lote.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

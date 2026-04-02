@@ -30,6 +30,9 @@ class ImportBatch(models.Model):
 	source_schema_version = models.CharField(max_length=50, blank=True)
 	total_rows = models.PositiveIntegerField(default=0)
 	success_rows = models.PositiveIntegerField(default=0)
+	duplicate_rows = models.PositiveIntegerField(default=0)
+	duplicate_in_file_rows = models.PositiveIntegerField(default=0)
+	duplicate_previous_rows = models.PositiveIntegerField(default=0)
 	failed_rows = models.PositiveIntegerField(default=0)
 	flagged_rows = models.PositiveIntegerField(default=0)
 	notes = models.TextField(blank=True)
@@ -44,10 +47,22 @@ class ImportBatch(models.Model):
 
 
 class ImportRowRaw(models.Model):
+	class ProcessingStatus(models.TextChoices):
+		IMPORTED = 'imported', 'Imported'
+		DUPLICATE_IN_FILE = 'duplicate_in_file', 'Duplicate In File'
+		DUPLICATE_PREVIOUS = 'duplicate_previous', 'Duplicate Previous'
+		FAILED_VALIDATION = 'failed_validation', 'Failed Validation'
+
 	batch = models.ForeignKey(ImportBatch, on_delete=models.CASCADE, related_name='raw_rows')
 	source_row_number = models.PositiveIntegerField()
 	raw_payload = models.JSONField()
 	raw_hash = models.CharField(max_length=64, blank=True, db_index=True)
+	processing_status = models.CharField(
+		max_length=30,
+		choices=ProcessingStatus.choices,
+		default=ProcessingStatus.IMPORTED,
+	)
+	processing_error = models.TextField(blank=True)
 	processed_interaction = models.OneToOneField(
 		'inbound.Interaction',
 		on_delete=models.SET_NULL,

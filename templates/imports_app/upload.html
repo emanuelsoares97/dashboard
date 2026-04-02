@@ -9,6 +9,7 @@
 <section class="card" data-page="imports">
     <div class="import-header">
         <h2 class="card-title">Importacao Manual de Excel</h2>
+        <a class="btn btn-secondary" href="{% url 'imports_app:history' %}">Ver historico</a>
     </div>
     <form class="form" method="post" enctype="multipart/form-data">
         {% csrf_token %}

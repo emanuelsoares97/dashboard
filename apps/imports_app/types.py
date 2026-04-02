@@ -47,6 +47,8 @@ class ImportSummary:
     imported_rows: int = 0
     failed_rows: int = 0
     duplicate_rows: int = 0
+    duplicate_in_file_rows: int = 0
+    duplicate_previous_rows: int = 0
     inconsistencies: int = 0
 
     def as_dict(self) -> dict[str, int]:
@@ -55,5 +57,7 @@ class ImportSummary:
             'imported_rows': self.imported_rows,
             'failed_rows': self.failed_rows,
             'duplicate_rows': self.duplicate_rows,
+            'duplicate_in_file_rows': self.duplicate_in_file_rows,
+            'duplicate_previous_rows': self.duplicate_previous_rows,
             'inconsistencies': self.inconsistencies,
         }
