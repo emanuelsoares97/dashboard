@@ -32,11 +32,11 @@
         <tbody>
             {% for batch in recent_batches %}
             <tr>
-                <td>{{ batch.uploaded_filename }}</td>
+                <td>{{ batch.original_filename }}</td>
                 <td>{{ batch.status }}</td>
                 <td>{{ batch.total_rows }}</td>
-                <td>{{ batch.imported_rows }}</td>
-                <td>{{ batch.notes }}</td>
+                <td>{{ batch.success_rows }}</td>
+                <td>{{ batch.notes|default:batch.error_log }}</td>
             </tr>
             {% empty %}
             <tr>

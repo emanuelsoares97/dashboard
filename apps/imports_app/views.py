@@ -22,7 +22,12 @@ def upload_excel(request):
 			for chunk in excel_file.chunks():
 				target.write(chunk)
 
-		batch = ImportBatch.objects.create(uploaded_filename=excel_file.name)
+		batch = ImportBatch.objects.create(
+			original_filename=excel_file.name,
+			stored_filename=destination_path.name,
+			source_type=ImportBatch.SourceType.MANUAL_EXCEL,
+			uploaded_by=request.user if request.user.is_authenticated else None,
+		)
 
 		try:
 			summary = import_excel(destination_path, batch)
@@ -36,8 +41,8 @@ def upload_excel(request):
 			)
 		except Exception as exc:
 			batch.status = ImportBatch.Status.FAILED
-			batch.notes = str(exc)
-			batch.save(update_fields=['status', 'notes'])
+			batch.error_log = str(exc)
+			batch.save(update_fields=['status', 'error_log'])
 			messages.error(request, f'Falha na importacao: {exc}')
 
 		return redirect('imports_app:upload_excel')

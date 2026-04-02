@@ -30,8 +30,8 @@
         <tbody>
             {% for row in rows %}
             <tr>
-                <td>{{ row.team_name }}</td>
-                <td>{{ row.agent_name }}</td>
+                <td>{{ row.team__name }}</td>
+                <td>{{ row.agent__name }}</td>
                 <td>{{ row.total_calls }}</td>
                 <td>{{ row.avg_duration_seconds|floatformat:0 }}</td>
             </tr>

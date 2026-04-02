@@ -1,104 +1,79 @@
 from pathlib import Path
 
-import pandas as pd
 from django.db import transaction
 
 from apps.imports_app.models import ImportBatch
-from apps.inbound.models import CallRecord
-from apps.quality.models import TipificationInconsistency
-
-
-COLUMN_ALIASES = {
-    'external_call_id': ['external_call_id', 'call_id', 'id_chamada'],
-    'team_name': ['team_name', 'team', 'equipe'],
-    'agent_name': ['agent_name', 'agent', 'atendente'],
-    'start_date': ['startdate', 'start_date', 'inicio', 'data_inicio'],
-    'end_date': ['enddate', 'end_date', 'fim', 'data_fim'],
-    'ret_resolution': ['ret_resolution', 'ret resolution', 'ret_resolucao'],
-    'resolution': ['resolution', 'resolucao'],
-    'third_category': ['third_category', '3rd_category', 'motivo_churn'],
-    'service_type': ['service_type', 'tipo_servico'],
-    'call_drop': ['call_drop', 'queda_ligacao'],
-}
-
-
-def normalize_columns(df: pd.DataFrame) -> pd.DataFrame:
-    renamed = {}
-    normalized = {c: c.strip().lower().replace(' ', '_') for c in df.columns}
-
-    for original, normalized_name in normalized.items():
-        for target, aliases in COLUMN_ALIASES.items():
-            if normalized_name in aliases:
-                renamed[original] = target
-                break
-
-    return df.rename(columns=renamed)
-
-
-def to_bool(value) -> bool:
-    text = str(value).strip().lower()
-    return text in {'1', 'true', 'sim', 'yes', 'call drop'}
+from apps.imports_app.parsers.excel_reader import iter_row_payloads, read_excel_dataframe
+from apps.imports_app.parsers.row_mapper import build_raw_hash, map_row
+from apps.imports_app.persistence.import_writer import create_raw_row, persist_interaction
+from apps.imports_app.rules.inconsistencies import detect_inconsistencies
+from apps.imports_app.types import ImportSummary
+from apps.imports_app.validators.file_validator import validate_required_columns
+from apps.imports_app.validators.row_validator import validate_row
 
 
 def import_excel(file_path: Path, batch: ImportBatch) -> dict:
-    df = pd.read_excel(file_path)
-    df = normalize_columns(df)
+    dataframe = read_excel_dataframe(file_path)
+    validate_required_columns(dataframe.columns)
 
-    required = ['team_name', 'agent_name', 'start_date', 'end_date', 'ret_resolution', 'resolution']
-    missing = [col for col in required if col not in df.columns]
-
-    if missing:
-        raise ValueError(f'Colunas obrigatorias ausentes: {", ".join(missing)}')
-
-    total_rows = len(df)
+    summary = ImportSummary(total_rows=len(dataframe))
 
     with transaction.atomic():
         batch.status = ImportBatch.Status.PROCESSING
-        batch.total_rows = total_rows
+        batch.total_rows = summary.total_rows
         batch.save(update_fields=['status', 'total_rows'])
 
-        call_records = []
-        for idx, row in df.iterrows():
-            start_date = pd.to_datetime(row.get('start_date'))
-            end_date = pd.to_datetime(row.get('end_date'))
-            call_records.append(
-                CallRecord(
-                    external_call_id=str(row.get('external_call_id', '') or ''),
-                    team_name=str(row.get('team_name', '') or ''),
-                    agent_name=str(row.get('agent_name', '') or ''),
-                    start_date=start_date.to_pydatetime(),
-                    end_date=end_date.to_pydatetime(),
-                    ret_resolution=str(row.get('ret_resolution', '') or ''),
-                    resolution=str(row.get('resolution', '') or ''),
-                    third_category=str(row.get('third_category', '') or ''),
-                    service_type=str(row.get('service_type', '') or ''),
-                    call_drop=to_bool(row.get('call_drop', '')),
-                    source_file_row=idx + 2,
-                    batch=batch,
-                )
+        for row_number, row_payload in iter_row_payloads(dataframe):
+            row_data = map_row(row_number, row_payload)
+            raw_row = create_raw_row(
+                batch=batch,
+                row_number=row_data.row_number,
+                raw_payload=row_data.raw_payload,
+                raw_hash=build_raw_hash(row_data.raw_payload),
             )
 
-        created = CallRecord.objects.bulk_create(call_records)
+            try:
+                validation_result = validate_row(row_data)
+                if not validation_result.is_valid:
+                    raise ValueError('; '.join(validation_result.errors))
 
-        inconsistencies = []
-        for call in created:
-            if call.resolution.strip().lower() == 'pendente' and call.ret_resolution.strip().lower() == 'retido':
-                inconsistencies.append(
-                    TipificationInconsistency(
-                        call=call,
-                        reason='resolution=Pendente and Ret Resolution=Retido',
-                    )
+                quality_flags = detect_inconsistencies(validation_result.row_data)
+                _, created_flags = persist_interaction(
+                    batch=batch,
+                    raw_row=raw_row,
+                    row_data=validation_result.row_data,
+                    quality_flags=quality_flags,
                 )
 
-        TipificationInconsistency.objects.bulk_create(inconsistencies)
+                summary.imported_rows += 1
+                summary.inconsistencies += created_flags
+            except Exception as exc:
+                summary.failed_rows += 1
+                batch.error_log = f'{batch.error_log}\nLinha {row_number}: {exc}'.strip()
 
-        batch.imported_rows = len(created)
-        batch.status = ImportBatch.Status.DONE
-        batch.notes = f'Inconsistencias detectadas: {len(inconsistencies)}'
-        batch.save(update_fields=['imported_rows', 'status', 'notes'])
+        batch.success_rows = summary.imported_rows
+        batch.failed_rows = summary.failed_rows
+        batch.flagged_rows = summary.inconsistencies
+        batch.status = (
+            ImportBatch.Status.PARTIAL
+            if summary.imported_rows and summary.failed_rows
+            else ImportBatch.Status.SUCCESS
+            if summary.imported_rows
+            else ImportBatch.Status.FAILED
+        )
+        batch.notes = (
+            f'Linhas importadas: {summary.imported_rows} | '
+            f'Flags: {summary.inconsistencies}'
+        )
+        batch.save(
+            update_fields=[
+                'success_rows',
+                'failed_rows',
+                'flagged_rows',
+                'status',
+                'notes',
+                'error_log',
+            ]
+        )
 
-    return {
-        'total_rows': total_rows,
-        'imported_rows': len(created),
-        'inconsistencies': len(inconsistencies),
-    }
+    return summary.as_dict()

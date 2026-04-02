@@ -1,46 +1,146 @@
 from datetime import timedelta
 
+from django.core.exceptions import ValidationError
 from django.db import models
 
 
-class CallRecord(models.Model):
-	"""One report row equals one call record."""
-
-	external_call_id = models.CharField(max_length=100, blank=True)
-	team_name = models.CharField(max_length=120)
-	agent_name = models.CharField(max_length=120)
-	start_date = models.DateTimeField(db_index=True)
-	end_date = models.DateTimeField(db_index=True)
-	ret_resolution = models.CharField(max_length=120, db_index=True)
-	resolution = models.CharField(max_length=120, db_index=True)
-	third_category = models.CharField(max_length=120, blank=True, db_index=True)
-	service_type = models.CharField(max_length=120, blank=True, db_index=True)
-	call_drop = models.BooleanField(default=False)
-	duration_seconds = models.PositiveIntegerField(default=0)
-	source_file_row = models.PositiveIntegerField(null=True, blank=True)
-	batch = models.ForeignKey(
-		'imports_app.ImportBatch',
-		on_delete=models.SET_NULL,
-		null=True,
-		blank=True,
-		related_name='call_records',
-	)
+class Team(models.Model):
+	external_code = models.CharField(max_length=100, blank=True)
+	name = models.CharField(max_length=120, unique=True)
+	is_active = models.BooleanField(default=True)
 	created_at = models.DateTimeField(auto_now_add=True)
 
 	class Meta:
-		ordering = ['-start_date']
-
-	def save(self, *args, **kwargs):
-		if self.start_date and self.end_date:
-			delta: timedelta = self.end_date - self.start_date
-			self.duration_seconds = max(int(delta.total_seconds()), 0)
-		super().save(*args, **kwargs)
-
-	@property
-	def final_outcome(self) -> str:
-		if self.call_drop:
-			return 'Call Drop'
-		return self.ret_resolution
+		ordering = ['name']
 
 	def __str__(self):
-		return f'{self.agent_name} | {self.ret_resolution} | {self.start_date:%Y-%m-%d %H:%M}'
+		return self.name
+
+
+class Agent(models.Model):
+	external_code = models.CharField(max_length=100, blank=True)
+	name = models.CharField(max_length=120)
+	team = models.ForeignKey(Team, on_delete=models.PROTECT, related_name='agents')
+	is_active = models.BooleanField(default=True)
+	created_at = models.DateTimeField(auto_now_add=True)
+
+	class Meta:
+		ordering = ['team__name', 'name']
+		constraints = [
+			models.UniqueConstraint(fields=['team', 'name'], name='unique_agent_name_per_team'),
+		]
+
+	def __str__(self):
+		return f'{self.team.name} | {self.name}'
+
+
+class OutcomeFinal(models.Model):
+	code = models.SlugField(max_length=120, unique=True)
+	label = models.CharField(max_length=120)
+	is_call_drop_outcome = models.BooleanField(default=False)
+
+	class Meta:
+		ordering = ['label']
+
+	def __str__(self):
+		return self.label
+
+
+class RetentionAction(models.Model):
+	code = models.SlugField(max_length=120, unique=True)
+	label = models.CharField(max_length=120)
+	is_pending = models.BooleanField(default=False)
+
+	class Meta:
+		ordering = ['label']
+
+	def __str__(self):
+		return self.label
+
+
+class ChurnReason(models.Model):
+	code = models.SlugField(max_length=120, unique=True)
+	label = models.CharField(max_length=120)
+	category_group = models.CharField(max_length=120, blank=True)
+
+	class Meta:
+		ordering = ['label']
+
+	def __str__(self):
+		return self.label
+
+
+class ServiceType(models.Model):
+	code = models.SlugField(max_length=120, unique=True)
+	label = models.CharField(max_length=120)
+
+	class Meta:
+		ordering = ['label']
+
+	def __str__(self):
+		return self.label
+
+
+class Interaction(models.Model):
+	class Direction(models.TextChoices):
+		INBOUND = 'inbound', 'Inbound'
+		OUTBOUND = 'outbound', 'Outbound'
+
+	batch = models.ForeignKey('imports_app.ImportBatch', on_delete=models.PROTECT, related_name='interactions')
+	direction = models.CharField(max_length=20, choices=Direction.choices, default=Direction.INBOUND)
+	call_id_external = models.CharField(max_length=100, blank=True)
+	team = models.ForeignKey(Team, on_delete=models.PROTECT, related_name='interactions')
+	agent = models.ForeignKey(Agent, on_delete=models.PROTECT, related_name='interactions')
+	start_at = models.DateTimeField(db_index=True)
+	end_at = models.DateTimeField(db_index=True)
+	duration_seconds = models.PositiveIntegerField(default=0)
+	occurred_on = models.DateField(db_index=True)
+	final_outcome = models.ForeignKey(OutcomeFinal, on_delete=models.PROTECT, related_name='interactions')
+	retention_action = models.ForeignKey(
+		RetentionAction, on_delete=models.PROTECT, related_name='interactions'
+	)
+	churn_reason = models.ForeignKey(
+		ChurnReason,
+		on_delete=models.PROTECT,
+		null=True,
+		blank=True,
+		related_name='interactions',
+	)
+	service_type = models.ForeignKey(
+		ServiceType,
+		on_delete=models.PROTECT,
+		null=True,
+		blank=True,
+		related_name='interactions',
+	)
+	is_call_drop = models.BooleanField(default=False)
+	metadata = models.JSONField(default=dict, blank=True)
+	created_at = models.DateTimeField(auto_now_add=True)
+
+	class Meta:
+		ordering = ['-start_at']
+		constraints = [
+			models.CheckConstraint(
+				condition=models.Q(end_at__gte=models.F('start_at')),
+				name='interaction_end_after_start',
+			),
+		]
+		indexes = [
+			models.Index(fields=['direction', 'occurred_on']),
+			models.Index(fields=['team', 'occurred_on']),
+			models.Index(fields=['agent', 'occurred_on']),
+		]
+
+	def clean(self):
+		if self.agent_id and self.team_id and self.agent.team_id != self.team_id:
+			raise ValidationError('Agent must belong to the selected team.')
+
+	def save(self, *args, **kwargs):
+		if self.start_at and self.end_at:
+			delta: timedelta = self.end_at - self.start_at
+			self.duration_seconds = max(int(delta.total_seconds()), 0)
+			self.occurred_on = self.start_at.date()
+		super().save(*args, **kwargs)
+
+	def __str__(self):
+		return f'{self.agent.name} | {self.final_outcome.label} | {self.start_at:%Y-%m-%d %H:%M}'
