@@ -7,6 +7,7 @@
             <h3 class="card-title">Ranking geral de assistentes</h3>
             <p class="panel-subtitle">Comparacao individual com foco em resultados, duracao e consistencia.</p>
         </div>
+        <a class="btn btn-secondary" href="{% url 'dashboards:assistants' %}?{{ dashboard_querystring_without_assistant }}">Limpar filtro de assistente</a>
     </div>
     <div class="table-wrap table-wrap-tall">
         <table class="table table-sortable table-analytic" data-highlight-column="6">

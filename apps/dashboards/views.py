@@ -66,12 +66,22 @@ def _build_common_context(*, page_title, active_section, filters, dashboard_payl
 			'end_date': filters['end_date_raw'],
 		}
 	)
+	querystring_without_assistant = urlencode(
+		{
+			'period': filters['period'],
+			'assistant_name': '',
+			'date_preset': filters['date_preset'],
+			'start_date': filters['start_date_raw'],
+			'end_date': filters['end_date_raw'],
+		}
+	)
 
 	return {
 		'dashboard': dashboard_payload,
 		'page_title': page_title,
 		'active_section': active_section,
 		'dashboard_querystring': querystring,
+		'dashboard_querystring_without_assistant': querystring_without_assistant,
 		'period': filters['period'],
 		'assistant_name': filters['assistant_name'],
 		'date_preset': filters['date_preset'],
