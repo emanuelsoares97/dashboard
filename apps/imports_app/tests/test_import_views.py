@@ -10,6 +10,16 @@ from apps.imports_app.models import ImportBatch
 
 @override_settings(MEDIA_ROOT='test_media')
 class ImportViewsTests(TestCase):
+    def test_upload_view_get_renders_form_and_recent_batches(self):
+        ImportBatch.objects.create(original_filename='recent.xlsx')
+
+        response = self.client.get(reverse('imports_app:upload_excel'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('form', response.context)
+        self.assertIn('recent_batches', response.context)
+        self.assertTemplateUsed(response, 'imports_app/upload.html')
+
     @patch('apps.imports_app.views.import_excel')
     def test_upload_view_creates_new_batch(self, import_excel_mock):
         import_excel_mock.return_value = {
@@ -32,6 +42,49 @@ class ImportViewsTests(TestCase):
         response = self.client.post(reverse('imports_app:upload_excel'), {'file': uploaded})
         self.assertEqual(response.status_code, 302)
         self.assertEqual(ImportBatch.objects.count(), 1)
+
+    @patch('apps.imports_app.views.import_excel')
+    def test_upload_view_sets_failed_status_when_import_raises(self, import_excel_mock):
+        import_excel_mock.side_effect = RuntimeError('Erro de teste na importacao')
+
+        content = BytesIO(b'dummy excel content').getvalue()
+        uploaded = SimpleUploadedFile(
+            'sample_error.xlsx',
+            content,
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        )
+
+        response = self.client.post(reverse('imports_app:upload_excel'), {'file': uploaded})
+        self.assertEqual(response.status_code, 302)
+
+        batch = ImportBatch.objects.get(original_filename='sample_error.xlsx')
+        self.assertEqual(batch.status, ImportBatch.Status.FAILED)
+        self.assertIn('Erro de teste na importacao', batch.error_log)
+
+    @patch('apps.imports_app.views.import_excel')
+    def test_upload_view_handles_empty_import_result(self, import_excel_mock):
+        import_excel_mock.return_value = {
+            'total_rows': 0,
+            'imported_rows': 0,
+            'failed_rows': 0,
+            'duplicate_rows': 0,
+            'duplicate_in_file_rows': 0,
+            'duplicate_previous_rows': 0,
+            'inconsistencies': 0,
+        }
+
+        content = BytesIO(b'dummy excel content').getvalue()
+        uploaded = SimpleUploadedFile(
+            'sample_empty.xlsx',
+            content,
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        )
+
+        response = self.client.post(reverse('imports_app:upload_excel'), {'file': uploaded})
+        self.assertEqual(response.status_code, 302)
+
+        batch = ImportBatch.objects.get(original_filename='sample_empty.xlsx')
+        self.assertEqual(batch.status, ImportBatch.Status.PENDING)
 
     def test_history_view_renders_batches(self):
         ImportBatch.objects.create(original_filename='a.xlsx')
@@ -59,3 +112,9 @@ class ImportViewsTests(TestCase):
         self.assertContains(response, 'Detalhe do Lote')
         self.assertContains(response, 'detail.xlsx')
         self.assertContains(response, 'Duplicadas no mesmo ficheiro')
+
+    def test_batch_detail_view_redirects_when_batch_does_not_exist(self):
+        response = self.client.get(reverse('imports_app:batch_detail', args=[999999]))
+
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, reverse('imports_app:history'))
