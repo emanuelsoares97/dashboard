@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/pages/dashboards.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-shell" data-page="dashboard">
+    <header class="dashboard-topbar">
+        <div class="dashboard-topbar-brand">
+            <p class="dashboard-eyebrow">Retention Analytics System</p>
+            <h2 class="dashboard-topbar-title">{{ page_title }}</h2>
+        </div>
+        <form class="dashboard-topbar-filters" method="get">
+            <div>
+                <label for="date_preset">Intervalo rapido</label>
+                <select id="date_preset" name="date_preset">
+                    <option value="custom" {% if date_preset == 'custom' %}selected{% endif %}>Personalizado</option>
+                    <option value="today" {% if date_preset == 'today' %}selected{% endif %}>Hoje</option>
+                    <option value="last_7_days" {% if date_preset == 'last_7_days' %}selected{% endif %}>Ultimos 7 dias</option>
+                    <option value="current_month" {% if date_preset == 'current_month' %}selected{% endif %}>Mes atual</option>
+                    <option value="previous_month" {% if date_preset == 'previous_month' %}selected{% endif %}>Mes anterior</option>
+                </select>
+            </div>
+            <div>
+                <label for="start_date">Data inicio</label>
+                <input id="start_date" name="start_date" type="date" value="{{ start_date }}">
+            </div>
+            <div>
+                <label for="end_date">Data fim</label>
+                <input id="end_date" name="end_date" type="date" value="{{ end_date }}">
+            </div>
+            <div>
+                <label for="assistant_name">Assistente</label>
+                <input id="assistant_name" name="assistant_name" value="{{ assistant_name|default:'' }}" placeholder="Nome do assistente">
+            </div>
+            <div>
+                <label for="period">Escala temporal</label>
+                <select id="period" name="period">
+                    <option value="day" {% if period == 'day' %}selected{% endif %}>Dia</option>
+                    <option value="week" {% if period == 'week' %}selected{% endif %}>Semana</option>
+                    <option value="month" {% if period == 'month' %}selected{% endif %}>Mes</option>
+                </select>
+            </div>
+            <button class="btn btn-primary" type="submit">Aplicar</button>
+        </form>
+    </header>
+
+    <aside class="dashboard-sidebar card">
+        <nav class="dashboard-menu">
+            <a class="dashboard-menu-link {% if active_section == 'overview' %}is-active{% endif %}" href="{% url 'dashboards:overview' %}?{{ dashboard_querystring }}">Visao Geral</a>
+            <a class="dashboard-menu-link {% if active_section == 'churn' %}is-active{% endif %}" href="{% url 'dashboards:churn_reasons' %}?{{ dashboard_querystring }}">Motivos de Corte</a>
+            <a class="dashboard-menu-link {% if active_section == 'actions' %}is-active{% endif %}" href="{% url 'dashboards:retention_actions' %}?{{ dashboard_querystring }}">Acoes de Retencao</a>
+            <a class="dashboard-menu-link {% if active_section == 'services' %}is-active{% endif %}" href="{% url 'dashboards:services' %}?{{ dashboard_querystring }}">Servicos</a>
+            <a class="dashboard-menu-link {% if active_section == 'assistants' %}is-active{% endif %}" href="{% url 'dashboards:assistants' %}?{{ dashboard_querystring }}">Assistentes</a>
+            <a class="dashboard-menu-link {% if active_section == 'inconsistencies' %}is-active{% endif %}" href="{% url 'dashboards:inconsistencies' %}?{{ dashboard_querystring }}">Inconsistencias</a>
+        </nav>
+    </aside>
+
+    <main class="dashboard-main">
+        {% block dashboard_content %}{% endblock %}
+    </main>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{% static 'js/pages/dashboards.js' %}" defer></script>
+{% endblock %}

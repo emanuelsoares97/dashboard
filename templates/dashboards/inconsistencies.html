@@ -1,0 +1,39 @@
+{% extends 'dashboards/layout.html' %}
+
+{% block dashboard_content %}
+<div class="dashboard-page">
+    <section class="kpi-grid kpi-grid-inconsistency">
+        <article class="kpi-card kpi-card-warning card"><span class="kpi-label">Total inconsistencias</span><strong class="kpi-value">{{ section.kpis.total_inconsistencies }}</strong></article>
+        <article class="kpi-card kpi-card-danger card"><span class="kpi-label">Taxa global</span><strong class="kpi-value">{{ section.kpis.global_inconsistency_rate|floatformat:2 }}%</strong></article>
+    </section>
+
+    <section class="analytics-grid analytics-grid-middle">
+        <article class="card panel">
+            <div class="panel-header"><div><h3 class="card-title">Breakdown por assistente</h3></div></div>
+            <div class="table-wrap table-wrap-compact">
+                <table class="table table-sortable table-analytic">
+                    <thead><tr><th>Assistente</th><th>Total inconsistencias</th><th>Taxa</th></tr></thead>
+                    <tbody>
+                        {% for row in section.kpis.by_assistant %}
+                        <tr><td>{{ row.assistant_name }}</td><td>{{ row.inconsistency_total }}</td><td>{{ row.inconsistency_rate|floatformat:2 }}</td></tr>
+                        {% empty %}<tr><td class="table-empty" colspan="3">Sem inconsistencias no periodo atual.</td></tr>{% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </article>
+        <article class="card panel panel-full">
+            <div class="panel-header"><div><h3 class="card-title">Tabela de inconsistencias</h3></div></div>
+            <div class="table-wrap table-wrap-tall">
+                <table class="table table-sortable table-analytic">
+                    <thead><tr><th>Assistente</th><th>Motivo</th><th>Acao</th><th>Resultado final</th><th>Tipo</th></tr></thead>
+                    <tbody>
+                        {% for row in section.table %}
+                        <tr><td>{{ row.assistant_name }}</td><td>{{ row.churn_reason }}</td><td>{{ row.retention_action }}</td><td>{{ row.final_outcome }}</td><td>{{ row.inconsistency_type }}</td></tr>
+                        {% empty %}<tr><td class="table-empty" colspan="5">Sem inconsistencias no periodo atual.</td></tr>{% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </article>
+    </section>
+</div>
+{% endblock %}

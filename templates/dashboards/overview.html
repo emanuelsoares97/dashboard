@@ -1,0 +1,192 @@
+{% extends 'dashboards/layout.html' %}
+{% load static %}
+
+{% block dashboard_content %}
+<div class="dashboard-page">
+    <section class="kpi-grid">
+        <article class="kpi-card kpi-card-neutral card">
+            <span class="kpi-label">Total chamadas</span>
+            <strong class="kpi-value">{{ dashboard.general_kpis.total_calls }}</strong>
+        </article>
+        <article class="kpi-card kpi-card-success card">
+            <span class="kpi-label">Taxa retencao</span>
+            <strong class="kpi-value">{{ dashboard.general_kpis.retention_rate|floatformat:2 }}%</strong>
+        </article>
+        <article class="kpi-card kpi-card-danger card">
+            <span class="kpi-label">Taxa nao retencao</span>
+            <strong class="kpi-value">{{ dashboard.general_kpis.non_retention_rate|floatformat:2 }}%</strong>
+        </article>
+        <article class="kpi-card kpi-card-warning card">
+            <span class="kpi-label">Call drop</span>
+            <strong class="kpi-value">{{ dashboard.general_kpis.call_drop_rate|floatformat:2 }}%</strong>
+        </article>
+        <article class="kpi-card kpi-card-primary card">
+            <span class="kpi-label">Duracao media</span>
+            <strong class="kpi-value">{{ dashboard.general_kpis.avg_duration_seconds|floatformat:2 }}s</strong>
+        </article>
+    </section>
+
+    <section class="analytics-grid analytics-grid-top">
+        <article class="card panel panel-chart">
+            <div class="panel-header">
+                <div>
+                    <h3 class="card-title">Distribuicao de outcomes</h3>
+                    <p class="panel-subtitle">Retidos, nao retidos e call drop.</p>
+                </div>
+            </div>
+            <div class="chart-shell">
+                <span class="chart-loading">A carregar...</span>
+                <canvas id="outcomes-chart"></canvas>
+            </div>
+        </article>
+        <article class="card panel panel-chart">
+            <div class="panel-header">
+                <div>
+                    <h3 class="card-title">Evolucao temporal</h3>
+                    <p class="panel-subtitle">Comportamento ao longo do periodo selecionado.</p>
+                </div>
+            </div>
+            <div class="chart-shell chart-shell-wide">
+                <span class="chart-loading">A carregar...</span>
+                <canvas id="temporal-chart"></canvas>
+            </div>
+        </article>
+    </section>
+
+    <section class="executive-grid">
+        <article class="card panel executive-panel">
+            <div class="panel-header"><div><h3 class="card-title">Pedidos de corte por servico</h3></div></div>
+            <div class="table-wrap table-wrap-compact">
+                <table class="table table-sortable table-analytic table-compact">
+                    <thead><tr><th>Servico</th><th>Qtde</th><th>%</th></tr></thead>
+                    <tbody>
+                        {% for row in dashboard.service_type_table %}
+                        <tr><td>{{ row.service_type }}</td><td>{{ row.total_calls }}</td><td>{{ row.pct_total|floatformat:2 }}</td></tr>
+                        {% empty %}<tr><td class="table-empty" colspan="3">Sem dados para o periodo atual.</td></tr>{% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </article>
+        <article class="card panel executive-panel">
+            <div class="panel-header"><div><h3 class="card-title">Motivos de corte</h3></div></div>
+            <div class="table-wrap table-wrap-compact">
+                <table class="table table-sortable table-analytic table-compact">
+                    <thead><tr><th>Motivo</th><th>Qtde</th><th>%</th></tr></thead>
+                    <tbody>
+                        {% for row in dashboard.churn_reason_table %}
+                        <tr><td>{{ row.churn_reason }}</td><td>{{ row.total_calls }}</td><td>{{ row.pct_total|floatformat:2 }}</td></tr>
+                        {% empty %}<tr><td class="table-empty" colspan="3">Sem dados para o periodo atual.</td></tr>{% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </article>
+        <article class="card panel executive-panel">
+            <div class="panel-header"><div><h3 class="card-title">Medidas para reter</h3></div></div>
+            <div class="table-wrap table-wrap-compact">
+                <table class="table table-sortable table-analytic table-compact">
+                    <thead><tr><th>Resolucao</th><th>Qtde</th><th>%</th></tr></thead>
+                    <tbody>
+                        {% for row in dashboard.retention_action_table %}
+                        <tr><td>{{ row.retention_action }}</td><td>{{ row.total_used }}</td><td>{{ row.pct_total|floatformat:2 }}</td></tr>
+                        {% empty %}<tr><td class="table-empty" colspan="3">Sem dados para o periodo atual.</td></tr>{% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </article>
+    </section>
+
+    <section class="analytics-grid analytics-grid-middle">
+        <article class="card panel">
+            <div class="panel-header"><div><h3 class="card-title">Tipificacoes com mais nao retidos (Geral)</h3></div></div>
+            <div class="table-wrap table-wrap-compact">
+                <table class="table table-sortable table-analytic" data-highlight-column="4">
+                    <thead><tr><th>Tipificacao</th><th>Total</th><th>Retidos</th><th>Nao retidos</th><th>% do total</th></tr></thead>
+                    <tbody>
+                        {% for row in dashboard.tipification_tables.non_retained %}
+                        <tr>
+                            <td>{{ row.tipification_label }}</td>
+                            <td>{{ row.total_calls }}</td>
+                            <td>{{ row.total_retained }}</td>
+                            <td>{{ row.total_non_retained }}</td>
+                            <td>{{ row.pct_total|floatformat:2 }}</td>
+                        </tr>
+                        {% empty %}<tr><td class="table-empty" colspan="5">Sem dados para o periodo atual.</td></tr>{% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </article>
+        <article class="card panel">
+            <div class="panel-header"><div><h3 class="card-title">Tipificacoes com mais retidos (Geral)</h3></div></div>
+            <div class="table-wrap table-wrap-compact">
+                <table class="table table-sortable table-analytic" data-highlight-column="3">
+                    <thead><tr><th>Tipificacao</th><th>Total</th><th>Retidos</th><th>Nao retidos</th><th>% do total</th></tr></thead>
+                    <tbody>
+                        {% for row in dashboard.tipification_tables.retained %}
+                        <tr>
+                            <td>{{ row.tipification_label }}</td>
+                            <td>{{ row.total_calls }}</td>
+                            <td>{{ row.total_retained }}</td>
+                            <td>{{ row.total_non_retained }}</td>
+                            <td>{{ row.pct_total|floatformat:2 }}</td>
+                        </tr>
+                        {% empty %}<tr><td class="table-empty" colspan="5">Sem dados para o periodo atual.</td></tr>{% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </article>
+    </section>
+
+    <section class="overview-summary-grid">
+        <article class="card panel">
+            <div class="panel-header"><div><h3 class="card-title">Principais motivos de corte</h3></div></div>
+            <div class="table-wrap table-wrap-compact">
+                <table class="table table-sortable table-analytic" data-highlight-column="4">
+                    <thead><tr><th>Motivo</th><th>Total</th><th>% Total</th><th>% Retencao</th></tr></thead>
+                    <tbody>
+                        {% for row in dashboard.churn_reason_table %}
+                        <tr><td>{{ row.churn_reason }}</td><td>{{ row.total_calls }}</td><td>{{ row.pct_total|floatformat:2 }}</td><td>{{ row.retention_rate|floatformat:2 }}</td></tr>
+                        {% empty %}<tr><td class="table-empty" colspan="4">Sem dados para o periodo atual.</td></tr>{% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </article>
+        <article class="card panel">
+            <div class="panel-header"><div><h3 class="card-title">Melhores e piores assistentes</h3></div></div>
+            <div class="table-wrap table-wrap-compact">
+                <table class="table table-sortable table-analytic" data-highlight-column="4">
+                    <thead><tr><th>Assistente</th><th>Total</th><th>Duracao media</th><th>% Retencao</th><th>% Inconsistencia</th></tr></thead>
+                    <tbody>
+                        {% for row in dashboard.assistant_ranking_table %}
+                        <tr>
+                            <td><a class="table-link" href="{% url 'dashboards:assistant_detail' row.assistant_id %}?{{ dashboard_querystring }}">{{ row.assistant_name }}</a></td>
+                            <td>{{ row.total_calls }}</td>
+                            <td>{{ row.avg_duration_seconds|floatformat:2 }}</td>
+                            <td>{{ row.retention_rate|floatformat:2 }}</td>
+                            <td>{{ row.inconsistency_rate|floatformat:2 }}</td>
+                        </tr>
+                        {% empty %}<tr><td class="table-empty" colspan="5">Sem dados para o periodo atual.</td></tr>{% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </article>
+        <article class="card panel">
+            <div class="panel-header"><div><h3 class="card-title">Resumo de inconsistencias</h3></div></div>
+            <div class="inconsistency-kpi-stack">
+                <div class="inconsistency-kpi"><span>Total</span><strong>{{ dashboard.inconsistency_section.kpis.total_inconsistencies }}</strong></div>
+                <div class="inconsistency-kpi"><span>Taxa global</span><strong>{{ dashboard.inconsistency_section.kpis.global_inconsistency_rate|floatformat:2 }}%</strong></div>
+            </div>
+            <div class="table-wrap table-wrap-compact">
+                <table class="table table-sortable table-analytic">
+                    <thead><tr><th>Assistente</th><th>Inconsistencias</th><th>Taxa</th></tr></thead>
+                    <tbody>
+                        {% for row in dashboard.inconsistency_section.kpis.by_assistant %}
+                        <tr><td>{{ row.assistant_name }}</td><td>{{ row.inconsistency_total }}</td><td>{{ row.inconsistency_rate|floatformat:2 }}</td></tr>
+                        {% empty %}<tr><td class="table-empty" colspan="3">Sem inconsistencias no periodo atual.</td></tr>{% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </article>
+    </section>
+</div>
+{{ dashboard.frontend_payload|json_script:'dashboard-data' }}
+{% endblock %}

@@ -1,0 +1,40 @@
+{% extends 'dashboards/layout.html' %}
+
+{% block dashboard_content %}
+<section class="card panel">
+    <div class="panel-header">
+        <div>
+            <h3 class="card-title">Tabela completa por acao de retencao</h3>
+            <p class="panel-subtitle">Leitura detalhada das resolucoes usadas e respetiva eficacia.</p>
+        </div>
+    </div>
+    <div class="table-wrap table-wrap-tall">
+        <table class="table table-sortable table-analytic" data-highlight-column="5">
+            <thead>
+                <tr>
+                    <th>Acao</th>
+                    <th>Total vezes usada</th>
+                    <th>Total retidos</th>
+                    <th>Total nao retidos</th>
+                    <th>% sucesso</th>
+                    <th>% falha</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                <tr>
+                    <td>{{ row.retention_action }}</td>
+                    <td>{{ row.total_used }}</td>
+                    <td>{{ row.total_retained }}</td>
+                    <td>{{ row.total_non_retained }}</td>
+                    <td>{{ row.success_rate|floatformat:2 }}</td>
+                    <td>{{ row.failure_rate|floatformat:2 }}</td>
+                </tr>
+                {% empty %}
+                <tr><td class="table-empty" colspan="6">Sem dados para o periodo atual.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

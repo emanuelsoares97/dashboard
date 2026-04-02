@@ -10,8 +10,10 @@ def get_inbound_queryset():
     return Interaction.objects.filter(direction=Interaction.Direction.INBOUND)
 
 
-def apply_filters(queryset, *, assistant_name=None, start_date=None, end_date=None):
+def apply_filters(queryset, *, assistant_name=None, assistant_id=None, start_date=None, end_date=None):
     """Aplica filtros opcionais comuns a todas as analises."""
+    if assistant_id:
+        queryset = queryset.filter(agent_id=assistant_id)
     if assistant_name:
         queryset = queryset.filter(agent__name__icontains=assistant_name)
     if start_date:
@@ -173,4 +175,17 @@ def select_inconsistency_table(queryset):
             'description',
         )
         .order_by('interaction__agent__name', 'interaction__churn_reason__label')
+    )
+
+
+def select_tipification_breakdown(queryset):
+    """Agrega tipificacao (motivo + acao) para leitura de retidos e nao retidos."""
+    return (
+        queryset.values('churn_reason__label', 'retention_action__label')
+        .annotate(
+            total_calls=Count('id'),
+            total_retained=Count('id', filter=Q(final_outcome__code='retido', is_call_drop=False)),
+            total_call_drop=Count('id', filter=Q(is_call_drop=True)),
+        )
+        .order_by('-total_calls', 'churn_reason__label', 'retention_action__label')
     )

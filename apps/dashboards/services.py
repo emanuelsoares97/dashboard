@@ -182,11 +182,12 @@ def build_assistant_ranking_table(queryset):
     return rows
 
 
-def build_assistant_detail(queryset, assistant_id):
+def build_assistant_detail(queryset, assistant_id, granularity='day'):
     """Gera analise detalhada para um assistente especifico."""
     assistant_qs = queryset.filter(agent_id=assistant_id)
 
     churn_rows = []
+    assistant_total_calls = assistant_qs.count()
     for row in selectors.select_assistant_churn_breakdown(assistant_qs):
         total_calls = row['total_calls'] or 0
         retained = row['total_retained'] or 0
@@ -196,6 +197,7 @@ def build_assistant_detail(queryset, assistant_id):
                 'assistant_name': row['agent__name'] or 'Sem assistente',
                 'churn_reason': row['churn_reason__label'] or 'Sem motivo',
                 'total_calls': total_calls,
+                'pct_total': _pct(total_calls, assistant_total_calls),
                 'retention_rate': _pct(retained, total_calls),
             }
         )
@@ -216,12 +218,64 @@ def build_assistant_detail(queryset, assistant_id):
         )
 
     base_kpis = calculate_general_kpis(assistant_qs)
+    temporal_table = build_temporal_table(assistant_qs, granularity=granularity)
+    tipification_tables = build_tipification_tables(assistant_qs)
 
     return {
         'kpis': base_kpis,
         'top_churn_reasons': churn_rows,
         'retention_actions': action_rows,
+        'temporal_table': temporal_table,
         'avg_duration_seconds': base_kpis['avg_duration_seconds'],
+        'tipification_non_retained': tipification_tables['non_retained'],
+        'tipification_retained': tipification_tables['retained'],
+        'frontend_payload': build_frontend_payload(
+            general_kpis=base_kpis,
+            temporal_table=temporal_table,
+            churn_reason_table=churn_rows,
+            retention_action_table=action_rows,
+        ),
+    }
+
+
+def build_tipification_tables(queryset, limit=10):
+    """Gera tabelas de tipificacoes com mais retidos e mais nao retidos."""
+    rows = []
+    total_calls = queryset.count()
+
+    for row in selectors.select_tipification_breakdown(queryset):
+        row_total_calls = row['total_calls'] or 0
+        total_retained = row['total_retained'] or 0
+        total_call_drop = row['total_call_drop'] or 0
+        total_non_retained = _totals_with_non_retained(row_total_calls, total_retained, total_call_drop)
+
+        churn_reason = row['churn_reason__label'] or 'Sem motivo'
+        retention_action = row['retention_action__label'] or 'Sem acao'
+
+        rows.append(
+            {
+                'tipification_label': f'{churn_reason} | {retention_action}',
+                'churn_reason': churn_reason,
+                'retention_action': retention_action,
+                'total_calls': row_total_calls,
+                'pct_total': _pct(row_total_calls, total_calls),
+                'total_retained': total_retained,
+                'total_non_retained': total_non_retained,
+            }
+        )
+
+    non_retained = sorted(
+        rows,
+        key=lambda item: (-item['total_non_retained'], -item['total_calls'], item['tipification_label']),
+    )[:limit]
+    retained = sorted(
+        rows,
+        key=lambda item: (-item['total_retained'], -item['total_calls'], item['tipification_label']),
+    )[:limit]
+
+    return {
+        'non_retained': non_retained,
+        'retained': retained,
     }
 
 
@@ -324,12 +378,20 @@ def build_frontend_payload(*, general_kpis, temporal_table, churn_reason_table, 
     }
 
 
-def build_dashboard_payload(*, granularity='day', assistant_name=None, start_date=None, end_date=None):
+def build_dashboard_payload(
+    *,
+    granularity='day',
+    assistant_name=None,
+    assistant_id=None,
+    start_date=None,
+    end_date=None,
+):
     """Constroi todo o payload do dashboard sem logica nas views."""
     base_qs = selectors.get_inbound_queryset()
     base_qs = selectors.apply_filters(
         base_qs,
         assistant_name=assistant_name,
+        assistant_id=assistant_id,
         start_date=start_date,
         end_date=end_date,
     )
@@ -341,6 +403,7 @@ def build_dashboard_payload(*, granularity='day', assistant_name=None, start_dat
     temporal_table = build_temporal_table(base_qs, granularity=granularity)
     assistant_ranking_table = build_assistant_ranking_table(base_qs)
     inconsistency_section = build_inconsistency_section(base_qs)
+    tipification_tables = build_tipification_tables(base_qs)
 
     payload = {
         'general_kpis': general_kpis,
@@ -350,6 +413,7 @@ def build_dashboard_payload(*, granularity='day', assistant_name=None, start_dat
         'temporal_table': temporal_table,
         'assistant_ranking_table': assistant_ranking_table,
         'inconsistency_section': inconsistency_section,
+        'tipification_tables': tipification_tables,
         'frontend_payload': build_frontend_payload(
             general_kpis=general_kpis,
             temporal_table=temporal_table,
@@ -358,8 +422,12 @@ def build_dashboard_payload(*, granularity='day', assistant_name=None, start_dat
         ),
     }
 
-    assistant_id = selectors.get_single_assistant_id(base_qs, assistant_name)
-    if assistant_id:
-        payload['assistant_detail'] = build_assistant_detail(base_qs, assistant_id)
+    resolved_assistant_id = assistant_id or selectors.get_single_assistant_id(base_qs, assistant_name)
+    if resolved_assistant_id:
+        payload['assistant_detail'] = build_assistant_detail(
+            base_qs,
+            resolved_assistant_id,
+            granularity=granularity,
+        )
 
     return payload

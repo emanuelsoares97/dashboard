@@ -1,0 +1,46 @@
+{% extends 'dashboards/layout.html' %}
+
+{% block dashboard_content %}
+<section class="card panel">
+    <div class="panel-header">
+        <div>
+            <h3 class="card-title">Ranking geral de assistentes</h3>
+            <p class="panel-subtitle">Comparacao individual com foco em resultados, duracao e consistencia.</p>
+        </div>
+    </div>
+    <div class="table-wrap table-wrap-tall">
+        <table class="table table-sortable table-analytic" data-highlight-column="6">
+            <thead>
+                <tr>
+                    <th>Assistente</th>
+                    <th>Total chamadas</th>
+                    <th>Duracao media</th>
+                    <th>Total retidos</th>
+                    <th>Total nao retidos</th>
+                    <th>% retencao</th>
+                    <th>% nao retencao</th>
+                    <th>% call drop</th>
+                    <th>% inconsistência</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                <tr>
+                    <td><a class="table-link" href="{% url 'dashboards:assistant_detail' row.assistant_id %}?{{ dashboard_querystring }}">{{ row.assistant_name }}</a></td>
+                    <td>{{ row.total_calls }}</td>
+                    <td>{{ row.avg_duration_seconds|floatformat:2 }}</td>
+                    <td>{{ row.total_retained }}</td>
+                    <td>{{ row.total_non_retained }}</td>
+                    <td>{{ row.retention_rate|floatformat:2 }}</td>
+                    <td>{{ row.non_retention_rate|floatformat:2 }}</td>
+                    <td>{{ row.call_drop_rate|floatformat:2 }}</td>
+                    <td>{{ row.inconsistency_rate|floatformat:2 }}</td>
+                </tr>
+                {% empty %}
+                <tr><td class="table-empty" colspan="9">Sem dados para o periodo atual.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}
