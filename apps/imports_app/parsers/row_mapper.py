@@ -39,17 +39,22 @@ def build_raw_hash(raw_payload: dict[str, str]) -> str:
 
 def map_row(row_number: int, row: dict[str, Any]) -> ImportRowData:
     raw_payload = build_raw_payload(row)
+    final_outcome = normalize_text(row.get('final_outcome'))
+
     return ImportRowData(
         row_number=row_number,
         raw_payload=raw_payload,
         external_call_id=normalize_text(row.get('external_call_id')),
-        team_name=normalize_text(row.get('team_name')),
         agent_name=normalize_text(row.get('agent_name')),
         start_at=parse_datetime(row.get('start_date')),
         end_at=parse_datetime(row.get('end_date')),
-        ret_resolution=normalize_text(row.get('ret_resolution')),
-        resolution=normalize_text(row.get('resolution')),
-        third_category=normalize_text(row.get('third_category')),
+        final_outcome=final_outcome,
+        retention_action=normalize_text(row.get('retention_action')),
+        churn_reason=normalize_text(row.get('churn_reason')),
         service_type=normalize_text(row.get('service_type')),
-        is_call_drop=to_bool(row.get('call_drop', '')),
+        is_call_drop=to_bool(final_outcome),
+        day=normalize_text(row.get('day')),
+        week=normalize_text(row.get('week')),
+        month=normalize_text(row.get('month')),
+        exclude=normalize_text(row.get('exclude')),
     )

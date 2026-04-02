@@ -8,15 +8,18 @@ class ImportRowData:
     row_number: int
     raw_payload: dict[str, Any]
     external_call_id: str
-    team_name: str
     agent_name: str
     start_at: datetime | None
     end_at: datetime | None
-    ret_resolution: str
-    resolution: str
-    third_category: str
+    final_outcome: str
+    retention_action: str
+    churn_reason: str
     service_type: str
     is_call_drop: bool
+    day: str
+    week: str
+    month: str
+    exclude: str
     direction: str = 'inbound'
 
 

@@ -91,10 +91,11 @@ def persist_interaction(
     row_data: ImportRowData,
     quality_flags: list[QualityFlagInput],
 ) -> tuple[Interaction, int]:
-    team = get_team(row_data.team_name)
+    # A V1 nao recebe equipa no Excel; usamos uma equipa tecnica por defeito.
+    team = get_team('Sem Equipa Definida')
     agent = get_agent(team, row_data.agent_name)
-    outcome_label = 'Call Drop' if row_data.is_call_drop else row_data.ret_resolution
-    action_label = row_data.resolution
+    outcome_label = 'Call Drop' if row_data.is_call_drop else row_data.final_outcome
+    action_label = row_data.retention_action
 
     interaction = Interaction.objects.create(
         batch=batch,
@@ -107,13 +108,17 @@ def persist_interaction(
         occurred_on=row_data.start_at.date(),
         final_outcome=get_outcome(outcome_label, row_data.is_call_drop),
         retention_action=get_retention_action(action_label),
-        churn_reason=get_churn_reason(row_data.third_category),
+        churn_reason=get_churn_reason(row_data.churn_reason),
         service_type=get_service_type(row_data.service_type),
         is_call_drop=row_data.is_call_drop,
         metadata={
             'source': 'manual_excel',
-            'original_ret_resolution': row_data.ret_resolution,
-            'original_resolution': row_data.resolution,
+            'original_ret_resolution': row_data.final_outcome,
+            'original_resolution': row_data.retention_action,
+            'day': row_data.day,
+            'week': row_data.week,
+            'month': row_data.month,
+            'exclude': row_data.exclude,
         },
     )
 

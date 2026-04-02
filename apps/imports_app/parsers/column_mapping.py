@@ -1,25 +1,50 @@
-COLUMN_ALIASES = {
-    'external_call_id': ['external_call_id', 'call_id', 'id_chamada'],
-    'team_name': ['team_name', 'team', 'equipe'],
-    'agent_name': ['agent_name', 'agent', 'atendente'],
-    'start_date': ['startdate', 'start_date', 'inicio', 'data_inicio'],
-    'end_date': ['enddate', 'end_date', 'fim', 'data_fim'],
-    'ret_resolution': ['ret_resolution', 'ret resolution', 'ret_resolucao'],
-    'resolution': ['resolution', 'resolucao'],
-    'third_category': ['third_category', '3rd_category', 'motivo_churn'],
-    'service_type': ['service_type', 'tipo_servico'],
-    'call_drop': ['call_drop', 'queda_ligacao'],
+"""Mapeamento explicito entre colunas reais do Excel e campos internos da V1."""
+
+EXCEL_TO_INTERNAL_MAP = {
+    'id_client': 'external_call_id',
+    'name': 'agent_name',
+    'startDate': 'start_date',
+    'enddate': 'end_date',
+    'service_type': 'service_type',
+    'third_category': 'churn_reason',
+    'resolution': 'retention_action',
+    'Ret Resolution': 'final_outcome',
+    'Day': 'day',
+    'Week': 'week',
+    'Month': 'month',
+    'Exclude': 'exclude',
+}
+
+# Estas colunas existem no ficheiro, mas nao entram na logica da V1.
+IGNORED_V1_COLUMNS = {
+    'category',
+    'subcategory',
+    'category2',
+    'subcategory2',
+    'resolution2',
+    'promote',
+    'Tipe of service promoted',
+    'actions',
+    'Clients Status',
+    'observations',
+    'breakdown',
+    'bonification',
+    'id_apel',
+    'User language',
+    'Full Category',
+    'Ret Group',
+    'Customer Count',
+    'Final Status',
+    'msidn',
+    'ticket',
 }
 
 
 def normalize_columns(columns: list[str]) -> dict[str, str]:
-    renamed = {}
-    normalized = {column: column.strip().lower().replace(' ', '_') for column in columns}
-
-    for original, normalized_name in normalized.items():
-        for target, aliases in COLUMN_ALIASES.items():
-            if normalized_name in aliases:
-                renamed[original] = target
-                break
-
+    """Renomeia apenas colunas exactas (case-sensitive) previstas para a V1."""
+    renamed: dict[str, str] = {}
+    for original in columns:
+        target = EXCEL_TO_INTERNAL_MAP.get(original)
+        if target:
+            renamed[original] = target
     return renamed

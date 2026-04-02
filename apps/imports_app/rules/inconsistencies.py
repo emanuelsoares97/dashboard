@@ -5,7 +5,7 @@ from apps.quality.models import DataQualityFlag
 def detect_inconsistencies(row_data: ImportRowData) -> list[QualityFlagInput]:
     flags: list[QualityFlagInput] = []
 
-    if row_data.resolution.lower() == 'pendente' and row_data.ret_resolution.lower() == 'retido':
+    if row_data.retention_action.lower() == 'pendente' and row_data.final_outcome.lower() == 'retido':
         flags.append(
             QualityFlagInput(
                 flag_type=DataQualityFlag.FlagType.TIPIFICATION_INCONSISTENCY,
