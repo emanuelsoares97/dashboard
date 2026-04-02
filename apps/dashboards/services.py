@@ -1,3 +1,5 @@
+from datetime import date, timedelta
+
 from apps.dashboards import selectors
 
 
@@ -20,6 +22,47 @@ def _totals_with_non_retained(total_calls, total_retained, total_call_drop):
 
 def _take_top(rows, key, limit=8):
     return sorted(rows, key=lambda item: item.get(key, 0), reverse=True)[:limit]
+
+
+def _normalize_period(period):
+    if period is None:
+        return None
+    if hasattr(period, 'date'):
+        return period.date()
+    return period
+
+
+def _iter_periods(start_date, end_date, granularity):
+    if not start_date or not end_date or start_date > end_date:
+        return []
+
+    if granularity == 'month':
+        cursor = start_date.replace(day=1)
+        end_marker = end_date.replace(day=1)
+        periods = []
+        while cursor <= end_marker:
+            periods.append(cursor)
+            if cursor.month == 12:
+                cursor = cursor.replace(year=cursor.year + 1, month=1, day=1)
+            else:
+                cursor = cursor.replace(month=cursor.month + 1, day=1)
+        return periods
+
+    if granularity == 'week':
+        cursor = start_date - timedelta(days=start_date.weekday())
+        end_marker = end_date - timedelta(days=end_date.weekday())
+        periods = []
+        while cursor <= end_marker:
+            periods.append(cursor)
+            cursor += timedelta(days=7)
+        return periods
+
+    cursor = start_date
+    periods = []
+    while cursor <= end_date:
+        periods.append(cursor)
+        cursor += timedelta(days=1)
+    return periods
 
 
 def calculate_general_kpis(queryset):
@@ -126,22 +169,33 @@ def build_service_type_table(queryset):
     return rows
 
 
-def build_temporal_table(queryset, granularity='day'):
+def build_temporal_table(queryset, granularity='day', start_date=None, end_date=None):
     """Gera serie temporal por dia/semana/mes para graficos e tabelas."""
     rows = []
+    aggregated = {}
 
     for row in selectors.select_temporal(queryset, granularity=granularity):
-        total_calls = row['total_calls'] or 0
-        retained = row['total_retained'] or 0
-        call_drop = row['total_call_drop'] or 0
-        non_retained = _totals_with_non_retained(total_calls, retained, call_drop)
+        period = _normalize_period(row['period'])
+        if period is None:
+            continue
+        aggregated[period] = {
+            'total_calls': row['total_calls'] or 0,
+            'total_retained': row['total_retained'] or 0,
+            'total_call_drop': row['total_call_drop'] or 0,
+        }
 
-        period = row['period']
-        period_label = period.isoformat() if period else 'Sem periodo'
+    period_keys = _iter_periods(start_date, end_date, granularity) if start_date and end_date else sorted(aggregated)
+
+    for period in period_keys:
+        totals = aggregated.get(period, {'total_calls': 0, 'total_retained': 0, 'total_call_drop': 0})
+        total_calls = totals['total_calls']
+        retained = totals['total_retained']
+        call_drop = totals['total_call_drop']
+        non_retained = _totals_with_non_retained(total_calls, retained, call_drop)
 
         rows.append(
             {
-                'period': period_label,
+                'period': period.isoformat(),
                 'total_calls': total_calls,
                 'retention_rate': _pct(retained, total_calls),
                 'non_retention_rate': _pct(non_retained, total_calls),
@@ -400,7 +454,12 @@ def build_dashboard_payload(
     churn_reason_table = build_churn_reason_table(base_qs)
     retention_action_table = build_retention_action_table(base_qs)
     service_type_table = build_service_type_table(base_qs)
-    temporal_table = build_temporal_table(base_qs, granularity=granularity)
+    temporal_table = build_temporal_table(
+        base_qs,
+        granularity=granularity,
+        start_date=start_date,
+        end_date=end_date,
+    )
     assistant_ranking_table = build_assistant_ranking_table(base_qs)
     inconsistency_section = build_inconsistency_section(base_qs)
     tipification_tables = build_tipification_tables(base_qs)

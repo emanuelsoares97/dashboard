@@ -1,6 +1,6 @@
 from datetime import date, datetime, timedelta, timezone
 
-from apps.dashboards.services import build_dashboard_payload, calculate_general_kpis
+from apps.dashboards.services import build_dashboard_payload, build_temporal_table, calculate_general_kpis
 from apps.inbound.models import Interaction
 
 
@@ -62,3 +62,17 @@ def test_build_dashboard_payload_includes_assistant_detail(interaction_factory):
     assert 'assistant_detail' in payload
     assert payload['assistant_detail']['kpis']['total_calls'] >= 1
     assert 'tipification_non_retained' in payload['assistant_detail']
+
+
+def test_build_temporal_table_fills_previous_month_with_zero_when_no_data(db):
+    rows = build_temporal_table(
+        Interaction.objects.none(),
+        granularity='month',
+        start_date=date(2026, 3, 1),
+        end_date=date(2026, 3, 31),
+    )
+
+    assert len(rows) == 1
+    assert rows[0]['period'] == '2026-03-01'
+    assert rows[0]['total_calls'] == 0
+    assert rows[0]['retention_rate'] == 0.0

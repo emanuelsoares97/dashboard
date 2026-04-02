@@ -6,6 +6,14 @@ import pandas as pd
 from apps.imports_app.types import ImportRowData
 
 
+SERVICE_TYPE_NORMALIZATION_MAP = {
+    'Voz p\u00f3s-paga': 'Voz p\u00f3s-pago',
+    'Voz pr\u00e9-paga': 'Voz pr\u00e9-pago',
+    'Voz p\u00c3\u00b3s-paga': 'Voz p\u00f3s-pago',
+    'Voz pr\u00c3\u00a9-paga': 'Voz pr\u00e9-pago',
+}
+
+
 def normalize_text(value: Any) -> str:
     if pd.isna(value):
         return ''
@@ -37,6 +45,11 @@ def build_raw_hash(raw_payload: dict[str, str]) -> str:
     return hashlib.sha256(serialized.encode('utf-8')).hexdigest()
 
 
+def normalize_service_type(value: Any) -> str:
+    service_type = normalize_text(value)
+    return SERVICE_TYPE_NORMALIZATION_MAP.get(service_type, service_type)
+
+
 def map_row(row_number: int, row: dict[str, Any]) -> ImportRowData:
     raw_payload = build_raw_payload(row)
     final_outcome = normalize_text(row.get('final_outcome'))
@@ -51,7 +64,7 @@ def map_row(row_number: int, row: dict[str, Any]) -> ImportRowData:
         final_outcome=final_outcome,
         retention_action=normalize_text(row.get('retention_action')),
         churn_reason=normalize_text(row.get('churn_reason')),
-        service_type=normalize_text(row.get('service_type')),
+        service_type=normalize_service_type(row.get('service_type')),
         is_call_drop=to_bool(final_outcome),
         day=normalize_text(row.get('day')),
         week=normalize_text(row.get('week')),

@@ -58,11 +58,11 @@
             <div class="panel-header"><div><h3 class="card-title">Pedidos de corte por servico</h3></div></div>
             <div class="table-wrap table-wrap-compact">
                 <table class="table table-sortable table-analytic table-compact">
-                    <thead><tr><th>Servico</th><th>Qtde</th><th>%</th></tr></thead>
+                    <thead><tr><th>Servico</th><th>Qtde</th><th>%</th><th>% Retencao</th></tr></thead>
                     <tbody>
                         {% for row in dashboard.service_type_table %}
-                        <tr><td>{{ row.service_type }}</td><td>{{ row.total_calls }}</td><td>{{ row.pct_total|floatformat:2 }}</td></tr>
-                        {% empty %}<tr><td class="table-empty" colspan="3">Sem dados para o periodo atual.</td></tr>{% endfor %}
+                        <tr><td>{{ row.service_type }}</td><td>{{ row.total_calls }}</td><td>{{ row.pct_total|floatformat:2 }}</td><td>{{ row.retention_rate|floatformat:2 }}</td></tr>
+                        {% empty %}<tr><td class="table-empty" colspan="4">Sem dados para o periodo atual.</td></tr>{% endfor %}
                     </tbody>
                 </table>
             </div>
@@ -151,7 +151,7 @@
             </div>
         </article>
         <article class="card panel">
-            <div class="panel-header"><div><h3 class="card-title">Melhores e piores assistentes</h3></div></div>
+            <div class="panel-header"><div><h3 class="card-title">Top e bottom assistentes</h3></div></div>
             <div class="table-wrap table-wrap-compact">
                 <table class="table table-sortable table-analytic" data-highlight-column="4">
                     <thead><tr><th>Assistente</th><th>Total</th><th>Duracao media</th><th>% Retencao</th><th>% Inconsistencia</th></tr></thead>

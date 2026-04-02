@@ -11,6 +11,7 @@ def test_overview_view_returns_200(client):
     assert response.status_code == 200
     assert 'dashboard' in response.context
     assert response.context['active_section'] == 'overview'
+    assert response.context['period'] == 'day'
 
 
 @pytest.mark.django_db
@@ -58,6 +59,24 @@ def test_overview_with_today_preset_sets_dates_in_context(client):
     assert response.context['start_date']
     assert response.context['end_date']
     assert response.context['date_preset'] == 'today'
+
+
+@pytest.mark.django_db
+def test_overview_defaults_to_current_month_when_no_preset_is_sent(client):
+    response = client.get(reverse('dashboards:overview'))
+
+    assert response.status_code == 200
+    assert response.context['date_preset'] == 'current_month'
+    assert response.context['start_date']
+    assert response.context['end_date']
+
+
+@pytest.mark.django_db
+def test_overview_with_invalid_period_falls_back_to_day(client):
+    response = client.get(reverse('dashboards:overview'), {'period': 'year'})
+
+    assert response.status_code == 200
+    assert response.context['period'] == 'day'
 
 
 @pytest.mark.django_db

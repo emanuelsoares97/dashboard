@@ -35,12 +35,14 @@ def _resolve_date_range(start_date_raw, end_date_raw, preset):
 
 def _resolve_filters(request, *, force_assistant_name=None):
 	"""Extrai e normaliza os filtros globais usados em todas as paginas."""
-	granularity = request.GET.get('period', 'day')
+	granularity = request.GET.get('period', '').strip().lower()
+	if granularity not in {'day', 'week', 'month'}:
+		granularity = 'day'
 	assistant_name = request.GET.get('assistant_name', '').strip()
 	if force_assistant_name is not None:
 		assistant_name = force_assistant_name
 
-	date_preset = request.GET.get('date_preset', 'custom').strip() or 'custom'
+	date_preset = request.GET.get('date_preset', 'current_month').strip() or 'current_month'
 	start_date_raw = request.GET.get('start_date', '').strip()
 	end_date_raw = request.GET.get('end_date', '').strip()
 	start_date, end_date = _resolve_date_range(start_date_raw, end_date_raw, date_preset)

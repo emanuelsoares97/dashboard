@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 
 from apps.imports_app.parsers.excel_reader import read_excel_dataframe
-from apps.imports_app.parsers.row_mapper import map_row, normalize_text
+from apps.imports_app.parsers.row_mapper import map_row, normalize_text, normalize_service_type
 
 
 def test_read_excel_dataframe_raises_for_invalid_file_path():
@@ -40,3 +40,16 @@ def test_map_row_normalizes_text_and_invalid_datetime():
 def test_normalize_text_handles_none_and_spaces():
     assert normalize_text(None) == ''
     assert normalize_text('  abc  ') == 'abc'
+
+
+@pytest.mark.parametrize(
+    ('source_label', 'expected_label'),
+    [
+        ('Voz p\u00f3s-paga', 'Voz p\u00f3s-pago'),
+        ('Voz pr\u00e9-paga', 'Voz pr\u00e9-pago'),
+        ('Voz p\u00c3\u00b3s-paga', 'Voz p\u00f3s-pago'),
+        ('Voz pr\u00c3\u00a9-paga', 'Voz pr\u00e9-pago'),
+    ],
+)
+def test_normalize_service_type_applies_expected_aliases(source_label, expected_label):
+    assert normalize_service_type(source_label) == expected_label
