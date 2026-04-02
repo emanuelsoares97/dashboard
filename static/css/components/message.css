@@ -1,0 +1,19 @@
+.messages {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 var(--space-2) 0;
+}
+
+.messages li {
+    padding: 0.6rem;
+    margin-bottom: 0.5rem;
+    border-radius: var(--radius-sm);
+}
+
+.messages .success {
+    background: var(--color-success-bg);
+}
+
+.messages .error {
+    background: var(--color-error-bg);
+}

@@ -1,0 +1,45 @@
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: "Segoe UI", Arial, sans-serif;
+    margin: var(--space-4);
+    background: var(--color-bg);
+    color: var(--color-text);
+}
+
+.site-header {
+    margin-bottom: var(--space-3);
+}
+
+.site-title {
+    margin: 0 0 var(--space-1) 0;
+}
+
+.site-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1);
+}
+
+.site-nav-link {
+    color: var(--color-primary);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.site-nav-link:hover {
+    color: var(--color-primary-strong);
+}
+
+.page-stack {
+    display: grid;
+    gap: var(--space-2);
+}
+
+@media (max-width: 768px) {
+    body {
+        margin: var(--space-2);
+    }
+}

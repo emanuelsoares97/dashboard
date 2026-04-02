@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/pages/imports.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="card" data-page="imports">
+    <div class="import-header">
+        <h2 class="card-title">Importacao Manual de Excel</h2>
+    </div>
+    <form class="form" method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button class="btn btn-primary" type="submit">Importar</button>
+    </form>
+</section>
+
+<section class="card">
+    <h3 class="card-title">Ultimos lotes</h3>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Arquivo</th>
+                <th>Status</th>
+                <th>Total</th>
+                <th>Importadas</th>
+                <th>Observacoes</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for batch in recent_batches %}
+            <tr>
+                <td>{{ batch.uploaded_filename }}</td>
+                <td>{{ batch.status }}</td>
+                <td>{{ batch.total_rows }}</td>
+                <td>{{ batch.imported_rows }}</td>
+                <td>{{ batch.notes }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td class="table-empty" colspan="5">Nenhum lote importado ainda.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/pages/imports.js' %}" defer></script>
+{% endblock %}

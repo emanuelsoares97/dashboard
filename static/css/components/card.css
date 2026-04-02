@@ -1,0 +1,17 @@
+.card {
+    background: var(--color-surface);
+    border-radius: var(--radius-md);
+    padding: var(--space-2) calc(var(--space-2) + 0.25rem);
+    box-shadow: var(--shadow-sm);
+}
+
+.card-title {
+    margin-top: 0;
+    margin-bottom: var(--space-1);
+}
+
+.card-subtitle {
+    margin-top: 0;
+    margin-bottom: var(--space-2);
+    color: var(--color-muted);
+}

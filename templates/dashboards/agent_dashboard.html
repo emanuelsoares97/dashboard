@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/pages/dashboards.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="card" data-page="dashboard">
+    <h2 class="card-title">Dashboard por Agente</h2>
+    <form class="form form-row" method="get">
+        <div>
+            <label for="team">Filtrar por time:</label>
+            <input id="team" name="team" value="{{ team_filter }}">
+        </div>
+        <button class="btn btn-primary" type="submit">Aplicar</button>
+    </form>
+</section>
+
+<section class="card">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Time</th>
+                <th>Agente</th>
+                <th>Total de chamadas</th>
+                <th>Duracao media (s)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in rows %}
+            <tr>
+                <td>{{ row.team_name }}</td>
+                <td>{{ row.agent_name }}</td>
+                <td>{{ row.total_calls }}</td>
+                <td>{{ row.avg_duration_seconds|floatformat:0 }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td class="table-empty" colspan="4">Sem dados para o filtro atual.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/pages/dashboards.js' %}" defer></script>
+{% endblock %}
