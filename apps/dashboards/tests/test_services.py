@@ -13,7 +13,7 @@ from apps.dashboards.services import (
     get_status_class,
     generate_insights,
 )
-from apps.inbound.models import ChurnReason, Interaction
+from apps.inbound.models import ChurnReason, Interaction, ServiceType
 
 
 def test_kpis_return_zero_when_queryset_is_empty(db):
@@ -613,3 +613,147 @@ def test_build_dashboard_payload_includes_comparison_data_when_applicable(intera
 
     assert payload['comparison_context']['enabled'] is True
     assert 'total_calls' in payload['comparison_kpis']
+
+
+def test_service_type_comparison_table_calculates_values_and_directions(interaction_factory, base_dimensions):
+    premium_service = ServiceType.objects.create(code='premium', label='Premium')
+
+    interaction_factory(
+        call_id_external='srv-cmp-a-cur-1',
+        start_at=datetime(2026, 1, 10, 10, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 1, 10, 10, 5, tzinfo=timezone.utc),
+        service_type=base_dimensions['service'],
+        final_outcome=base_dimensions['retained'],
+    )
+    interaction_factory(
+        call_id_external='srv-cmp-a-cur-2',
+        start_at=datetime(2026, 1, 10, 11, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 1, 10, 11, 5, tzinfo=timezone.utc),
+        service_type=base_dimensions['service'],
+        final_outcome=base_dimensions['retained'],
+    )
+    interaction_factory(
+        call_id_external='srv-cmp-a-cur-3',
+        start_at=datetime(2026, 1, 11, 10, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 1, 11, 10, 5, tzinfo=timezone.utc),
+        service_type=base_dimensions['service'],
+        final_outcome=base_dimensions['not_retained'],
+    )
+    interaction_factory(
+        call_id_external='srv-cmp-b-cur-1',
+        start_at=datetime(2026, 1, 11, 11, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 1, 11, 11, 5, tzinfo=timezone.utc),
+        service_type=premium_service,
+        final_outcome=base_dimensions['retained'],
+    )
+
+    interaction_factory(
+        call_id_external='srv-cmp-a-prev-1',
+        start_at=datetime(2026, 1, 8, 10, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 1, 8, 10, 5, tzinfo=timezone.utc),
+        service_type=base_dimensions['service'],
+        final_outcome=base_dimensions['retained'],
+    )
+    interaction_factory(
+        call_id_external='srv-cmp-a-prev-2',
+        start_at=datetime(2026, 1, 9, 10, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 1, 9, 10, 5, tzinfo=timezone.utc),
+        service_type=base_dimensions['service'],
+        final_outcome=base_dimensions['not_retained'],
+    )
+
+    payload = build_dashboard_payload(
+        date_preset='custom',
+        start_date=date(2026, 1, 10),
+        end_date=date(2026, 1, 11),
+    )
+
+    by_service = {row['service_type']: row for row in payload['service_type_comparison_table']}
+
+    fibra = by_service['Fibra']
+    assert fibra['total_calls'] == 3
+    assert fibra['total_calls_previous'] == 2.0
+    assert fibra['total_calls_delta'] == 1.0
+    assert fibra['total_calls_delta_pct'] == 50.0
+    assert fibra['total_calls_direction'] == 'up'
+
+    assert fibra['retention_rate'] == 66.67
+    assert fibra['retention_rate_previous'] == 50.0
+    assert fibra['retention_rate_delta_pp'] == 16.67
+    assert fibra['retention_rate_direction'] == 'up'
+
+    assert fibra['non_retention_rate'] == 33.33
+    assert fibra['non_retention_rate_previous'] == 50.0
+    assert fibra['non_retention_rate_delta_pp'] == -16.67
+    assert fibra['non_retention_rate_direction'] == 'down'
+
+    assert fibra['call_drop_rate_delta_pp'] == 0.0
+    assert fibra['call_drop_rate_direction'] == 'neutral'
+
+
+def test_service_type_comparison_table_handles_service_missing_in_previous_period(interaction_factory, base_dimensions):
+    premium_service = ServiceType.objects.create(code='solo', label='Solo')
+
+    interaction_factory(
+        call_id_external='srv-only-current',
+        start_at=datetime(2026, 1, 10, 10, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 1, 10, 10, 5, tzinfo=timezone.utc),
+        service_type=premium_service,
+        final_outcome=base_dimensions['retained'],
+    )
+
+    payload = build_dashboard_payload(
+        date_preset='custom',
+        start_date=date(2026, 1, 10),
+        end_date=date(2026, 1, 10),
+    )
+
+    by_service = {row['service_type']: row for row in payload['service_type_comparison_table']}
+    solo = by_service['Solo']
+
+    assert solo['total_calls_previous'] == 0.0
+    assert solo['total_calls_delta'] == 1.0
+    assert solo['total_calls_delta_pct'] is None
+    assert solo['total_calls_direction'] == 'up'
+    assert solo['retention_rate_previous'] == 0.0
+    assert solo['retention_rate_delta_pp'] == 100.0
+
+
+def test_service_type_comparison_respects_equivalent_days_period_rule(interaction_factory, base_dimensions):
+    interaction_factory(
+        call_id_external='srv-mtd-cur-1',
+        start_at=datetime(2026, 4, 1, 10, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 4, 1, 10, 5, tzinfo=timezone.utc),
+        service_type=base_dimensions['service'],
+    )
+    interaction_factory(
+        call_id_external='srv-mtd-cur-2',
+        start_at=datetime(2026, 4, 2, 10, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 4, 2, 10, 5, tzinfo=timezone.utc),
+        service_type=base_dimensions['service'],
+    )
+    interaction_factory(
+        call_id_external='srv-mtd-prev-match',
+        start_at=datetime(2026, 3, 2, 10, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 3, 2, 10, 5, tzinfo=timezone.utc),
+        service_type=base_dimensions['service'],
+    )
+    interaction_factory(
+        call_id_external='srv-mtd-prev-outside',
+        start_at=datetime(2026, 3, 20, 10, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 3, 20, 10, 5, tzinfo=timezone.utc),
+        service_type=base_dimensions['service'],
+    )
+
+    payload = build_dashboard_payload(
+        date_preset='current_month',
+        start_date=date(2026, 4, 1),
+        end_date=date(2026, 4, 3),
+    )
+
+    by_service = {row['service_type']: row for row in payload['service_type_comparison_table']}
+    fibra = by_service['Fibra']
+
+    assert payload['comparison_context']['previous_start'] == date(2026, 3, 1)
+    assert payload['comparison_context']['previous_end'] == date(2026, 3, 3)
+    assert fibra['total_calls_previous'] == 1.0

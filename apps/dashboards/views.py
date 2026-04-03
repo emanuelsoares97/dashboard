@@ -215,7 +215,7 @@ def services(request):
 		filters=filters,
 		dashboard_payload=payload,
 	)
-	context['rows'] = payload['service_type_table']
+	context['rows'] = payload['service_type_comparison_table']
 	return render(request, 'dashboards/services.html', context)
 
 

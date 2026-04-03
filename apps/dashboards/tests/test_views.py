@@ -355,3 +355,26 @@ def test_overview_context_includes_comparison_blocks(client, interaction_factory
     assert response.status_code == 200
     assert response.context['dashboard']['comparison_context']['enabled'] is True
     assert 'total_calls' in response.context['dashboard']['comparison_kpis']
+
+
+@pytest.mark.django_db
+def test_services_context_includes_comparison_rows(client, interaction_factory):
+    interaction_factory(
+        call_id_external='view-svc-cmp-current',
+        start_at=datetime(2026, 1, 10, 10, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 1, 10, 10, 5, tzinfo=timezone.utc),
+    )
+
+    response = client.get(
+        reverse('dashboards:services'),
+        {
+            'date_preset': 'custom',
+            'start_date': '2026-01-10',
+            'end_date': '2026-01-10',
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.context['dashboard']['comparison_context']['enabled'] is True
+    assert response.context['rows']
+    assert 'total_calls_delta' in response.context['rows'][0]

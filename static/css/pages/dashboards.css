@@ -286,6 +286,13 @@
     gap: 0.8rem;
 }
 
+.table-comparison {
+    display: block;
+    margin-top: 0.2rem;
+    font-size: 0.76rem;
+    font-weight: 600;
+}
+
 .kpi-value {
     display: block;
     margin-top: 1rem;

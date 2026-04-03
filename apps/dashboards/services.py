@@ -255,6 +255,71 @@ def _build_comparison_block(
     }
 
 
+def _build_service_type_comparison_table(
+    *,
+    current_rows,
+    previous_start,
+    previous_end,
+    assistant_name,
+    assistant_id,
+    service_type_id,
+    churn_reason_id,
+    retention_action_id,
+    final_outcome_id,
+):
+    """Enriquece a tabela atual de servicos com comparacao ao periodo anterior."""
+    if not current_rows:
+        return []
+
+    if not previous_start or not previous_end:
+        return [dict(row) for row in current_rows]
+
+    previous_qs = selectors.get_inbound_queryset()
+    previous_qs = selectors.apply_filters(
+        previous_qs,
+        assistant_name=assistant_name,
+        assistant_id=assistant_id,
+        start_date=previous_start,
+        end_date=previous_end,
+        service_type_id=service_type_id,
+        churn_reason_id=churn_reason_id,
+        retention_action_id=retention_action_id,
+        final_outcome_id=final_outcome_id,
+    )
+    previous_rows = build_service_type_table(previous_qs)
+    previous_by_service = {row['service_type']: row for row in previous_rows}
+
+    comparison_rows = []
+    for row in current_rows:
+        previous_row = previous_by_service.get(row['service_type'], {})
+
+        total_calls_cmp = _compute_delta(row['total_calls'], previous_row.get('total_calls', 0))
+        retention_cmp = _compute_delta(row['retention_rate'], previous_row.get('retention_rate', 0))
+        non_retention_cmp = _compute_delta(row['non_retention_rate'], previous_row.get('non_retention_rate', 0))
+        call_drop_cmp = _compute_delta(row['call_drop_rate'], previous_row.get('call_drop_rate', 0))
+
+        comparison_rows.append(
+            {
+                **row,
+                'total_calls_previous': total_calls_cmp['previous'],
+                'total_calls_delta': total_calls_cmp['delta'],
+                'total_calls_delta_pct': total_calls_cmp['delta_pct'],
+                'total_calls_direction': total_calls_cmp['direction'],
+                'retention_rate_previous': retention_cmp['previous'],
+                'retention_rate_delta_pp': retention_cmp['delta'],
+                'retention_rate_direction': retention_cmp['direction'],
+                'non_retention_rate_previous': non_retention_cmp['previous'],
+                'non_retention_rate_delta_pp': non_retention_cmp['delta'],
+                'non_retention_rate_direction': non_retention_cmp['direction'],
+                'call_drop_rate_previous': call_drop_cmp['previous'],
+                'call_drop_rate_delta_pp': call_drop_cmp['delta'],
+                'call_drop_rate_direction': call_drop_cmp['direction'],
+            }
+        )
+
+    return comparison_rows
+
+
 def get_status_class(value, avg):
     """Classifica visualmente uma taxa para leitura executiva."""
     if value is None:
@@ -1149,6 +1214,18 @@ def build_dashboard_payload(
             final_outcome_id=final_outcome_id,
             current_kpis=general_kpis,
         )
+    )
+
+    payload['service_type_comparison_table'] = _build_service_type_comparison_table(
+        current_rows=service_type_table,
+        previous_start=payload['comparison_context']['previous_start'],
+        previous_end=payload['comparison_context']['previous_end'],
+        assistant_name=assistant_name,
+        assistant_id=assistant_id,
+        service_type_id=service_type_id,
+        churn_reason_id=churn_reason_id,
+        retention_action_id=retention_action_id,
+        final_outcome_id=final_outcome_id,
     )
 
     resolved_assistant_id = assistant_id or selectors.get_single_assistant_id(base_qs, assistant_name)
