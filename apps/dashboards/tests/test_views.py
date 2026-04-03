@@ -1,5 +1,6 @@
 import pytest
 from django.urls import reverse
+from datetime import datetime, timezone
 
 from apps.inbound.models import Agent, Team
 
@@ -122,6 +123,34 @@ def test_monthly_rates_view_includes_summary_context(client):
 
     assert response.status_code == 200
     assert 'summary' in response.context
+
+
+@pytest.mark.django_db
+def test_monthly_rates_ignores_date_filter_and_keeps_all_months(client, interaction_factory):
+    interaction_factory(
+        call_id_external='mr-jan',
+        start_at=datetime(2026, 1, 10, 10, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 1, 10, 10, 5, tzinfo=timezone.utc),
+    )
+    interaction_factory(
+        call_id_external='mr-feb',
+        start_at=datetime(2026, 2, 10, 10, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 2, 10, 10, 5, tzinfo=timezone.utc),
+    )
+
+    response = client.get(
+        reverse('dashboards:monthly_rates'),
+        {
+            'date_preset': 'today',
+            'start_date': '2026-02-01',
+            'end_date': '2026-02-28',
+        },
+    )
+
+    assert response.status_code == 200
+    months = [row['month'] for row in response.context['rows']]
+    assert '2026-01' in months
+    assert '2026-02' in months
 
 
 @pytest.mark.django_db

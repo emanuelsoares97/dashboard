@@ -260,11 +260,12 @@ def insights(request):
 def monthly_rates(request):
 	"""Renderiza pagina com leitura mensal de retidos, nao retidos e call drop."""
 	filters = _resolve_filters(request, force_assistant_name='')
+	# Nesta aba, o objetivo e sempre ver historico mensal completo.
 	payload = build_dashboard_payload(
 		granularity=filters['period'],
 		assistant_name=filters['assistant_name'],
-		start_date=filters['start_date'],
-		end_date=filters['end_date'],
+		start_date=None,
+		end_date=None,
 	)
 
 	context = _build_common_context(
