@@ -408,3 +408,208 @@ def test_generate_insights_marks_service_unavailable_without_comparison(base_dim
 
     by_title = {item['title']: item for item in insights}
     assert by_title['Servico com maior nao retencao']['available'] is False
+
+
+def test_comparison_today_uses_yesterday_range(interaction_factory, base_dimensions):
+    interaction_factory(
+        call_id_external='cmp-today-current',
+        start_at=datetime(2026, 4, 3, 10, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 4, 3, 10, 5, tzinfo=timezone.utc),
+        final_outcome=base_dimensions['retained'],
+    )
+    interaction_factory(
+        call_id_external='cmp-today-prev',
+        start_at=datetime(2026, 4, 2, 10, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 4, 2, 10, 5, tzinfo=timezone.utc),
+        final_outcome=base_dimensions['retained'],
+    )
+
+    payload = build_dashboard_payload(
+        date_preset='today',
+        start_date=date(2026, 4, 3),
+        end_date=date(2026, 4, 3),
+    )
+
+    ctx = payload['comparison_context']
+    assert ctx['enabled'] is True
+    assert ctx['previous_start'] == date(2026, 4, 2)
+    assert ctx['previous_end'] == date(2026, 4, 2)
+
+
+def test_comparison_last_7_days_uses_previous_7_days(interaction_factory):
+    interaction_factory(
+        call_id_external='cmp-7-current',
+        start_at=datetime(2026, 4, 1, 10, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 4, 1, 10, 5, tzinfo=timezone.utc),
+    )
+
+    payload = build_dashboard_payload(
+        date_preset='last_7_days',
+        start_date=date(2026, 3, 28),
+        end_date=date(2026, 4, 3),
+    )
+
+    ctx = payload['comparison_context']
+    assert ctx['enabled'] is True
+    assert ctx['previous_start'] == date(2026, 3, 21)
+    assert ctx['previous_end'] == date(2026, 3, 27)
+
+
+def test_comparison_current_month_uses_equivalent_days_in_previous_month(interaction_factory):
+    interaction_factory(
+        call_id_external='cmp-cm-current',
+        start_at=datetime(2026, 4, 2, 10, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 4, 2, 10, 5, tzinfo=timezone.utc),
+    )
+
+    payload = build_dashboard_payload(
+        date_preset='current_month',
+        start_date=date(2026, 4, 1),
+        end_date=date(2026, 4, 3),
+    )
+
+    ctx = payload['comparison_context']
+    assert ctx['enabled'] is True
+    assert ctx['previous_start'] == date(2026, 3, 1)
+    assert ctx['previous_end'] == date(2026, 3, 3)
+
+
+def test_comparison_previous_month_uses_month_before(interaction_factory):
+    interaction_factory(
+        call_id_external='cmp-pm-current',
+        start_at=datetime(2026, 3, 2, 10, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 3, 2, 10, 5, tzinfo=timezone.utc),
+    )
+
+    payload = build_dashboard_payload(
+        date_preset='previous_month',
+        start_date=date(2026, 3, 1),
+        end_date=date(2026, 3, 31),
+    )
+
+    ctx = payload['comparison_context']
+    assert ctx['enabled'] is True
+    assert ctx['previous_start'] == date(2026, 2, 1)
+    assert ctx['previous_end'] == date(2026, 2, 28)
+
+
+def test_comparison_custom_uses_same_duration_previous_window(interaction_factory):
+    interaction_factory(
+        call_id_external='cmp-custom-current',
+        start_at=datetime(2026, 1, 15, 10, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 1, 15, 10, 5, tzinfo=timezone.utc),
+    )
+
+    payload = build_dashboard_payload(
+        date_preset='custom',
+        start_date=date(2026, 1, 10),
+        end_date=date(2026, 1, 20),
+    )
+
+    ctx = payload['comparison_context']
+    assert ctx['enabled'] is True
+    assert ctx['previous_start'] == date(2025, 12, 30)
+    assert ctx['previous_end'] == date(2026, 1, 9)
+
+
+def test_comparison_custom_month_to_date_uses_same_days_previous_month(interaction_factory):
+    interaction_factory(
+        call_id_external='cmp-custom-mtd-current',
+        start_at=datetime(2026, 4, 4, 10, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 4, 4, 10, 5, tzinfo=timezone.utc),
+    )
+
+    payload = build_dashboard_payload(
+        date_preset='custom',
+        start_date=date(2026, 4, 1),
+        end_date=date(2026, 4, 8),
+    )
+
+    ctx = payload['comparison_context']
+    assert ctx['enabled'] is True
+    assert ctx['previous_start'] == date(2026, 3, 1)
+    assert ctx['previous_end'] == date(2026, 3, 8)
+
+
+def test_comparison_delta_and_direction_are_calculated(interaction_factory, base_dimensions):
+    interaction_factory(
+        call_id_external='cmp-delta-current-1',
+        start_at=datetime(2026, 1, 10, 10, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 1, 10, 10, 5, tzinfo=timezone.utc),
+        final_outcome=base_dimensions['retained'],
+    )
+    interaction_factory(
+        call_id_external='cmp-delta-current-2',
+        start_at=datetime(2026, 1, 11, 10, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 1, 11, 10, 5, tzinfo=timezone.utc),
+        final_outcome=base_dimensions['retained'],
+    )
+    interaction_factory(
+        call_id_external='cmp-delta-prev-1',
+        start_at=datetime(2026, 1, 8, 10, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 1, 8, 10, 5, tzinfo=timezone.utc),
+        final_outcome=base_dimensions['retained'],
+    )
+
+    payload = build_dashboard_payload(
+        date_preset='custom',
+        start_date=date(2026, 1, 10),
+        end_date=date(2026, 1, 11),
+    )
+
+    total_calls_cmp = payload['comparison_kpis']['total_calls']
+    assert total_calls_cmp['current'] == 2.0
+    assert total_calls_cmp['previous'] == 1.0
+    assert total_calls_cmp['delta'] == 1.0
+    assert total_calls_cmp['delta_pct'] == 100.0
+    assert total_calls_cmp['direction'] == 'up'
+
+
+def test_comparison_direction_neutral_when_values_match(interaction_factory):
+    interaction_factory(
+        call_id_external='cmp-neutral-current',
+        start_at=datetime(2026, 1, 10, 10, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 1, 10, 10, 5, tzinfo=timezone.utc),
+    )
+    interaction_factory(
+        call_id_external='cmp-neutral-prev',
+        start_at=datetime(2026, 1, 9, 10, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 1, 9, 10, 5, tzinfo=timezone.utc),
+    )
+
+    payload = build_dashboard_payload(
+        date_preset='custom',
+        start_date=date(2026, 1, 10),
+        end_date=date(2026, 1, 10),
+    )
+
+    total_calls_cmp = payload['comparison_kpis']['total_calls']
+    assert total_calls_cmp['direction'] == 'neutral'
+
+
+def test_comparison_is_disabled_when_date_range_is_missing(db):
+    payload = build_dashboard_payload(
+        date_preset='custom',
+        start_date=None,
+        end_date=None,
+    )
+
+    assert payload['comparison_context']['enabled'] is False
+    assert payload['comparison_kpis'] == {}
+
+
+def test_build_dashboard_payload_includes_comparison_data_when_applicable(interaction_factory):
+    interaction_factory(
+        call_id_external='cmp-payload-current',
+        start_at=datetime(2026, 1, 10, 10, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 1, 10, 10, 5, tzinfo=timezone.utc),
+    )
+
+    payload = build_dashboard_payload(
+        date_preset='custom',
+        start_date=date(2026, 1, 10),
+        end_date=date(2026, 1, 10),
+    )
+
+    assert payload['comparison_context']['enabled'] is True
+    assert 'total_calls' in payload['comparison_kpis']

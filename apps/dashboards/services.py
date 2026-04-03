@@ -1,3 +1,4 @@
+import calendar
 from datetime import date, timedelta
 
 from django.urls import reverse
@@ -118,6 +119,138 @@ def _build_table_states(*, churn_reason_table, retention_action_table, service_t
         'retention_actions': {
             'has_data': bool(retention_action_table),
             'empty_message': default_empty_message,
+        },
+    }
+
+
+def _resolve_previous_period(*, start_date, end_date, date_preset):
+    """Resolve o periodo anterior equivalente para comparacao automatica."""
+    if not start_date or not end_date or start_date > end_date:
+        return None, None
+
+    if date_preset == 'current_month':
+        window_days = (end_date - start_date).days + 1
+        previous_month_last_day = start_date - timedelta(days=1)
+        previous_month_start = previous_month_last_day.replace(day=1)
+        previous_end = previous_month_start + timedelta(days=window_days - 1)
+        if previous_end > previous_month_last_day:
+            previous_end = previous_month_last_day
+        return previous_month_start, previous_end
+
+    if date_preset == 'previous_month':
+        this_month_start = start_date.replace(day=1)
+        previous_month_last_day = this_month_start - timedelta(days=1)
+        previous_start = previous_month_last_day.replace(day=1)
+        return previous_start, previous_month_last_day
+
+    # Para intervalos custom que representam dias corridos de um mesmo mes
+    # (ex.: 01-08), compara com os mesmos dias no mes anterior.
+    if (
+        date_preset == 'custom'
+        and start_date.day == 1
+        and start_date.year == end_date.year
+        and start_date.month == end_date.month
+    ):
+        previous_month_last_day = start_date - timedelta(days=1)
+        previous_start = previous_month_last_day.replace(day=1)
+        last_day_prev_month = calendar.monthrange(previous_start.year, previous_start.month)[1]
+        previous_end_day = min(end_date.day, last_day_prev_month)
+        previous_end = previous_start.replace(day=previous_end_day)
+        return previous_start, previous_end
+
+    window_days = (end_date - start_date).days + 1
+    previous_end = start_date - timedelta(days=1)
+    previous_start = previous_end - timedelta(days=window_days - 1)
+    return previous_start, previous_end
+
+
+def _compute_delta(current_value, previous_value):
+    """Calcula delta absoluto, percentual e direcao para um KPI."""
+    current = float(current_value or 0)
+    previous = float(previous_value or 0)
+    delta = round(current - previous, 2)
+
+    if previous == 0:
+        delta_pct = None if current != 0 else 0.0
+    else:
+        delta_pct = round((delta / previous) * 100, 2)
+
+    if abs(delta) < 0.01:
+        direction = 'neutral'
+    elif delta > 0:
+        direction = 'up'
+    else:
+        direction = 'down'
+
+    return {
+        'current': round(current, 2),
+        'previous': round(previous, 2),
+        'delta': delta,
+        'delta_pct': delta_pct,
+        'direction': direction,
+    }
+
+
+def _build_comparison_block(
+    *,
+    date_preset,
+    start_date,
+    end_date,
+    assistant_name,
+    assistant_id,
+    service_type_id,
+    churn_reason_id,
+    retention_action_id,
+    final_outcome_id,
+    current_kpis,
+):
+    """Constroi contexto e KPIs de comparacao com o periodo anterior."""
+    previous_start, previous_end = _resolve_previous_period(
+        start_date=start_date,
+        end_date=end_date,
+        date_preset=date_preset,
+    )
+
+    if not previous_start or not previous_end:
+        return {
+            'comparison_context': {
+                'enabled': False,
+                'current_start': start_date,
+                'current_end': end_date,
+                'previous_start': None,
+                'previous_end': None,
+            },
+            'comparison_kpis': {},
+        }
+
+    previous_qs = selectors.get_inbound_queryset()
+    previous_qs = selectors.apply_filters(
+        previous_qs,
+        assistant_name=assistant_name,
+        assistant_id=assistant_id,
+        start_date=previous_start,
+        end_date=previous_end,
+        service_type_id=service_type_id,
+        churn_reason_id=churn_reason_id,
+        retention_action_id=retention_action_id,
+        final_outcome_id=final_outcome_id,
+    )
+    previous_kpis = calculate_general_kpis(previous_qs)
+
+    return {
+        'comparison_context': {
+            'enabled': True,
+            'current_start': start_date,
+            'current_end': end_date,
+            'previous_start': previous_start,
+            'previous_end': previous_end,
+        },
+        'comparison_kpis': {
+            'total_calls': _compute_delta(current_kpis['total_calls'], previous_kpis['total_calls']),
+            'retention_rate': _compute_delta(current_kpis['retention_rate'], previous_kpis['retention_rate']),
+            'non_retention_rate': _compute_delta(current_kpis['non_retention_rate'], previous_kpis['non_retention_rate']),
+            'call_drop_rate': _compute_delta(current_kpis['call_drop_rate'], previous_kpis['call_drop_rate']),
+            'avg_duration_seconds': _compute_delta(current_kpis['avg_duration_seconds'], previous_kpis['avg_duration_seconds']),
         },
     }
 
@@ -933,6 +1066,7 @@ def build_frontend_payload(*, general_kpis, temporal_table, churn_reason_table, 
 def build_dashboard_payload(
     *,
     granularity='day',
+    date_preset='current_month',
     assistant_name=None,
     assistant_id=None,
     start_date=None,
@@ -1001,6 +1135,21 @@ def build_dashboard_payload(
             inconsistency_section=inconsistency_section,
         ),
     }
+
+    payload.update(
+        _build_comparison_block(
+            date_preset=date_preset,
+            start_date=start_date,
+            end_date=end_date,
+            assistant_name=assistant_name,
+            assistant_id=assistant_id,
+            service_type_id=service_type_id,
+            churn_reason_id=churn_reason_id,
+            retention_action_id=retention_action_id,
+            final_outcome_id=final_outcome_id,
+            current_kpis=general_kpis,
+        )
+    )
 
     resolved_assistant_id = assistant_id or selectors.get_single_assistant_id(base_qs, assistant_name)
     if resolved_assistant_id:

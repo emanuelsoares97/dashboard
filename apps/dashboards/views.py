@@ -99,6 +99,7 @@ def _build_dashboard_payload_from_filters(filters, *, assistant_id=None, use_fil
 	resolved_end_date = filters['end_date'] if use_filter_dates else None
 	return build_dashboard_payload(
 		granularity=filters['period'],
+		date_preset=filters['date_preset'],
 		assistant_name=filters['assistant_name'],
 		assistant_id=assistant_id,
 		start_date=resolved_start_date,
