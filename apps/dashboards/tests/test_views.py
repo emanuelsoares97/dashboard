@@ -295,3 +295,41 @@ def test_monthly_rates_csv_respects_non_date_filters(client, interaction_factory
     assert response.status_code == 200
     assert 'taxas_mensais_20260101_20260131.csv' in response['Content-Disposition']
     assert months == ['2026-01']
+
+
+@pytest.mark.django_db
+def test_overview_context_marks_empty_state_when_no_data(client):
+    response = client.get(
+        reverse('dashboards:overview'),
+        {
+            'date_preset': 'custom',
+            'start_date': '2026-01-01',
+            'end_date': '2026-01-31',
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.context['dashboard']['ui_state']['has_data'] is False
+    assert response.context['dashboard']['ui_state']['empty_message']
+
+
+@pytest.mark.django_db
+def test_overview_context_marks_low_sample_warning(client, interaction_factory):
+    interaction_factory(
+        call_id_external='low-1',
+        start_at=datetime(2026, 1, 10, 10, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 1, 10, 10, 5, tzinfo=timezone.utc),
+    )
+
+    response = client.get(
+        reverse('dashboards:overview'),
+        {
+            'date_preset': 'custom',
+            'start_date': '2026-01-01',
+            'end_date': '2026-01-31',
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.context['dashboard']['ui_state']['has_data'] is True
+    assert response.context['dashboard']['ui_state']['is_low_sample'] is True

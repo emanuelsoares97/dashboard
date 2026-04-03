@@ -41,7 +41,7 @@
                     <td>{{ row.inconsistency_rate|floatformat:2 }}</td>
                 </tr>
                 {% empty %}
-                <tr><td class="table-empty" colspan="9">Sem dados para o periodo atual.</td></tr>
+                <tr><td class="table-empty" colspan="9">{{ dashboard.table_states.assistants.empty_message }}</td></tr>
                 {% endfor %}
             </tbody>
         </table>

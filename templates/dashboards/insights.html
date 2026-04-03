@@ -13,6 +13,11 @@
             <strong class="insight-value">{{ insight.value }}</strong>
             {% endif %}
             <p class="insight-description">{{ insight.description }}</p>
+            {% if not insight.available and insight.reason_unavailable %}
+            <p class="insight-description">{{ insight.reason_unavailable }}</p>
+            {% elif insight.warning and insight.reason_unavailable %}
+            <p class="insight-description">{{ insight.reason_unavailable }}</p>
+            {% endif %}
         </article>
         {% empty %}
         <article class="insight-card insight-info card">

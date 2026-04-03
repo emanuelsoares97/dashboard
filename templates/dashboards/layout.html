@@ -99,6 +99,20 @@
 
     </header>
 
+    {% if dashboard.ui_state %}
+        {% if not dashboard.ui_state.has_data %}
+        <section class="dashboard-state-banner dashboard-state-banner-empty" role="status">
+            <strong>Sem dados para os filtros selecionados.</strong>
+            <span>Nao existem chamadas no periodo indicado.</span>
+        </section>
+        {% elif dashboard.ui_state.is_low_sample %}
+        <section class="dashboard-state-banner dashboard-state-banner-warning" role="status">
+            <strong>Amostra reduzida.</strong>
+            <span>{{ dashboard.ui_state.warning_message }}</span>
+        </section>
+        {% endif %}
+    {% endif %}
+
     <aside class="dashboard-sidebar card">
         <nav class="dashboard-menu">
             <a class="dashboard-menu-link {% if active_section == 'overview' %}is-active{% endif %}" href="{% url 'dashboards:overview' %}?{{ dashboard_querystring }}">Visao Geral</a>

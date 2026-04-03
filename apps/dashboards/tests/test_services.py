@@ -99,11 +99,30 @@ def test_generate_insights_returns_empty_for_empty_dataset(db):
         }
     )
 
-    assert insights == []
+    assert len(insights) == 1
+    assert insights[0]['title'] == 'Insight indisponivel'
+    assert insights[0]['value'] == 'Sem dados'
+
+
+def test_generate_insights_returns_unavailable_when_sample_is_too_small(interaction_factory):
+    interaction_factory(call_id_external='small-1')
+
+    insights = generate_insights(
+        {
+            'assistant_name': '',
+            'start_date': date(2026, 1, 1),
+            'end_date': date(2026, 1, 31),
+        }
+    )
+
+    assert len(insights) == 1
+    assert insights[0]['title'] == 'Insight indisponivel'
+    assert insights[0]['value'] == 'Amostra reduzida'
 
 
 def test_generate_insights_includes_expected_cards(interaction_factory, base_dimensions):
     agent_b = base_dimensions['team'].agents.create(name='Bruno')
+    action_b = base_dimensions['pending_action']
 
     interaction_factory(call_id_external='ins-1', agent=base_dimensions['agent'])
     interaction_factory(
@@ -111,6 +130,9 @@ def test_generate_insights_includes_expected_cards(interaction_factory, base_dim
         agent=agent_b,
         final_outcome=base_dimensions['not_retained'],
     )
+    interaction_factory(call_id_external='ins-3', agent=base_dimensions['agent'])
+    interaction_factory(call_id_external='ins-4', agent=agent_b, retention_action=action_b)
+    interaction_factory(call_id_external='ins-5', agent=base_dimensions['agent'], retention_action=action_b)
 
     insights = generate_insights(
         {
@@ -190,6 +212,8 @@ def test_generate_insights_includes_operational_volume_and_quality_cards(base_di
     interaction_factory(call_id_external='vol-1', churn_reason=base_dimensions['reason'])
     interaction_factory(call_id_external='vol-2', churn_reason=base_dimensions['reason'])
     interaction_factory(call_id_external='vol-3', agent=agent_b, retention_action=base_dimensions['pending_action'])
+    interaction_factory(call_id_external='vol-4', agent=agent_b)
+    interaction_factory(call_id_external='vol-5', agent=base_dimensions['agent'])
 
     flagged_interaction = interaction_factory(call_id_external='qual-1', agent=agent_b)
     DataQualityFlag.objects.create(
@@ -292,3 +316,95 @@ def test_build_monthly_rates_summary_returns_best_and_worst_month(interaction_fa
     assert summary['months_with_data'] == 2
     assert summary['best_month']['month'] == '2026-01'
     assert summary['worst_month']['month'] == '2026-02'
+
+
+def test_build_dashboard_payload_exposes_ui_state_and_table_states(db):
+    payload = build_dashboard_payload(
+        start_date=date(2026, 1, 1),
+        end_date=date(2026, 1, 31),
+    )
+
+    assert payload['ui_state']['has_data'] is False
+    assert payload['ui_state']['empty_message']
+    assert payload['table_states']['assistants']['has_data'] is False
+    assert payload['table_states']['default_empty_message']
+
+
+def test_build_frontend_payload_marks_charts_without_data(interaction_factory):
+    interaction_factory(
+        call_id_external='chart-1',
+        start_at=datetime(2026, 2, 1, 10, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 2, 1, 10, 5, tzinfo=timezone.utc),
+    )
+
+    payload = build_dashboard_payload(
+        start_date=date(2026, 1, 1),
+        end_date=date(2026, 1, 31),
+    )
+
+    chart_states = payload['frontend_payload']['chart_states']
+    assert chart_states['outcomes_chart']['has_data'] is False
+    assert chart_states['temporal_chart']['has_data'] is False
+
+
+def test_generate_insights_skips_residual_action_as_best(base_dimensions, interaction_factory):
+    weak_action = base_dimensions['pending_action']
+
+    interaction_factory(call_id_external='act-main-1', retention_action=base_dimensions['action'])
+    interaction_factory(call_id_external='act-main-2', retention_action=base_dimensions['action'])
+    interaction_factory(call_id_external='act-main-3', retention_action=base_dimensions['action'])
+    interaction_factory(call_id_external='act-main-4', retention_action=base_dimensions['action'])
+    interaction_factory(call_id_external='act-weak-1', retention_action=weak_action)
+
+    insights = generate_insights(
+        {
+            'assistant_name': '',
+            'start_date': date(2026, 1, 1),
+            'end_date': date(2026, 1, 31),
+        }
+    )
+
+    by_title = {item['title']: item for item in insights}
+    assert by_title['Melhor acao de retencao']['available'] is True
+    assert by_title['Melhor acao de retencao']['value'] == 'Oferta'
+
+
+def test_generate_insights_marks_worst_reason_unavailable_when_irrelevant_volume(base_dimensions, interaction_factory):
+    rare_reason = ChurnReason.objects.create(code='raro2', label='Raro 2')
+
+    interaction_factory(call_id_external='r-main-1', churn_reason=base_dimensions['reason'])
+    interaction_factory(call_id_external='r-main-2', churn_reason=base_dimensions['reason'])
+    interaction_factory(call_id_external='r-main-3', churn_reason=base_dimensions['reason'])
+    interaction_factory(call_id_external='r-main-4', churn_reason=base_dimensions['reason'])
+    interaction_factory(call_id_external='r-rare-1', churn_reason=rare_reason)
+
+    insights = generate_insights(
+        {
+            'assistant_name': '',
+            'start_date': date(2026, 1, 1),
+            'end_date': date(2026, 1, 31),
+        }
+    )
+
+    by_title = {item['title']: item for item in insights}
+    assert by_title['Pior motivo de corte']['available'] is True
+    assert by_title['Pior motivo de corte']['warning'] is True
+
+
+def test_generate_insights_marks_service_unavailable_without_comparison(base_dimensions, interaction_factory):
+    interaction_factory(call_id_external='srv-1', service_type=base_dimensions['service'])
+    interaction_factory(call_id_external='srv-2', service_type=base_dimensions['service'])
+    interaction_factory(call_id_external='srv-3', service_type=base_dimensions['service'])
+    interaction_factory(call_id_external='srv-4', service_type=base_dimensions['service'])
+    interaction_factory(call_id_external='srv-5', service_type=base_dimensions['service'])
+
+    insights = generate_insights(
+        {
+            'assistant_name': '',
+            'start_date': date(2026, 1, 1),
+            'end_date': date(2026, 1, 31),
+        }
+    )
+
+    by_title = {item['title']: item for item in insights}
+    assert by_title['Servico com maior nao retencao']['available'] is False

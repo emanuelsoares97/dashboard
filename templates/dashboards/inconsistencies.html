@@ -16,7 +16,7 @@
                     <tbody>
                         {% for row in section.kpis.by_assistant %}
                         <tr><td>{{ row.assistant_name }}</td><td>{{ row.inconsistency_total }}</td><td>{{ row.inconsistency_rate|floatformat:2 }}</td></tr>
-                        {% empty %}<tr><td class="table-empty" colspan="3">Sem inconsistencias no periodo atual.</td></tr>{% endfor %}
+                        {% empty %}<tr><td class="table-empty" colspan="3">{{ dashboard.table_states.inconsistencies.empty_message }}</td></tr>{% endfor %}
                     </tbody>
                 </table>
             </div>
@@ -35,7 +35,7 @@
                     <tbody>
                         {% for row in section.table %}
                         <tr><td>{{ row.assistant_name }}</td><td>{{ row.churn_reason }}</td><td>{{ row.retention_action }}</td><td>{{ row.final_outcome }}</td><td>{{ row.inconsistency_type }}</td></tr>
-                        {% empty %}<tr><td class="table-empty" colspan="5">Sem inconsistencias no periodo atual.</td></tr>{% endfor %}
+                        {% empty %}<tr><td class="table-empty" colspan="5">{{ dashboard.table_states.inconsistencies.empty_message }}</td></tr>{% endfor %}
                     </tbody>
                 </table>
             </div>

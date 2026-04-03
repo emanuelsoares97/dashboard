@@ -20,6 +20,25 @@
     box-shadow: 0 16px 30px -24px rgba(15, 76, 129, 0.46);
 }
 
+.dashboard-state-banner {
+    grid-column: 1 / -1;
+    display: grid;
+    gap: 0.2rem;
+    padding: 0.75rem 0.9rem;
+    border-radius: 12px;
+    border: 1px solid var(--color-border);
+}
+
+.dashboard-state-banner-empty {
+    background: #f7f8fb;
+    border-color: #dbe3ef;
+}
+
+.dashboard-state-banner-warning {
+    background: #fff7eb;
+    border-color: #f2d59f;
+}
+
 .dashboard-topbar-title {
     margin: 0;
     font-size: 1.28rem;
@@ -321,6 +340,10 @@
 
 .chart-shell.is-ready .chart-loading {
     display: none;
+}
+
+.chart-shell.has-message .chart-loading {
+    display: flex;
 }
 
 .table-wrap {

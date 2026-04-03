@@ -5,6 +5,18 @@ from django.urls import reverse
 from apps.dashboards import selectors
 
 
+LOW_SAMPLE_CALLS_THRESHOLD = 10
+INSIGHTS_MIN_TOTAL_CALLS = 5
+INSIGHTS_MIN_REASON_CALLS = 2
+INSIGHTS_MIN_REASON_SHARE = 0.15
+INSIGHTS_MIN_ACTION_USES = 2
+INSIGHTS_MIN_ACTION_SHARE = 0.15
+INSIGHTS_MIN_SERVICE_CALLS = 2
+INSIGHTS_MIN_SERVICE_SHARE = 0.15
+INSIGHTS_MIN_ASSISTANT_CALLS = 3
+INSIGHTS_MIN_INCONSISTENCY_CALLS = 5
+
+
 def _round2(value):
     if value is None:
         return 0.0
@@ -32,6 +44,82 @@ def _fmt_pct(value):
 
 def _assistant_detail_url(assistant_id):
     return reverse('dashboards:assistant_detail', args=[assistant_id])
+
+
+def _build_insight(*, type_, title, value, description, available=True, warning=False, reason_unavailable=None, url=None):
+    """Cria estrutura padrao de insight com metadata de confiabilidade."""
+    insight = {
+        'type': type_,
+        'title': title,
+        'value': value,
+        'description': description,
+        'available': available,
+        'warning': warning,
+        'reason_unavailable': reason_unavailable,
+    }
+    if url:
+        insight['url'] = url
+    return insight
+
+
+def _eligible_by_volume(rows, *, count_key, total_calls, min_calls, min_share):
+    """Filtra linhas elegiveis com volume minimo absoluto e relativo."""
+    if not rows or total_calls <= 0:
+        return []
+    return [
+        row
+        for row in rows
+        if row.get(count_key, 0) >= min_calls and (row.get(count_key, 0) / total_calls) >= min_share
+    ]
+
+
+def _eligible_assistants(rows):
+    """Filtra assistentes com volume minimo para comparacoes de desempenho."""
+    return [row for row in rows if row.get('total_calls', 0) >= INSIGHTS_MIN_ASSISTANT_CALLS]
+
+
+def _build_ui_state(general_kpis):
+    """Prepara estado global da pagina para vazio e amostra reduzida."""
+    total_calls = general_kpis['total_calls']
+    is_low_sample = 0 < total_calls < LOW_SAMPLE_CALLS_THRESHOLD
+    return {
+        'has_data': total_calls > 0,
+        'empty_message': 'Sem dados para os filtros selecionados.',
+        'is_low_sample': is_low_sample,
+        'warning_message': 'A amostra atual e reduzida; interpretar os resultados com cautela.',
+    }
+
+
+def _build_table_states(*, churn_reason_table, retention_action_table, service_type_table, monthly_rates_table, assistant_ranking_table, inconsistency_section):
+    """Define estados de vazio consistentes para tabelas principais."""
+    default_empty_message = 'Nao existem registos para apresentar.'
+    return {
+        'default_empty_message': default_empty_message,
+        'assistants': {
+            'has_data': bool(assistant_ranking_table),
+            'empty_message': default_empty_message,
+        },
+        'services': {
+            'has_data': bool(service_type_table),
+            'empty_message': default_empty_message,
+        },
+        'inconsistencies': {
+            'has_data': bool(inconsistency_section['table']),
+            'empty_message': default_empty_message,
+        },
+        'monthly_rates': {
+            'has_data': bool(monthly_rates_table),
+            'empty_message': default_empty_message,
+        },
+        'churn_reasons': {
+            'has_data': bool(churn_reason_table),
+            'empty_message': default_empty_message,
+        },
+        'retention_actions': {
+            'has_data': bool(retention_action_table),
+            'empty_message': default_empty_message,
+        },
+    }
 
 
 def get_status_class(value, avg):
@@ -508,139 +596,261 @@ def generate_insights(filters):
         final_outcome_id=filters.get('final_outcome_id'),
     )
 
-    if not filtered_qs.exists():
-        return []
+    general_kpis = calculate_general_kpis(filtered_qs)
+    total_calls = general_kpis['total_calls']
+
+    if total_calls == 0:
+        return [
+            _build_insight(
+                type_='info',
+                title='Insight indisponivel',
+                value='Sem dados',
+                description='Nao foi possivel gerar este insight com os dados atuais.',
+                available=False,
+                reason_unavailable='Sem dados para os filtros selecionados.',
+            )
+        ]
+
+    if total_calls < INSIGHTS_MIN_TOTAL_CALLS:
+        return [
+            _build_insight(
+                type_='warning',
+                title='Insight indisponivel',
+                value='Amostra reduzida',
+                description='Nao foi possivel gerar este insight com os dados atuais.',
+                available=False,
+                reason_unavailable='Volume total abaixo do minimo para conclusoes fiaveis.',
+            )
+        ]
 
     insights = []
-    general_kpis = calculate_general_kpis(filtered_qs)
 
     churn_rows = [row for row in build_churn_reason_table(filtered_qs, sort='retention_asc') if row['total_calls'] > 0]
-    if churn_rows:
-        # Considera apenas motivos com volume acima da media para evitar ruido estatistico.
-        avg_reason_calls = sum(row['total_calls'] for row in churn_rows) / len(churn_rows)
-        eligible_reasons = [row for row in churn_rows if row['total_calls'] >= avg_reason_calls]
-        worst_reason = eligible_reasons[0] if eligible_reasons else None
-    else:
-        worst_reason = None
-
-    if worst_reason:
+    eligible_reasons = _eligible_by_volume(
+        churn_rows,
+        count_key='total_calls',
+        total_calls=total_calls,
+        min_calls=INSIGHTS_MIN_REASON_CALLS,
+        min_share=INSIGHTS_MIN_REASON_SHARE,
+    )
+    if not eligible_reasons:
         insights.append(
-            {
-                'type': 'warning',
-                'title': 'Pior motivo de corte',
-                'value': worst_reason['churn_reason'],
-                'description': f"Retencao de {_fmt_pct(worst_reason['retention_rate'])} em {worst_reason['total_calls']} chamadas.",
-            }
+            _build_insight(
+                type_='info',
+                title='Pior motivo de corte',
+                value='Indisponivel',
+                description='Nao foi possivel gerar este insight com os dados atuais.',
+                available=False,
+                reason_unavailable='Motivos sem representatividade minima no periodo.',
+            )
+        )
+    else:
+        worst_reason = min(eligible_reasons, key=lambda row: (row['retention_rate'], -row['total_calls']))
+        reason_warning = len(eligible_reasons) < 2
+        insights.append(
+            _build_insight(
+                type_='warning',
+                title='Pior motivo de corte',
+                value=worst_reason['churn_reason'],
+                description=f"Retencao de {_fmt_pct(worst_reason['retention_rate'])} em {worst_reason['total_calls']} chamadas.",
+                warning=reason_warning,
+                reason_unavailable='Leitura com cautela por baixa concorrencia entre motivos.' if reason_warning else None,
+            )
         )
 
     top_reason = selectors.select_top_churn_reason_by_volume(filtered_qs)
-    if top_reason and (top_reason.get('total_calls') or 0) > 0:
+    if top_reason and eligible_reasons:
+        top_reason_warning = len(eligible_reasons) < 2
         insights.append(
-            {
-                'type': 'info',
-                'title': 'Motivo com maior volume',
-                'value': top_reason.get('churn_reason__label') or 'Sem motivo',
-                'description': f"{top_reason['total_calls']} chamadas no periodo analisado",
-            }
+            _build_insight(
+                type_='info',
+                title='Motivo com maior volume',
+                value=top_reason.get('churn_reason__label') or 'Sem motivo',
+                description=f"{top_reason['total_calls']} chamadas no periodo analisado",
+                warning=top_reason_warning,
+                reason_unavailable='Leitura com cautela por baixa concorrencia entre motivos.' if top_reason_warning else None,
+            )
         )
 
     best_actions = [row for row in build_retention_action_table(filtered_qs) if row['total_used'] > 0]
-    if best_actions:
-        best_action = max(best_actions, key=lambda row: (row['success_rate'], row['total_used']))
+    eligible_actions = _eligible_by_volume(
+        best_actions,
+        count_key='total_used',
+        total_calls=total_calls,
+        min_calls=INSIGHTS_MIN_ACTION_USES,
+        min_share=INSIGHTS_MIN_ACTION_SHARE,
+    )
+    if not eligible_actions:
         insights.append(
-            {
-                'type': 'success',
-                'title': 'Melhor acao de retencao',
-                'value': best_action['retention_action'],
-                'description': f"Taxa de sucesso de {_fmt_pct(best_action['success_rate'])} em {best_action['total_used']} usos.",
-            }
+            _build_insight(
+                type_='info',
+                title='Melhor acao de retencao',
+                value='Indisponivel',
+                description='Nao foi possivel gerar este insight com os dados atuais.',
+                available=False,
+                reason_unavailable='Acoes com utilizacao insuficiente para comparacao.',
+            )
+        )
+    else:
+        best_action = max(eligible_actions, key=lambda row: (row['success_rate'], row['total_used']))
+        action_warning = len(eligible_actions) < 2
+        insights.append(
+            _build_insight(
+                type_='success',
+                title='Melhor acao de retencao',
+                value=best_action['retention_action'],
+                description=f"Taxa de sucesso de {_fmt_pct(best_action['success_rate'])} em {best_action['total_used']} usos.",
+                warning=action_warning,
+                reason_unavailable='Leitura com cautela por baixa concorrencia entre acoes.' if action_warning else None,
+            )
         )
 
     top_action = selectors.select_top_retention_action_by_volume(filtered_qs)
-    if top_action and (top_action.get('total_used') or 0) > 0:
+    if top_action and eligible_actions:
+        top_action_warning = len(eligible_actions) < 2
         insights.append(
-            {
-                'type': 'info',
-                'title': 'Acao mais utilizada',
-                'value': top_action.get('retention_action__label') or 'Sem acao',
-                'description': f"Aplicada em {top_action['total_used']} chamadas",
-            }
+            _build_insight(
+                type_='info',
+                title='Acao mais utilizada',
+                value=top_action.get('retention_action__label') or 'Sem acao',
+                description=f"Aplicada em {top_action['total_used']} chamadas",
+                warning=top_action_warning,
+                reason_unavailable='Leitura com cautela por baixa concorrencia entre acoes.' if top_action_warning else None,
+            )
         )
 
     service_rows = [row for row in build_service_type_table(filtered_qs) if row['total_calls'] > 0]
-    if service_rows:
-        worst_service = max(service_rows, key=lambda row: (row['non_retention_rate'], row['total_calls']))
+    eligible_services = _eligible_by_volume(
+        service_rows,
+        count_key='total_calls',
+        total_calls=total_calls,
+        min_calls=INSIGHTS_MIN_SERVICE_CALLS,
+        min_share=INSIGHTS_MIN_SERVICE_SHARE,
+    )
+    if len(eligible_services) < 2:
         insights.append(
-            {
-                'type': 'warning',
-                'title': 'Servico com maior nao retencao',
-                'value': worst_service['service_type'],
-                'description': f"Nao retencao de {_fmt_pct(worst_service['non_retention_rate'])}.",
-            }
+            _build_insight(
+                type_='info',
+                title='Servico com maior nao retencao',
+                value='Indisponivel',
+                description='Nao foi possivel gerar este insight com os dados atuais.',
+                available=False,
+                reason_unavailable='Sao necessarios pelo menos dois servicos com volume minimo para comparar.',
+            )
+        )
+    else:
+        worst_service = max(eligible_services, key=lambda row: (row['non_retention_rate'], row['total_calls']))
+        insights.append(
+            _build_insight(
+                type_='warning',
+                title='Servico com maior nao retencao',
+                value=worst_service['service_type'],
+                description=f"Nao retencao de {_fmt_pct(worst_service['non_retention_rate'])}.",
+            )
         )
 
     assistant_rows = [row for row in build_assistant_ranking_table(filtered_qs) if row['total_calls'] > 0]
-    average_rate = general_kpis['retention_rate']
-    average_calls = 0
-    if assistant_rows:
-        average_calls = sum(row['total_calls'] for row in assistant_rows) / len(assistant_rows)
+    eligible_assistants = _eligible_assistants(assistant_rows)
 
-    eligible_assistants = [row for row in assistant_rows if row['total_calls'] >= average_calls]
-
-    assistants_above_avg = [row for row in eligible_assistants if row['retention_rate'] > average_rate]
-    if assistants_above_avg:
-        top_assistant = max(assistants_above_avg, key=lambda row: (row['retention_rate'], row['total_calls']))
+    if len(eligible_assistants) < 2:
         insights.append(
-            {
-                'type': 'success',
-                'title': 'Assistente acima da media',
-                'value': top_assistant['assistant_name'],
-                'url': _assistant_detail_url(top_assistant['assistant_id']),
-                'description': (
-                    f"Retencao de {_fmt_pct(top_assistant['retention_rate'])} "
-                    f"(media geral: {_fmt_pct(average_rate)})."
-                ),
-            }
+            _build_insight(
+                type_='info',
+                title='Assistente acima da media',
+                value='Indisponivel',
+                description='Nao foi possivel gerar este insight com os dados atuais.',
+                available=False,
+                reason_unavailable='Sao necessarios pelo menos dois assistentes com volume minimo para comparar.',
+            )
         )
-
-    assistants_below_avg = [row for row in eligible_assistants if row['retention_rate'] < average_rate]
-    if assistants_below_avg:
-        low_assistant = min(assistants_below_avg, key=lambda row: (row['retention_rate'], -row['total_calls']))
         insights.append(
-            {
-                'type': 'info',
-                'title': 'Assistente abaixo da media',
-                'value': low_assistant['assistant_name'],
-                'url': _assistant_detail_url(low_assistant['assistant_id']),
-                'description': (
-                    f"Retencao de {_fmt_pct(low_assistant['retention_rate'])} "
-                    f"(media geral: {_fmt_pct(average_rate)})."
-                ),
-            }
+            _build_insight(
+                type_='info',
+                title='Assistente abaixo da media',
+                value='Indisponivel',
+                description='Nao foi possivel gerar este insight com os dados atuais.',
+                available=False,
+                reason_unavailable='Sao necessarios pelo menos dois assistentes com volume minimo para comparar.',
+            )
         )
+    else:
+        average_rate = _round2(sum(row['retention_rate'] for row in eligible_assistants) / len(eligible_assistants))
+
+        assistants_above_avg = [row for row in eligible_assistants if row['retention_rate'] > average_rate]
+        if assistants_above_avg:
+            top_assistant = max(assistants_above_avg, key=lambda row: (row['retention_rate'], row['total_calls']))
+            insights.append(
+                _build_insight(
+                    type_='success',
+                    title='Assistente acima da media',
+                    value=top_assistant['assistant_name'],
+                    url=_assistant_detail_url(top_assistant['assistant_id']),
+                    description=(
+                        f"Retencao de {_fmt_pct(top_assistant['retention_rate'])} "
+                        f"(media elegivel: {_fmt_pct(average_rate)})."
+                    ),
+                )
+            )
+        else:
+            insights.append(
+                _build_insight(
+                    type_='info',
+                    title='Assistente acima da media',
+                    value='Indisponivel',
+                    description='Nao foi possivel gerar este insight com os dados atuais.',
+                    available=False,
+                    reason_unavailable='Nao foi encontrado assistente acima da media elegivel.',
+                )
+            )
+
+        assistants_below_avg = [row for row in eligible_assistants if row['retention_rate'] < average_rate]
+        if assistants_below_avg:
+            low_assistant = min(assistants_below_avg, key=lambda row: (row['retention_rate'], -row['total_calls']))
+            insights.append(
+                _build_insight(
+                    type_='info',
+                    title='Assistente abaixo da media',
+                    value=low_assistant['assistant_name'],
+                    url=_assistant_detail_url(low_assistant['assistant_id']),
+                    description=(
+                        f"Retencao de {_fmt_pct(low_assistant['retention_rate'])} "
+                        f"(media elegivel: {_fmt_pct(average_rate)})."
+                    ),
+                )
+            )
+        else:
+            insights.append(
+                _build_insight(
+                    type_='info',
+                    title='Assistente abaixo da media',
+                    value='Indisponivel',
+                    description='Nao foi possivel gerar este insight com os dados atuais.',
+                    available=False,
+                    reason_unavailable='Nao foi encontrado assistente abaixo da media elegivel.',
+                )
+            )
 
     inconsistency_kpis = build_inconsistency_section(filtered_qs)['kpis']
     insights.append(
-        {
-            'type': 'info',
-            'title': 'Total de inconsistencias',
-            'value': str(inconsistency_kpis['total_inconsistencies']),
-            # Mostra contexto de qualidade mesmo quando o total e zero.
-            'description': f"Taxa global de {_fmt_pct(inconsistency_kpis['global_inconsistency_rate'])}.",
-        }
+        _build_insight(
+            type_='info',
+            title='Total de inconsistencias',
+            value=str(inconsistency_kpis['total_inconsistencies']),
+            description=f"Taxa global de {_fmt_pct(inconsistency_kpis['global_inconsistency_rate'])}.",
+        )
     )
 
     top_inconsistency = selectors.select_inconsistency_by_assistant(filtered_qs).first()
-    if top_inconsistency and (top_inconsistency.get('total_inconsistencies') or 0) > 0:
+    if total_calls >= INSIGHTS_MIN_INCONSISTENCY_CALLS and top_inconsistency and (top_inconsistency.get('total_inconsistencies') or 0) > 0:
         total_inconsistencies = top_inconsistency['total_inconsistencies']
         inconsistency_rate = _pct(total_inconsistencies, general_kpis['total_calls'])
         insights.append(
-            {
-                'type': 'warning',
-                'title': 'Assistente com mais inconsistencias',
-                'value': top_inconsistency.get('interaction__agent__name') or 'Sem assistente',
-                'description': f"{total_inconsistencies} inconsistencias ({_fmt_pct(inconsistency_rate)})",
-            }
+            _build_insight(
+                type_='warning',
+                title='Assistente com mais inconsistencias',
+                value=top_inconsistency.get('interaction__agent__name') or 'Sem assistente',
+                description=f"{total_inconsistencies} inconsistencias ({_fmt_pct(inconsistency_rate)})",
+            )
         )
 
     return insights
@@ -698,6 +908,24 @@ def build_frontend_payload(*, general_kpis, temporal_table, churn_reason_table, 
                     'data': [row['success_rate'] for row in top_actions],
                 }
             ],
+        },
+        'chart_states': {
+            'outcomes_chart': {
+                'has_data': general_kpis['total_calls'] > 0,
+                'empty_message': 'Sem dados suficientes para apresentar o grafico.',
+            },
+            'temporal_chart': {
+                'has_data': any(row['total_calls'] > 0 for row in temporal_table),
+                'empty_message': 'Sem dados suficientes para apresentar o grafico.',
+            },
+            'churn_chart': {
+                'has_data': bool(top_reasons),
+                'empty_message': 'Sem dados suficientes para apresentar o grafico.',
+            },
+            'actions_chart': {
+                'has_data': bool(top_actions),
+                'empty_message': 'Sem dados suficientes para apresentar o grafico.',
+            },
         },
     }
 
@@ -762,6 +990,15 @@ def build_dashboard_payload(
             temporal_table=temporal_table,
             churn_reason_table=churn_reason_table,
             retention_action_table=retention_action_table,
+        ),
+        'ui_state': _build_ui_state(general_kpis),
+        'table_states': _build_table_states(
+            churn_reason_table=churn_reason_table,
+            retention_action_table=retention_action_table,
+            service_type_table=service_type_table,
+            monthly_rates_table=monthly_rates_table,
+            assistant_ranking_table=assistant_ranking_table,
+            inconsistency_section=inconsistency_section,
         ),
     }
 

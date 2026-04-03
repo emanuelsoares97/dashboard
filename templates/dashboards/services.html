@@ -30,7 +30,7 @@
                     <td>{{ row.call_drop_rate|floatformat:2 }}</td>
                 </tr>
                 {% empty %}
-                <tr><td class="table-empty" colspan="5">Sem dados para o periodo atual.</td></tr>
+                <tr><td class="table-empty" colspan="5">{{ dashboard.table_states.services.empty_message }}</td></tr>
                 {% endfor %}
             </tbody>
         </table>

@@ -50,13 +50,45 @@ document.addEventListener('DOMContentLoaded', () => {
         const canvas = document.getElementById(canvasId);
         const shell = canvas?.closest('.chart-shell');
         if (shell) {
+            shell.classList.remove('has-message');
             shell.classList.add('is-ready');
+        }
+        if (canvas) {
+            canvas.style.display = '';
         }
         return canvas;
     };
 
+    const showChartMessage = (canvasId, message) => {
+        const canvas = document.getElementById(canvasId);
+        const shell = canvas?.closest('.chart-shell');
+        const loading = shell?.querySelector('.chart-loading');
+        if (!shell || !loading) {
+            return;
+        }
+
+        if (canvas) {
+            canvas.style.display = 'none';
+        }
+        loading.textContent = message;
+        shell.classList.add('has-message');
+        shell.classList.add('is-ready');
+    };
+
+    const getChartState = (chartKey) => {
+        return payload?.chart_states?.[chartKey] || {
+            has_data: true,
+            empty_message: 'Sem dados suficientes para apresentar o grafico.',
+        };
+    };
+
     const renderOutcomesChart = () => {
         if (!payload?.outcomes_chart || typeof Chart === 'undefined') {
+            return;
+        }
+        const chartState = getChartState('outcomes_chart');
+        if (!chartState.has_data) {
+            showChartMessage('outcomes-chart', chartState.empty_message);
             return;
         }
         const canvas = markChartReady('outcomes-chart');
@@ -86,6 +118,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const renderTemporalChart = () => {
         if (!payload?.temporal_chart || typeof Chart === 'undefined') {
+            return;
+        }
+        const chartState = getChartState('temporal_chart');
+        if (!chartState.has_data) {
+            showChartMessage('temporal-chart', chartState.empty_message);
             return;
         }
         const canvas = markChartReady('temporal-chart');
@@ -124,6 +161,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const renderBarChart = (canvasId, chartKey, color) => {
         if (!payload?.[chartKey] || typeof Chart === 'undefined') {
+            return;
+        }
+        const chartState = getChartState(chartKey);
+        if (!chartState.has_data) {
+            showChartMessage(canvasId, chartState.empty_message);
             return;
         }
         const canvas = markChartReady(canvasId);
