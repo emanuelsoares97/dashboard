@@ -640,6 +640,79 @@ def build_assistant_ranking_table(queryset):
     return rows
 
 
+def _build_assistant_comparison_table(
+    *,
+    current_rows,
+    previous_start,
+    previous_end,
+    assistant_name,
+    assistant_id,
+    service_type_id,
+    churn_reason_id,
+    retention_action_id,
+    final_outcome_id,
+):
+    """Enriquece a tabela atual de assistentes com comparacao ao periodo anterior."""
+    if not current_rows:
+        return []
+
+    if not previous_start or not previous_end:
+        return [dict(row) for row in current_rows]
+
+    previous_qs = selectors.get_inbound_queryset()
+    previous_qs = selectors.apply_filters(
+        previous_qs,
+        assistant_name=assistant_name,
+        assistant_id=assistant_id,
+        start_date=previous_start,
+        end_date=previous_end,
+        service_type_id=service_type_id,
+        churn_reason_id=churn_reason_id,
+        retention_action_id=retention_action_id,
+        final_outcome_id=final_outcome_id,
+    )
+    previous_rows = build_assistant_ranking_table(previous_qs)
+    previous_by_assistant_id = {row['assistant_id']: row for row in previous_rows}
+
+    comparison_rows = []
+    for row in current_rows:
+        previous_row = previous_by_assistant_id.get(row['assistant_id'], {})
+
+        total_calls_cmp = _compute_delta(row['total_calls'], previous_row.get('total_calls', 0))
+        retention_cmp = _compute_delta(row['retention_rate'], previous_row.get('retention_rate', 0))
+        non_retention_cmp = _compute_delta(row['non_retention_rate'], previous_row.get('non_retention_rate', 0))
+        call_drop_cmp = _compute_delta(row['call_drop_rate'], previous_row.get('call_drop_rate', 0))
+        inconsistency_cmp = _compute_delta(row['inconsistency_rate'], previous_row.get('inconsistency_rate', 0))
+        duration_cmp = _compute_delta(row['avg_duration_seconds'], previous_row.get('avg_duration_seconds', 0))
+
+        comparison_rows.append(
+            {
+                **row,
+                'total_calls_previous': total_calls_cmp['previous'],
+                'total_calls_delta': total_calls_cmp['delta'],
+                'total_calls_delta_pct': total_calls_cmp['delta_pct'],
+                'total_calls_direction': total_calls_cmp['direction'],
+                'retention_rate_previous': retention_cmp['previous'],
+                'retention_rate_delta_pp': retention_cmp['delta'],
+                'retention_rate_direction': retention_cmp['direction'],
+                'non_retention_rate_previous': non_retention_cmp['previous'],
+                'non_retention_rate_delta_pp': non_retention_cmp['delta'],
+                'non_retention_rate_direction': non_retention_cmp['direction'],
+                'call_drop_rate_previous': call_drop_cmp['previous'],
+                'call_drop_rate_delta_pp': call_drop_cmp['delta'],
+                'call_drop_rate_direction': call_drop_cmp['direction'],
+                'inconsistency_rate_previous': inconsistency_cmp['previous'],
+                'inconsistency_rate_delta_pp': inconsistency_cmp['delta'],
+                'inconsistency_rate_direction': inconsistency_cmp['direction'],
+                'avg_duration_seconds_previous': duration_cmp['previous'],
+                'avg_duration_seconds_delta': duration_cmp['delta'],
+                'avg_duration_seconds_direction': duration_cmp['direction'],
+            }
+        )
+
+    return comparison_rows
+
+
 def build_assistant_detail(queryset, assistant_id, granularity='day'):
     """Gera analise detalhada para um assistente especifico."""
     assistant_qs = queryset.filter(agent_id=assistant_id)
@@ -1218,6 +1291,18 @@ def build_dashboard_payload(
 
     payload['service_type_comparison_table'] = _build_service_type_comparison_table(
         current_rows=service_type_table,
+        previous_start=payload['comparison_context']['previous_start'],
+        previous_end=payload['comparison_context']['previous_end'],
+        assistant_name=assistant_name,
+        assistant_id=assistant_id,
+        service_type_id=service_type_id,
+        churn_reason_id=churn_reason_id,
+        retention_action_id=retention_action_id,
+        final_outcome_id=final_outcome_id,
+    )
+
+    payload['assistant_comparison_table'] = _build_assistant_comparison_table(
+        current_rows=assistant_ranking_table,
         previous_start=payload['comparison_context']['previous_start'],
         previous_end=payload['comparison_context']['previous_end'],
         assistant_name=assistant_name,

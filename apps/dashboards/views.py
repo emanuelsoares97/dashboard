@@ -230,7 +230,7 @@ def assistants(request):
 		filters=filters,
 		dashboard_payload=payload,
 	)
-	context['rows'] = payload['assistant_ranking_table']
+	context['rows'] = payload['assistant_comparison_table']
 	return render(request, 'dashboards/assistants.html', context)
 
 

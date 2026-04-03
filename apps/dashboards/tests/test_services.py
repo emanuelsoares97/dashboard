@@ -757,3 +757,150 @@ def test_service_type_comparison_respects_equivalent_days_period_rule(interactio
     assert payload['comparison_context']['previous_start'] == date(2026, 3, 1)
     assert payload['comparison_context']['previous_end'] == date(2026, 3, 3)
     assert fibra['total_calls_previous'] == 1.0
+
+
+def test_assistant_comparison_table_calculates_values_and_directions(interaction_factory, base_dimensions):
+    agent_b = base_dimensions['team'].agents.create(name='Bruno')
+
+    interaction_factory(
+        call_id_external='asst-cmp-a-cur-1',
+        start_at=datetime(2026, 1, 10, 10, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 1, 10, 10, 5, tzinfo=timezone.utc),
+        agent=base_dimensions['agent'],
+        final_outcome=base_dimensions['retained'],
+    )
+    interaction_factory(
+        call_id_external='asst-cmp-a-cur-2',
+        start_at=datetime(2026, 1, 10, 11, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 1, 10, 11, 5, tzinfo=timezone.utc),
+        agent=base_dimensions['agent'],
+        final_outcome=base_dimensions['retained'],
+    )
+    interaction_factory(
+        call_id_external='asst-cmp-a-cur-3',
+        start_at=datetime(2026, 1, 11, 10, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 1, 11, 10, 5, tzinfo=timezone.utc),
+        agent=base_dimensions['agent'],
+        final_outcome=base_dimensions['not_retained'],
+    )
+    interaction_factory(
+        call_id_external='asst-cmp-b-cur-1',
+        start_at=datetime(2026, 1, 11, 11, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 1, 11, 11, 5, tzinfo=timezone.utc),
+        agent=agent_b,
+        final_outcome=base_dimensions['retained'],
+    )
+
+    interaction_factory(
+        call_id_external='asst-cmp-a-prev-1',
+        start_at=datetime(2026, 1, 8, 10, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 1, 8, 10, 5, tzinfo=timezone.utc),
+        agent=base_dimensions['agent'],
+        final_outcome=base_dimensions['retained'],
+    )
+    interaction_factory(
+        call_id_external='asst-cmp-a-prev-2',
+        start_at=datetime(2026, 1, 9, 10, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 1, 9, 10, 5, tzinfo=timezone.utc),
+        agent=base_dimensions['agent'],
+        final_outcome=base_dimensions['not_retained'],
+    )
+
+    payload = build_dashboard_payload(
+        date_preset='custom',
+        start_date=date(2026, 1, 10),
+        end_date=date(2026, 1, 11),
+    )
+
+    by_assistant_id = {row['assistant_id']: row for row in payload['assistant_comparison_table']}
+
+    ana = by_assistant_id[base_dimensions['agent'].id]
+    assert ana['total_calls'] == 3
+    assert ana['total_calls_previous'] == 2.0
+    assert ana['total_calls_delta'] == 1.0
+    assert ana['total_calls_delta_pct'] == 50.0
+    assert ana['total_calls_direction'] == 'up'
+
+    assert ana['retention_rate'] == 66.67
+    assert ana['retention_rate_previous'] == 50.0
+    assert ana['retention_rate_delta_pp'] == 16.67
+    assert ana['retention_rate_direction'] == 'up'
+
+    assert ana['non_retention_rate'] == 33.33
+    assert ana['non_retention_rate_previous'] == 50.0
+    assert ana['non_retention_rate_delta_pp'] == -16.67
+    assert ana['non_retention_rate_direction'] == 'down'
+
+    assert ana['call_drop_rate_delta_pp'] == 0.0
+    assert ana['call_drop_rate_direction'] == 'neutral'
+
+    assert ana['inconsistency_rate_delta_pp'] == 0.0
+    assert ana['avg_duration_seconds_delta'] == 0.0
+
+
+def test_assistant_comparison_table_handles_assistant_missing_in_previous_period(interaction_factory, base_dimensions):
+    agent_new = base_dimensions['team'].agents.create(name='Nova')
+
+    interaction_factory(
+        call_id_external='asst-only-current',
+        start_at=datetime(2026, 1, 10, 10, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 1, 10, 10, 5, tzinfo=timezone.utc),
+        agent=agent_new,
+        final_outcome=base_dimensions['retained'],
+    )
+
+    payload = build_dashboard_payload(
+        date_preset='custom',
+        start_date=date(2026, 1, 10),
+        end_date=date(2026, 1, 10),
+    )
+
+    by_assistant_id = {row['assistant_id']: row for row in payload['assistant_comparison_table']}
+    nova = by_assistant_id[agent_new.id]
+
+    assert nova['total_calls_previous'] == 0.0
+    assert nova['total_calls_delta'] == 1.0
+    assert nova['total_calls_delta_pct'] is None
+    assert nova['total_calls_direction'] == 'up'
+    assert nova['retention_rate_previous'] == 0.0
+    assert nova['retention_rate_delta_pp'] == 100.0
+
+
+def test_assistant_comparison_respects_equivalent_days_period_rule(interaction_factory, base_dimensions):
+    interaction_factory(
+        call_id_external='asst-mtd-cur-1',
+        start_at=datetime(2026, 4, 1, 10, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 4, 1, 10, 5, tzinfo=timezone.utc),
+        agent=base_dimensions['agent'],
+    )
+    interaction_factory(
+        call_id_external='asst-mtd-cur-2',
+        start_at=datetime(2026, 4, 2, 10, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 4, 2, 10, 5, tzinfo=timezone.utc),
+        agent=base_dimensions['agent'],
+    )
+    interaction_factory(
+        call_id_external='asst-mtd-prev-match',
+        start_at=datetime(2026, 3, 2, 10, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 3, 2, 10, 5, tzinfo=timezone.utc),
+        agent=base_dimensions['agent'],
+    )
+    interaction_factory(
+        call_id_external='asst-mtd-prev-outside',
+        start_at=datetime(2026, 3, 20, 10, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 3, 20, 10, 5, tzinfo=timezone.utc),
+        agent=base_dimensions['agent'],
+    )
+
+    payload = build_dashboard_payload(
+        date_preset='current_month',
+        start_date=date(2026, 4, 1),
+        end_date=date(2026, 4, 3),
+    )
+
+    by_assistant_id = {row['assistant_id']: row for row in payload['assistant_comparison_table']}
+    ana = by_assistant_id[base_dimensions['agent'].id]
+
+    assert payload['comparison_context']['previous_start'] == date(2026, 3, 1)
+    assert payload['comparison_context']['previous_end'] == date(2026, 3, 3)
+    assert ana['total_calls_previous'] == 1.0
