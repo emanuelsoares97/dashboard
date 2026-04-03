@@ -24,11 +24,32 @@
                 {% for row in rows %}
                 <tr>
                     <td>{{ row.retention_action }}</td>
-                    <td>{{ row.total_used }}</td>
-                    <td>{{ row.total_retained }}</td>
-                    <td>{{ row.total_non_retained }}</td>
-                    <td><span class="{{ row.success_status_class }}">{{ row.success_rate|floatformat:2 }}</span></td>
-                    <td>{{ row.failure_rate|floatformat:2 }}</td>
+                    <td>
+                        <span class="table-current-value">{{ row.total_used }}</span>
+                        {% if dashboard.comparison_context.enabled %}
+                        <span class="table-comparison">
+                            vs {{ row.total_used_previous|floatformat:2 }} ({{ row.total_used_delta|floatformat:2 }}){% if row.total_used_delta_pct is not None %} | {{ row.total_used_delta_pct|floatformat:2 }}%{% endif %}
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td><span class="table-current-value">{{ row.total_retained }}</span></td>
+                    <td><span class="table-current-value">{{ row.total_non_retained }}</span></td>
+                    <td>
+                        <span class="table-current-value">{{ row.success_rate|floatformat:2 }}</span>
+                        {% if dashboard.comparison_context.enabled %}
+                        <span class="table-comparison">
+                            vs {{ row.success_rate_previous|floatformat:2 }} ({{ row.success_rate_delta_pp|floatformat:2 }} pp)
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="table-current-value">{{ row.failure_rate|floatformat:2 }}</span>
+                        {% if dashboard.comparison_context.enabled %}
+                        <span class="table-comparison">
+                            vs {{ row.failure_rate_previous|floatformat:2 }} ({{ row.failure_rate_delta_pp|floatformat:2 }} pp)
+                        </span>
+                        {% endif %}
+                    </td>
                 </tr>
                 {% empty %}
                 <tr><td class="table-empty" colspan="6">Sem dados para o periodo atual.</td></tr>

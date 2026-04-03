@@ -34,7 +34,7 @@
                     <td>
                         <span class="table-current-value">{{ row.total_calls }}</span>
                         {% if dashboard.comparison_context.enabled %}
-                        <span class="table-comparison kpi-comparison-{{ row.total_calls_trend_tone }}">
+                        <span class="table-comparison">
                             vs {{ row.total_calls_previous|floatformat:2 }} ({{ row.total_calls_delta|floatformat:2 }}){% if row.total_calls_delta_pct is not None %} | {{ row.total_calls_delta_pct|floatformat:2 }}%{% endif %}
                         </span>
                         {% endif %}
@@ -42,7 +42,7 @@
                     <td>
                         <span class="table-current-value">{{ row.avg_duration_seconds|floatformat:2 }}</span>
                         {% if dashboard.comparison_context.enabled %}
-                        <span class="table-comparison kpi-comparison-{{ row.avg_duration_seconds_trend_tone }}">
+                        <span class="table-comparison">
                             vs {{ row.avg_duration_seconds_previous|floatformat:2 }} ({{ row.avg_duration_seconds_delta|floatformat:2 }} s)
                         </span>
                         {% endif %}

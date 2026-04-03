@@ -760,6 +760,452 @@ def test_service_type_comparison_respects_equivalent_days_period_rule(interactio
     assert fibra['total_calls_previous'] == 1.0
 
 
+def test_churn_reason_comparison_table_calculates_values_and_directions(interaction_factory, base_dimensions):
+    other_reason = ChurnReason.objects.create(code='demora', label='Demora')
+
+    interaction_factory(
+        call_id_external='churn-cmp-cur-a-1',
+        start_at=datetime(2026, 1, 10, 10, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 1, 10, 10, 5, tzinfo=timezone.utc),
+        churn_reason=base_dimensions['reason'],
+        final_outcome=base_dimensions['retained'],
+    )
+    interaction_factory(
+        call_id_external='churn-cmp-cur-a-2',
+        start_at=datetime(2026, 1, 10, 11, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 1, 10, 11, 5, tzinfo=timezone.utc),
+        churn_reason=base_dimensions['reason'],
+        final_outcome=base_dimensions['retained'],
+    )
+    interaction_factory(
+        call_id_external='churn-cmp-cur-a-3',
+        start_at=datetime(2026, 1, 11, 10, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 1, 11, 10, 5, tzinfo=timezone.utc),
+        churn_reason=base_dimensions['reason'],
+        final_outcome=base_dimensions['not_retained'],
+    )
+    interaction_factory(
+        call_id_external='churn-cmp-cur-b-1',
+        start_at=datetime(2026, 1, 11, 11, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 1, 11, 11, 5, tzinfo=timezone.utc),
+        churn_reason=other_reason,
+        final_outcome=base_dimensions['retained'],
+    )
+
+    interaction_factory(
+        call_id_external='churn-cmp-prev-a-1',
+        start_at=datetime(2026, 1, 8, 10, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 1, 8, 10, 5, tzinfo=timezone.utc),
+        churn_reason=base_dimensions['reason'],
+        final_outcome=base_dimensions['retained'],
+    )
+    interaction_factory(
+        call_id_external='churn-cmp-prev-a-2',
+        start_at=datetime(2026, 1, 9, 10, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 1, 9, 10, 5, tzinfo=timezone.utc),
+        churn_reason=base_dimensions['reason'],
+        final_outcome=base_dimensions['not_retained'],
+    )
+
+    payload = build_dashboard_payload(
+        date_preset='custom',
+        start_date=date(2026, 1, 10),
+        end_date=date(2026, 1, 11),
+    )
+
+    by_reason_id = {row['churn_reason_id']: row for row in payload['churn_reason_comparison_table']}
+    preco = by_reason_id[base_dimensions['reason'].id]
+
+    assert preco['total_calls'] == 3
+    assert preco['total_calls_previous'] == 2.0
+    assert preco['total_calls_delta'] == 1.0
+    assert preco['total_calls_delta_pct'] == 50.0
+    assert preco['total_calls_direction'] == 'up'
+
+    assert preco['retention_rate'] == 66.67
+    assert preco['retention_rate_previous'] == 50.0
+    assert preco['retention_rate_delta_pp'] == 16.67
+    assert preco['retention_rate_direction'] == 'up'
+
+    assert preco['non_retention_rate'] == 33.33
+    assert preco['non_retention_rate_previous'] == 50.0
+    assert preco['non_retention_rate_delta_pp'] == -16.67
+    assert preco['non_retention_rate_direction'] == 'down'
+
+    assert preco['call_drop_rate_delta_pp'] == 0.0
+    assert preco['call_drop_rate_direction'] == 'neutral'
+
+
+def test_churn_reason_comparison_table_handles_reason_missing_in_previous_period(interaction_factory, base_dimensions):
+    new_reason = ChurnReason.objects.create(code='novo', label='Novo')
+
+    interaction_factory(
+        call_id_external='churn-only-current',
+        start_at=datetime(2026, 1, 10, 10, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 1, 10, 10, 5, tzinfo=timezone.utc),
+        churn_reason=new_reason,
+        final_outcome=base_dimensions['retained'],
+    )
+
+    payload = build_dashboard_payload(
+        date_preset='custom',
+        start_date=date(2026, 1, 10),
+        end_date=date(2026, 1, 10),
+    )
+
+    by_reason_id = {row['churn_reason_id']: row for row in payload['churn_reason_comparison_table']}
+    novo = by_reason_id[new_reason.id]
+
+    assert novo['total_calls_previous'] == 0.0
+    assert novo['total_calls_delta'] == 1.0
+    assert novo['total_calls_delta_pct'] is None
+    assert novo['total_calls_direction'] == 'up'
+    assert novo['retention_rate_previous'] == 0.0
+    assert novo['retention_rate_delta_pp'] == 100.0
+
+
+def test_churn_reason_comparison_respects_equivalent_days_period_rule(interaction_factory, base_dimensions):
+    interaction_factory(
+        call_id_external='churn-mtd-cur-1',
+        start_at=datetime(2026, 4, 1, 10, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 4, 1, 10, 5, tzinfo=timezone.utc),
+        churn_reason=base_dimensions['reason'],
+    )
+    interaction_factory(
+        call_id_external='churn-mtd-cur-2',
+        start_at=datetime(2026, 4, 2, 10, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 4, 2, 10, 5, tzinfo=timezone.utc),
+        churn_reason=base_dimensions['reason'],
+    )
+    interaction_factory(
+        call_id_external='churn-mtd-prev-match',
+        start_at=datetime(2026, 3, 2, 10, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 3, 2, 10, 5, tzinfo=timezone.utc),
+        churn_reason=base_dimensions['reason'],
+    )
+    interaction_factory(
+        call_id_external='churn-mtd-prev-outside',
+        start_at=datetime(2026, 3, 20, 10, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 3, 20, 10, 5, tzinfo=timezone.utc),
+        churn_reason=base_dimensions['reason'],
+    )
+
+    payload = build_dashboard_payload(
+        date_preset='current_month',
+        start_date=date(2026, 4, 1),
+        end_date=date(2026, 4, 3),
+    )
+
+    by_reason_id = {row['churn_reason_id']: row for row in payload['churn_reason_comparison_table']}
+    reason_row = by_reason_id[base_dimensions['reason'].id]
+
+    assert payload['comparison_context']['previous_start'] == date(2026, 3, 1)
+    assert payload['comparison_context']['previous_end'] == date(2026, 3, 3)
+    assert reason_row['total_calls_previous'] == 1.0
+
+
+def test_retention_action_comparison_table_calculates_values_and_directions(interaction_factory, base_dimensions):
+    other_action = base_dimensions['pending_action']
+
+    interaction_factory(
+        call_id_external='action-cmp-cur-a-1',
+        start_at=datetime(2026, 1, 10, 10, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 1, 10, 10, 5, tzinfo=timezone.utc),
+        retention_action=base_dimensions['action'],
+        final_outcome=base_dimensions['retained'],
+    )
+    interaction_factory(
+        call_id_external='action-cmp-cur-a-2',
+        start_at=datetime(2026, 1, 10, 11, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 1, 10, 11, 5, tzinfo=timezone.utc),
+        retention_action=base_dimensions['action'],
+        final_outcome=base_dimensions['retained'],
+    )
+    interaction_factory(
+        call_id_external='action-cmp-cur-a-3',
+        start_at=datetime(2026, 1, 11, 10, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 1, 11, 10, 5, tzinfo=timezone.utc),
+        retention_action=base_dimensions['action'],
+        final_outcome=base_dimensions['not_retained'],
+    )
+    interaction_factory(
+        call_id_external='action-cmp-cur-b-1',
+        start_at=datetime(2026, 1, 11, 11, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 1, 11, 11, 5, tzinfo=timezone.utc),
+        retention_action=other_action,
+        final_outcome=base_dimensions['retained'],
+    )
+
+    interaction_factory(
+        call_id_external='action-cmp-prev-a-1',
+        start_at=datetime(2026, 1, 8, 10, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 1, 8, 10, 5, tzinfo=timezone.utc),
+        retention_action=base_dimensions['action'],
+        final_outcome=base_dimensions['retained'],
+    )
+    interaction_factory(
+        call_id_external='action-cmp-prev-a-2',
+        start_at=datetime(2026, 1, 9, 10, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 1, 9, 10, 5, tzinfo=timezone.utc),
+        retention_action=base_dimensions['action'],
+        final_outcome=base_dimensions['not_retained'],
+    )
+
+    payload = build_dashboard_payload(
+        date_preset='custom',
+        start_date=date(2026, 1, 10),
+        end_date=date(2026, 1, 11),
+    )
+
+    by_action_id = {row['retention_action_id']: row for row in payload['retention_action_comparison_table']}
+    oferta = by_action_id[base_dimensions['action'].id]
+
+    assert oferta['total_used'] == 3
+    assert oferta['total_used_previous'] == 2.0
+    assert oferta['total_used_delta'] == 1.0
+    assert oferta['total_used_delta_pct'] == 50.0
+    assert oferta['total_used_direction'] == 'up'
+
+    assert oferta['success_rate'] == 66.67
+    assert oferta['success_rate_previous'] == 50.0
+    assert oferta['success_rate_delta_pp'] == 16.67
+    assert oferta['success_rate_direction'] == 'up'
+
+    assert oferta['failure_rate'] == 33.33
+    assert oferta['failure_rate_previous'] == 50.0
+    assert oferta['failure_rate_delta_pp'] == -16.67
+    assert oferta['failure_rate_direction'] == 'down'
+
+
+def test_retention_action_comparison_table_handles_action_missing_in_previous_period(interaction_factory, base_dimensions):
+    new_action = base_dimensions['team'].retention_actions.create(code='nova', label='Nova')
+
+    interaction_factory(
+        call_id_external='action-only-current',
+        start_at=datetime(2026, 1, 10, 10, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 1, 10, 10, 5, tzinfo=timezone.utc),
+        retention_action=new_action,
+        final_outcome=base_dimensions['retained'],
+    )
+
+    payload = build_dashboard_payload(
+        date_preset='custom',
+        start_date=date(2026, 1, 10),
+        end_date=date(2026, 1, 10),
+    )
+
+    by_action_id = {row['retention_action_id']: row for row in payload['retention_action_comparison_table']}
+    nova = by_action_id[new_action.id]
+
+    assert nova['total_used_previous'] == 0.0
+    assert nova['total_used_delta'] == 1.0
+    assert nova['total_used_delta_pct'] is None
+    assert nova['total_used_direction'] == 'up'
+    assert nova['success_rate_previous'] == 0.0
+    assert nova['success_rate_delta_pp'] == 100.0
+
+
+def test_retention_action_comparison_respects_equivalent_days_period_rule(interaction_factory, base_dimensions):
+    interaction_factory(
+        call_id_external='action-mtd-cur-1',
+        start_at=datetime(2026, 4, 1, 10, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 4, 1, 10, 5, tzinfo=timezone.utc),
+        retention_action=base_dimensions['action'],
+    )
+    interaction_factory(
+        call_id_external='action-mtd-cur-2',
+        start_at=datetime(2026, 4, 2, 10, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 4, 2, 10, 5, tzinfo=timezone.utc),
+        retention_action=base_dimensions['action'],
+    )
+    interaction_factory(
+        call_id_external='action-mtd-prev-match',
+        start_at=datetime(2026, 3, 2, 10, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 3, 2, 10, 5, tzinfo=timezone.utc),
+        retention_action=base_dimensions['action'],
+    )
+    interaction_factory(
+        call_id_external='action-mtd-prev-outside',
+        start_at=datetime(2026, 3, 20, 10, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 3, 20, 10, 5, tzinfo=timezone.utc),
+        retention_action=base_dimensions['action'],
+    )
+
+    payload = build_dashboard_payload(
+        date_preset='current_month',
+        start_date=date(2026, 4, 1),
+        end_date=date(2026, 4, 3),
+    )
+
+    by_action_id = {row['retention_action_id']: row for row in payload['retention_action_comparison_table']}
+    action_row = by_action_id[base_dimensions['action'].id]
+
+    assert payload['comparison_context']['previous_start'] == date(2026, 3, 1)
+    assert payload['comparison_context']['previous_end'] == date(2026, 3, 3)
+    assert action_row['total_used_previous'] == 1.0
+
+
+def test_inconsistency_comparison_section_calculates_kpis_and_by_assistant(base_dimensions, interaction_factory):
+    agent_b = base_dimensions['team'].agents.create(name='Bruno')
+
+    flagged_current = interaction_factory(
+        call_id_external='inc-cmp-cur-a-1',
+        start_at=datetime(2026, 1, 10, 10, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 1, 10, 10, 5, tzinfo=timezone.utc),
+        agent=base_dimensions['agent'],
+    )
+    flagged_current_2 = interaction_factory(
+        call_id_external='inc-cmp-cur-a-2',
+        start_at=datetime(2026, 1, 11, 10, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 1, 11, 10, 5, tzinfo=timezone.utc),
+        agent=base_dimensions['agent'],
+    )
+    flagged_current_b = interaction_factory(
+        call_id_external='inc-cmp-cur-b-1',
+        start_at=datetime(2026, 1, 11, 11, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 1, 11, 11, 5, tzinfo=timezone.utc),
+        agent=agent_b,
+    )
+
+    flagged_previous = interaction_factory(
+        call_id_external='inc-cmp-prev-a-1',
+        start_at=datetime(2026, 1, 8, 10, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 1, 8, 10, 5, tzinfo=timezone.utc),
+        agent=base_dimensions['agent'],
+    )
+
+    DataQualityFlag.objects.create(
+        interaction=flagged_current,
+        flag_type=DataQualityFlag.FlagType.TIPIFICATION_INCONSISTENCY,
+        rule_code='inc-cur-1',
+        severity=DataQualityFlag.Severity.WARNING,
+        description='Inconsistencia atual 1',
+    )
+    DataQualityFlag.objects.create(
+        interaction=flagged_current_2,
+        flag_type=DataQualityFlag.FlagType.TIPIFICATION_INCONSISTENCY,
+        rule_code='inc-cur-2',
+        severity=DataQualityFlag.Severity.WARNING,
+        description='Inconsistencia atual 2',
+    )
+    DataQualityFlag.objects.create(
+        interaction=flagged_current_b,
+        flag_type=DataQualityFlag.FlagType.TIPIFICATION_INCONSISTENCY,
+        rule_code='inc-cur-3',
+        severity=DataQualityFlag.Severity.WARNING,
+        description='Inconsistencia atual 3',
+    )
+    DataQualityFlag.objects.create(
+        interaction=flagged_previous,
+        flag_type=DataQualityFlag.FlagType.TIPIFICATION_INCONSISTENCY,
+        rule_code='inc-prev-1',
+        severity=DataQualityFlag.Severity.WARNING,
+        description='Inconsistencia anterior',
+    )
+
+    payload = build_dashboard_payload(
+        date_preset='custom',
+        start_date=date(2026, 1, 10),
+        end_date=date(2026, 1, 11),
+    )
+
+    section = payload['inconsistency_comparison_section']
+    assert section['kpis']['total_inconsistencies'] == 3
+    assert section['kpis']['total_inconsistencies_previous'] == 1.0
+    assert section['kpis']['total_inconsistencies_delta'] == 2.0
+    assert section['kpis']['total_inconsistencies_delta_pct'] == 200.0
+    assert section['kpis']['total_inconsistencies_direction'] == 'up'
+
+    assert section['kpis']['global_inconsistency_rate'] == 100.0
+    assert section['kpis']['global_inconsistency_rate_previous'] == 100.0
+    assert section['kpis']['global_inconsistency_rate_delta_pp'] == 0.0
+    assert section['kpis']['global_inconsistency_rate_direction'] == 'neutral'
+
+    by_assistant = {row['assistant_id']: row for row in section['kpis']['by_assistant']}
+    ana = by_assistant[base_dimensions['agent'].id]
+    assert ana['inconsistency_total'] == 2
+    assert ana['inconsistency_total_previous'] == 1.0
+    assert ana['inconsistency_total_delta'] == 1.0
+    assert ana['inconsistency_total_delta_pct'] == 100.0
+    assert ana['inconsistency_total_direction'] == 'up'
+    assert ana['inconsistency_rate'] == 66.67
+    assert ana['inconsistency_rate_previous'] == 100.0
+    assert ana['inconsistency_rate_delta_pp'] == -33.33
+    assert ana['inconsistency_rate_direction'] == 'down'
+
+
+def test_inconsistency_comparison_section_handles_assistant_missing_in_previous_period(base_dimensions, interaction_factory):
+    new_agent = base_dimensions['team'].agents.create(name='Nova')
+    flagged_current = interaction_factory(
+        call_id_external='inc-only-current',
+        start_at=datetime(2026, 1, 10, 10, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 1, 10, 10, 5, tzinfo=timezone.utc),
+        agent=new_agent,
+    )
+    DataQualityFlag.objects.create(
+        interaction=flagged_current,
+        flag_type=DataQualityFlag.FlagType.TIPIFICATION_INCONSISTENCY,
+        rule_code='inc-only',
+        severity=DataQualityFlag.Severity.WARNING,
+        description='Inconsistencia nova',
+    )
+
+    payload = build_dashboard_payload(
+        date_preset='custom',
+        start_date=date(2026, 1, 10),
+        end_date=date(2026, 1, 10),
+    )
+
+    by_assistant = {row['assistant_id']: row for row in payload['inconsistency_comparison_section']['kpis']['by_assistant']}
+    nova = by_assistant[new_agent.id]
+
+    assert nova['inconsistency_total_previous'] == 0.0
+    assert nova['inconsistency_total_delta'] == 1.0
+    assert nova['inconsistency_total_delta_pct'] is None
+    assert nova['inconsistency_total_direction'] == 'up'
+
+
+def test_inconsistency_comparison_respects_equivalent_days_period_rule(base_dimensions, interaction_factory):
+    flagged_current = interaction_factory(
+        call_id_external='inc-mtd-cur-1',
+        start_at=datetime(2026, 4, 1, 10, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 4, 1, 10, 5, tzinfo=timezone.utc),
+        agent=base_dimensions['agent'],
+    )
+    flagged_previous = interaction_factory(
+        call_id_external='inc-mtd-prev-match',
+        start_at=datetime(2026, 3, 2, 10, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 3, 2, 10, 5, tzinfo=timezone.utc),
+        agent=base_dimensions['agent'],
+    )
+    flagged_outside = interaction_factory(
+        call_id_external='inc-mtd-prev-outside',
+        start_at=datetime(2026, 3, 20, 10, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 3, 20, 10, 5, tzinfo=timezone.utc),
+        agent=base_dimensions['agent'],
+    )
+
+    for interaction, code in ((flagged_current, 'cur'), (flagged_previous, 'prev-match'), (flagged_outside, 'prev-outside')):
+        DataQualityFlag.objects.create(
+            interaction=interaction,
+            flag_type=DataQualityFlag.FlagType.TIPIFICATION_INCONSISTENCY,
+            rule_code=f'inc-{code}',
+            severity=DataQualityFlag.Severity.WARNING,
+            description=f'Inconsistencia {code}',
+        )
+
+    payload = build_dashboard_payload(
+        date_preset='current_month',
+        start_date=date(2026, 4, 1),
+        end_date=date(2026, 4, 3),
+    )
+
+    section = payload['inconsistency_comparison_section']
+    assert payload['comparison_context']['previous_start'] == date(2026, 3, 1)
+    assert payload['comparison_context']['previous_end'] == date(2026, 3, 3)
+    assert section['kpis']['total_inconsistencies_previous'] == 1.0
+
+
 def test_assistant_comparison_table_calculates_values_and_directions(interaction_factory, base_dimensions):
     agent_b = base_dimensions['team'].agents.create(name='Bruno')
 

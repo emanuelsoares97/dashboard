@@ -3,8 +3,8 @@
 {% block dashboard_content %}
 <div class="dashboard-page">
     <section class="kpi-grid kpi-grid-inconsistency">
-        <article class="kpi-card kpi-card-warning card"><span class="kpi-label">Total inconsistencias</span><strong class="kpi-value">{{ section.kpis.total_inconsistencies }}</strong></article>
-        <article class="kpi-card kpi-card-danger card"><span class="kpi-label">Taxa global</span><strong class="kpi-value">{{ section.kpis.global_inconsistency_rate|floatformat:2 }}%</strong></article>
+        <article class="kpi-card kpi-card-warning card"><span class="kpi-label">Total inconsistencias</span><strong class="kpi-value">{{ section.kpis.total_inconsistencies }}</strong>{% if dashboard.comparison_context.enabled %}<span class="kpi-comparison">vs anterior: {{ section.kpis.total_inconsistencies_previous|floatformat:2 }} ({{ section.kpis.total_inconsistencies_delta|floatformat:2 }}){% if section.kpis.total_inconsistencies_delta_pct is not None %} | {{ section.kpis.total_inconsistencies_delta_pct|floatformat:2 }}%{% endif %}</span>{% endif %}</article>
+        <article class="kpi-card kpi-card-danger card"><span class="kpi-label">Taxa global</span><strong class="kpi-value">{{ section.kpis.global_inconsistency_rate|floatformat:2 }}%</strong>{% if dashboard.comparison_context.enabled %}<span class="kpi-comparison">vs anterior: {{ section.kpis.global_inconsistency_rate_previous|floatformat:2 }}% ({{ section.kpis.global_inconsistency_rate_delta_pp|floatformat:2 }} pp)</span>{% endif %}</article>
     </section>
 
     <section class="analytics-grid analytics-grid-middle">
@@ -15,7 +15,7 @@
                     <thead><tr><th>Assistente</th><th>Total inconsistencias</th><th>Taxa</th></tr></thead>
                     <tbody>
                         {% for row in section.kpis.by_assistant %}
-                        <tr><td>{{ row.assistant_name }}</td><td>{{ row.inconsistency_total }}</td><td>{{ row.inconsistency_rate|floatformat:2 }}</td></tr>
+                        <tr><td>{{ row.assistant_name }}</td><td><span class="table-current-value">{{ row.inconsistency_total }}</span>{% if dashboard.comparison_context.enabled %}<span class="table-comparison">vs {{ row.inconsistency_total_previous|floatformat:2 }} ({{ row.inconsistency_total_delta|floatformat:2 }}){% if row.inconsistency_total_delta_pct is not None %} | {{ row.inconsistency_total_delta_pct|floatformat:2 }}%{% endif %}</span>{% endif %}</td><td><span class="table-current-value">{{ row.inconsistency_rate|floatformat:2 }}</span>{% if dashboard.comparison_context.enabled %}<span class="table-comparison">vs {{ row.inconsistency_rate_previous|floatformat:2 }} ({{ row.inconsistency_rate_delta_pp|floatformat:2 }} pp)</span>{% endif %}</td></tr>
                         {% empty %}<tr><td class="table-empty" colspan="3">{{ dashboard.table_states.inconsistencies.empty_message }}</td></tr>{% endfor %}
                     </tbody>
                 </table>

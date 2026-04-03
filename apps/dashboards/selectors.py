@@ -116,7 +116,7 @@ def select_kpis_base(queryset):
 def select_by_churn_reason(queryset):
     """Agrega resultados por motivo de churn."""
     return (
-        queryset.values('churn_reason__label')
+        queryset.values('churn_reason_id', 'churn_reason__label')
         .annotate(
             total_calls=Count('id'),
             total_retained=Count('id', filter=Q(final_outcome__code='retido', is_call_drop=False)),
@@ -139,7 +139,7 @@ def select_top_churn_reason_by_volume(queryset):
 def select_by_retention_action(queryset):
     """Agrega resultados por acao de retencao."""
     return (
-        queryset.values('retention_action__label')
+        queryset.values('retention_action_id', 'retention_action__label')
         .annotate(
             total_used=Count('id'),
             total_retained=Count('id', filter=Q(final_outcome__code='retido', is_call_drop=False)),

@@ -33,7 +33,7 @@
             <span class="kpi-label">Taxa retencao</span>
             <strong class="kpi-value">{{ dashboard.general_kpis.retention_rate|floatformat:2 }}%</strong>
             {% if dashboard.comparison_kpis.retention_rate %}
-            <span class="kpi-comparison kpi-comparison-{{ dashboard.comparison_kpis.retention_rate.trend_tone }}">
+            <span class="kpi-comparison">
                 vs anterior: {{ dashboard.comparison_kpis.retention_rate.previous|floatformat:2 }}%
                 ({{ dashboard.comparison_kpis.retention_rate.delta|floatformat:2 }} pp)
             </span>
@@ -43,7 +43,7 @@
             <span class="kpi-label">Taxa nao retencao</span>
             <strong class="kpi-value">{{ dashboard.general_kpis.non_retention_rate|floatformat:2 }}%</strong>
             {% if dashboard.comparison_kpis.non_retention_rate %}
-            <span class="kpi-comparison kpi-comparison-{{ dashboard.comparison_kpis.non_retention_rate.trend_tone }}">
+            <span class="kpi-comparison">
                 vs anterior: {{ dashboard.comparison_kpis.non_retention_rate.previous|floatformat:2 }}%
                 ({{ dashboard.comparison_kpis.non_retention_rate.delta|floatformat:2 }} pp)
             </span>
@@ -53,7 +53,7 @@
             <span class="kpi-label">Call drop</span>
             <strong class="kpi-value">{{ dashboard.general_kpis.call_drop_rate|floatformat:2 }}%</strong>
             {% if dashboard.comparison_kpis.call_drop_rate %}
-            <span class="kpi-comparison kpi-comparison-{{ dashboard.comparison_kpis.call_drop_rate.trend_tone }}">
+            <span class="kpi-comparison">
                 vs anterior: {{ dashboard.comparison_kpis.call_drop_rate.previous|floatformat:2 }}%
                 ({{ dashboard.comparison_kpis.call_drop_rate.delta|floatformat:2 }} pp)
             </span>

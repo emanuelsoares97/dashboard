@@ -185,7 +185,7 @@ def churn_reasons(request):
 		filters=filters,
 		dashboard_payload=payload,
 	)
-	context['rows'] = payload['churn_reason_table']
+	context['rows'] = payload['churn_reason_comparison_table']
 	return render(request, 'dashboards/churn_reasons.html', context)
 
 
@@ -200,7 +200,7 @@ def retention_actions(request):
 		filters=filters,
 		dashboard_payload=payload,
 	)
-	context['rows'] = payload['retention_action_table']
+	context['rows'] = payload['retention_action_comparison_table']
 	return render(request, 'dashboards/retention_actions.html', context)
 
 
@@ -266,7 +266,7 @@ def inconsistencies(request):
 		filters=filters,
 		dashboard_payload=payload,
 	)
-	context['section'] = payload['inconsistency_section']
+	context['section'] = payload['inconsistency_comparison_section']
 	return render(request, 'dashboards/inconsistencies.html', context)
 
 

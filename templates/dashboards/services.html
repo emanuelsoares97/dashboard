@@ -27,15 +27,15 @@
                     <td>
                         <span class="table-current-value">{{ row.total_calls }}</span>
                         {% if dashboard.comparison_context.enabled %}
-                        <span class="table-comparison kpi-comparison-{{ row.total_calls_trend_tone }}">
+                        <span class="table-comparison">
                             vs {{ row.total_calls_previous|floatformat:2 }} ({{ row.total_calls_delta|floatformat:2 }}){% if row.total_calls_delta_pct is not None %} | {{ row.total_calls_delta_pct|floatformat:2 }}%{% endif %}
                         </span>
                         {% endif %}
                     </td>
                     <td>
-                        <span class="table-current-value"><span class="{{ row.retention_status_class }}">{{ row.retention_rate|floatformat:2 }}</span></span>
+                        <span class="table-current-value">{{ row.retention_rate|floatformat:2 }}</span>
                         {% if dashboard.comparison_context.enabled %}
-                        <span class="table-comparison kpi-comparison-{{ row.retention_rate_trend_tone }}">
+                        <span class="table-comparison">
                             vs {{ row.retention_rate_previous|floatformat:2 }} ({{ row.retention_rate_delta_pp|floatformat:2 }} pp)
                         </span>
                         {% endif %}
@@ -43,7 +43,7 @@
                     <td>
                         <span class="table-current-value">{{ row.non_retention_rate|floatformat:2 }}</span>
                         {% if dashboard.comparison_context.enabled %}
-                        <span class="table-comparison kpi-comparison-{{ row.non_retention_rate_trend_tone }}">
+                        <span class="table-comparison">
                             vs {{ row.non_retention_rate_previous|floatformat:2 }} ({{ row.non_retention_rate_delta_pp|floatformat:2 }} pp)
                         </span>
                         {% endif %}
@@ -51,7 +51,7 @@
                     <td>
                         <span class="table-current-value">{{ row.call_drop_rate|floatformat:2 }}</span>
                         {% if dashboard.comparison_context.enabled %}
-                        <span class="table-comparison kpi-comparison-{{ row.call_drop_rate_trend_tone }}">
+                        <span class="table-comparison">
                             vs {{ row.call_drop_rate_previous|floatformat:2 }} ({{ row.call_drop_rate_delta_pp|floatformat:2 }} pp)
                         </span>
                         {% endif %}
