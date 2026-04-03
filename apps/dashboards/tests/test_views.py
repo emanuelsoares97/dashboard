@@ -1,4 +1,6 @@
 import pytest
+import csv
+from io import StringIO
 from django.urls import reverse
 from datetime import datetime, timezone
 
@@ -206,3 +208,90 @@ def test_overview_filter_options_include_only_dimensions_with_data(client, inter
     service_ids = {option['id'] for option in service_options}
     assert interaction.service_type_id in service_ids
     assert len(service_ids) == 1
+
+
+def _read_csv_rows(response):
+    decoded = response.content.decode('utf-8')
+    reader = csv.reader(StringIO(decoded))
+    return list(reader)
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    'route_name',
+    [
+        'dashboards:assistants_csv',
+        'dashboards:services_csv',
+        'dashboards:inconsistencies_csv',
+        'dashboards:monthly_rates_csv',
+    ],
+)
+def test_csv_exports_return_attachment_with_csv_content_type(client, route_name):
+    response = client.get(reverse(route_name))
+
+    assert response.status_code == 200
+    assert response['Content-Type'].startswith('text/csv')
+    assert 'attachment;' in response['Content-Disposition']
+    assert '.csv' in response['Content-Disposition']
+
+
+@pytest.mark.django_db
+def test_assistants_csv_respects_active_service_filter(client, interaction_factory, base_dimensions):
+    team = base_dimensions['team']
+    second_agent = team.agents.create(name='Bruno')
+    other_service = ServiceType.objects.create(code='movel', label='Movel')
+
+    interaction_factory(call_id_external='exp-a-1', agent=base_dimensions['agent'], service_type=base_dimensions['service'])
+    interaction_factory(call_id_external='exp-a-2', agent=second_agent, service_type=other_service)
+
+    response = client.get(
+        reverse('dashboards:assistants_csv'),
+        {
+            'date_preset': 'custom',
+            'start_date': '2026-01-01',
+            'end_date': '2026-01-31',
+            'service_type_id': str(base_dimensions['service'].id),
+        },
+    )
+
+    rows = _read_csv_rows(response)
+    body = rows[1:]
+
+    assert response.status_code == 200
+    assert 'assistentes_20260101_20260131.csv' in response['Content-Disposition']
+    assert len(body) == 1
+    assert body[0][0] == 'Ana'
+
+
+@pytest.mark.django_db
+def test_monthly_rates_csv_respects_non_date_filters(client, interaction_factory, base_dimensions):
+    other_service = ServiceType.objects.create(code='tv', label='Televisao')
+    interaction_factory(
+        call_id_external='exp-m-jan',
+        service_type=base_dimensions['service'],
+        start_at=datetime(2026, 1, 10, 10, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 1, 10, 10, 5, tzinfo=timezone.utc),
+    )
+    interaction_factory(
+        call_id_external='exp-m-feb',
+        service_type=other_service,
+        start_at=datetime(2026, 2, 10, 10, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 2, 10, 10, 5, tzinfo=timezone.utc),
+    )
+
+    response = client.get(
+        reverse('dashboards:monthly_rates_csv'),
+        {
+            'date_preset': 'custom',
+            'start_date': '2026-01-01',
+            'end_date': '2026-01-31',
+            'service_type_id': str(base_dimensions['service'].id),
+        },
+    )
+
+    rows = _read_csv_rows(response)
+    months = [row[0] for row in rows[1:]]
+
+    assert response.status_code == 200
+    assert 'taxas_mensais_20260101_20260131.csv' in response['Content-Disposition']
+    assert months == ['2026-01']

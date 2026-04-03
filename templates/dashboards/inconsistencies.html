@@ -22,7 +22,13 @@
             </div>
         </article>
         <article class="card panel panel-full">
-            <div class="panel-header"><div><h3 class="card-title">Tabela de inconsistencias</h3></div></div>
+            <div class="panel-header">
+                <div>
+                    <h3 class="card-title">Tabela de inconsistencias</h3>
+                    <p class="panel-subtitle">A exportacao respeita os filtros ativos.</p>
+                </div>
+                <a class="btn btn-secondary" href="{% url 'dashboards:inconsistencies_csv' %}?{{ dashboard_querystring }}">Exportar CSV</a>
+            </div>
             <div class="table-wrap table-wrap-tall">
                 <table class="table table-sortable table-analytic">
                     <thead><tr><th>Assistente</th><th>Motivo</th><th>Acao</th><th>Resultado final</th><th>Tipo</th></tr></thead>

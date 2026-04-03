@@ -282,6 +282,12 @@
     gap: 1rem;
 }
 
+.panel-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
 .panel-kpi-inline {
     display: flex;
     gap: 1rem;
