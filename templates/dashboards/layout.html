@@ -31,6 +31,42 @@
                 <label class="filter-label" for="end_date">Data fim</label>
                 <input id="end_date" name="end_date" type="date" value="{{ end_date }}">
             </div>
+            <div class="filter-group">
+                <label class="filter-label" for="service_type_id">Servico</label>
+                <select id="service_type_id" name="service_type_id">
+                    <option value="">Todos</option>
+                    {% for option in filter_options.service_types %}
+                    <option value="{{ option.id }}" {% if service_type_id == option.id|stringformat:'s' %}selected{% endif %}>{{ option.label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="filter-group">
+                <label class="filter-label" for="churn_reason_id">Motivo de corte</label>
+                <select id="churn_reason_id" name="churn_reason_id">
+                    <option value="">Todos</option>
+                    {% for option in filter_options.churn_reasons %}
+                    <option value="{{ option.id }}" {% if churn_reason_id == option.id|stringformat:'s' %}selected{% endif %}>{{ option.label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="filter-group">
+                <label class="filter-label" for="retention_action_id">Acao de retencao</label>
+                <select id="retention_action_id" name="retention_action_id">
+                    <option value="">Todas</option>
+                    {% for option in filter_options.retention_actions %}
+                    <option value="{{ option.id }}" {% if retention_action_id == option.id|stringformat:'s' %}selected{% endif %}>{{ option.label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="filter-group">
+                <label class="filter-label" for="final_outcome_id">Resultado final</label>
+                <select id="final_outcome_id" name="final_outcome_id">
+                    <option value="">Todos</option>
+                    {% for option in filter_options.final_outcomes %}
+                    <option value="{{ option.id }}" {% if final_outcome_id == option.id|stringformat:'s' %}selected{% endif %}>{{ option.label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
             {% if active_section == 'assistants' %}
             <div class="filter-group">
                 <label class="filter-label" for="assistant_name">Assistente</label>

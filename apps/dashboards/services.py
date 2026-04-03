@@ -502,6 +502,10 @@ def generate_insights(filters):
         assistant_name=filters.get('assistant_name'),
         start_date=filters.get('start_date'),
         end_date=filters.get('end_date'),
+        service_type_id=filters.get('service_type_id'),
+        churn_reason_id=filters.get('churn_reason_id'),
+        retention_action_id=filters.get('retention_action_id'),
+        final_outcome_id=filters.get('final_outcome_id'),
     )
 
     if not filtered_qs.exists():
@@ -705,6 +709,10 @@ def build_dashboard_payload(
     assistant_id=None,
     start_date=None,
     end_date=None,
+    service_type_id=None,
+    churn_reason_id=None,
+    retention_action_id=None,
+    final_outcome_id=None,
 ):
     """Constroi todo o payload do dashboard sem logica nas views."""
     base_qs = selectors.get_inbound_queryset()
@@ -714,6 +722,10 @@ def build_dashboard_payload(
         assistant_id=assistant_id,
         start_date=start_date,
         end_date=end_date,
+        service_type_id=service_type_id,
+        churn_reason_id=churn_reason_id,
+        retention_action_id=retention_action_id,
+        final_outcome_id=final_outcome_id,
     )
 
     general_kpis = calculate_general_kpis(base_qs)

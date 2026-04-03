@@ -2,7 +2,7 @@ import pytest
 from django.urls import reverse
 from datetime import datetime, timezone
 
-from apps.inbound.models import Agent, Team
+from apps.inbound.models import Agent, ServiceType, Team
 
 
 @pytest.mark.django_db
@@ -159,3 +159,50 @@ def test_legacy_agents_redirect_keeps_querystring(client):
 
     assert response.status_code == 302
     assert 'assistant_name=ana' in response.url
+
+
+@pytest.mark.django_db
+def test_overview_keeps_new_global_filters_in_navigation_querystring(client, interaction_factory, base_dimensions):
+    interaction = interaction_factory(call_id_external='qst-1')
+
+    response = client.get(
+        reverse('dashboards:overview'),
+        {
+            'service_type_id': str(interaction.service_type_id),
+            'churn_reason_id': str(interaction.churn_reason_id),
+            'retention_action_id': str(interaction.retention_action_id),
+            'final_outcome_id': str(interaction.final_outcome_id),
+            'date_preset': 'custom',
+            'start_date': '2026-01-01',
+            'end_date': '2026-01-31',
+        },
+    )
+
+    assert response.status_code == 200
+    querystring = response.context['dashboard_querystring']
+    assert f"service_type_id={interaction.service_type_id}" in querystring
+    assert f"churn_reason_id={interaction.churn_reason_id}" in querystring
+    assert f"retention_action_id={interaction.retention_action_id}" in querystring
+    assert f"final_outcome_id={interaction.final_outcome_id}" in querystring
+
+
+@pytest.mark.django_db
+def test_overview_filter_options_include_only_dimensions_with_data(client, interaction_factory, base_dimensions):
+    # Cria um servico sem interacoes para confirmar que nao aparece nas opcoes.
+    ServiceType.objects.create(code='sem-dados', label='Sem Dados')
+    interaction = interaction_factory(call_id_external='opt-1')
+
+    response = client.get(
+        reverse('dashboards:overview'),
+        {
+            'date_preset': 'custom',
+            'start_date': '2026-01-01',
+            'end_date': '2026-01-31',
+        },
+    )
+
+    assert response.status_code == 200
+    service_options = response.context['filter_options']['service_types']
+    service_ids = {option['id'] for option in service_options}
+    assert interaction.service_type_id in service_ids
+    assert len(service_ids) == 1
