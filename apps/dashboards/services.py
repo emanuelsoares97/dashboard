@@ -164,8 +164,50 @@ def _resolve_previous_period(*, start_date, end_date, date_preset):
     return previous_start, previous_end
 
 
-def _compute_delta(current_value, previous_value):
-    """Calcula delta absoluto, percentual e direcao para um KPI."""
+def _apply_trend_tone_to_delta(delta_dict, metric_name):
+    """
+    Enriquece delta com trend_tone (semantica visual).
+    
+    Direction: matematica pura (up/down/neutral)
+    Trend tone: interpretacao semantica (positive/negative/neutral)
+    
+    Para metricas "quanto menos melhor" (taxas de falha, inconsistencia, duracao):
+    - trend_tone inverte a direcao para colorizacao correta.
+    
+    Para metricas "quanto mais melhor" (taxa de retencao, total chamadas):
+    - trend_tone segue a direcao.
+    """
+    direction = delta_dict['direction']
+    
+    # Metricas onde UP eh bom
+    positive_metrics = {'retention_rate', 'total_calls'}
+    # Metricas onde UP eh mau
+    negative_metrics = {
+        'non_retention_rate', 'call_drop_rate', 'inconsistency_rate', 
+        'avg_duration_seconds'
+    }
+    
+    if metric_name in positive_metrics:
+        # UP -> positive, DOWN -> negative
+        trend_tone = direction
+    elif metric_name in negative_metrics:
+        # Inverte: UP -> negative, DOWN -> positive
+        if direction == 'up':
+            trend_tone = 'down'
+        elif direction == 'down':
+            trend_tone = 'up'
+        else:
+            trend_tone = direction
+    else:
+        # Metrica desconhecida: usa direction como esta (seguro por defeito)
+        trend_tone = direction
+    
+    delta_dict['trend_tone'] = trend_tone
+    return delta_dict
+
+
+def _compute_delta(current_value, previous_value, metric_name=None):
+    """Calcula delta absoluto, percentual, direcao e trend_tone para um KPI."""
     current = float(current_value or 0)
     previous = float(previous_value or 0)
     delta = round(current - previous, 2)
@@ -182,13 +224,22 @@ def _compute_delta(current_value, previous_value):
     else:
         direction = 'down'
 
-    return {
+    result = {
         'current': round(current, 2),
         'previous': round(previous, 2),
         'delta': delta,
         'delta_pct': delta_pct,
         'direction': direction,
     }
+    
+    # Aplicar trend_tone se metric_name fornecido
+    if metric_name:
+        result = _apply_trend_tone_to_delta(result, metric_name)
+    else:
+        # Por defaut, trend_tone = direction (compatibilidade)
+        result['trend_tone'] = direction
+    
+    return result
 
 
 def _build_comparison_block(
@@ -246,11 +297,11 @@ def _build_comparison_block(
             'previous_end': previous_end,
         },
         'comparison_kpis': {
-            'total_calls': _compute_delta(current_kpis['total_calls'], previous_kpis['total_calls']),
-            'retention_rate': _compute_delta(current_kpis['retention_rate'], previous_kpis['retention_rate']),
-            'non_retention_rate': _compute_delta(current_kpis['non_retention_rate'], previous_kpis['non_retention_rate']),
-            'call_drop_rate': _compute_delta(current_kpis['call_drop_rate'], previous_kpis['call_drop_rate']),
-            'avg_duration_seconds': _compute_delta(current_kpis['avg_duration_seconds'], previous_kpis['avg_duration_seconds']),
+            'total_calls': _compute_delta(current_kpis['total_calls'], previous_kpis['total_calls'], metric_name='total_calls'),
+            'retention_rate': _compute_delta(current_kpis['retention_rate'], previous_kpis['retention_rate'], metric_name='retention_rate'),
+            'non_retention_rate': _compute_delta(current_kpis['non_retention_rate'], previous_kpis['non_retention_rate'], metric_name='non_retention_rate'),
+            'call_drop_rate': _compute_delta(current_kpis['call_drop_rate'], previous_kpis['call_drop_rate'], metric_name='call_drop_rate'),
+            'avg_duration_seconds': _compute_delta(current_kpis['avg_duration_seconds'], previous_kpis['avg_duration_seconds'], metric_name='avg_duration_seconds'),
         },
     }
 
@@ -293,10 +344,10 @@ def _build_service_type_comparison_table(
     for row in current_rows:
         previous_row = previous_by_service.get(row['service_type'], {})
 
-        total_calls_cmp = _compute_delta(row['total_calls'], previous_row.get('total_calls', 0))
-        retention_cmp = _compute_delta(row['retention_rate'], previous_row.get('retention_rate', 0))
-        non_retention_cmp = _compute_delta(row['non_retention_rate'], previous_row.get('non_retention_rate', 0))
-        call_drop_cmp = _compute_delta(row['call_drop_rate'], previous_row.get('call_drop_rate', 0))
+        total_calls_cmp = _compute_delta(row['total_calls'], previous_row.get('total_calls', 0), metric_name='total_calls')
+        retention_cmp = _compute_delta(row['retention_rate'], previous_row.get('retention_rate', 0), metric_name='retention_rate')
+        non_retention_cmp = _compute_delta(row['non_retention_rate'], previous_row.get('non_retention_rate', 0), metric_name='non_retention_rate')
+        call_drop_cmp = _compute_delta(row['call_drop_rate'], previous_row.get('call_drop_rate', 0), metric_name='call_drop_rate')
 
         comparison_rows.append(
             {
@@ -305,15 +356,19 @@ def _build_service_type_comparison_table(
                 'total_calls_delta': total_calls_cmp['delta'],
                 'total_calls_delta_pct': total_calls_cmp['delta_pct'],
                 'total_calls_direction': total_calls_cmp['direction'],
+                'total_calls_trend_tone': total_calls_cmp['trend_tone'],
                 'retention_rate_previous': retention_cmp['previous'],
                 'retention_rate_delta_pp': retention_cmp['delta'],
                 'retention_rate_direction': retention_cmp['direction'],
+                'retention_rate_trend_tone': retention_cmp['trend_tone'],
                 'non_retention_rate_previous': non_retention_cmp['previous'],
                 'non_retention_rate_delta_pp': non_retention_cmp['delta'],
                 'non_retention_rate_direction': non_retention_cmp['direction'],
+                'non_retention_rate_trend_tone': non_retention_cmp['trend_tone'],
                 'call_drop_rate_previous': call_drop_cmp['previous'],
                 'call_drop_rate_delta_pp': call_drop_cmp['delta'],
                 'call_drop_rate_direction': call_drop_cmp['direction'],
+                'call_drop_rate_trend_tone': call_drop_cmp['trend_tone'],
             }
         )
 
@@ -678,12 +733,12 @@ def _build_assistant_comparison_table(
     for row in current_rows:
         previous_row = previous_by_assistant_id.get(row['assistant_id'], {})
 
-        total_calls_cmp = _compute_delta(row['total_calls'], previous_row.get('total_calls', 0))
-        retention_cmp = _compute_delta(row['retention_rate'], previous_row.get('retention_rate', 0))
-        non_retention_cmp = _compute_delta(row['non_retention_rate'], previous_row.get('non_retention_rate', 0))
-        call_drop_cmp = _compute_delta(row['call_drop_rate'], previous_row.get('call_drop_rate', 0))
-        inconsistency_cmp = _compute_delta(row['inconsistency_rate'], previous_row.get('inconsistency_rate', 0))
-        duration_cmp = _compute_delta(row['avg_duration_seconds'], previous_row.get('avg_duration_seconds', 0))
+        total_calls_cmp = _compute_delta(row['total_calls'], previous_row.get('total_calls', 0), metric_name='total_calls')
+        retention_cmp = _compute_delta(row['retention_rate'], previous_row.get('retention_rate', 0), metric_name='retention_rate')
+        non_retention_cmp = _compute_delta(row['non_retention_rate'], previous_row.get('non_retention_rate', 0), metric_name='non_retention_rate')
+        call_drop_cmp = _compute_delta(row['call_drop_rate'], previous_row.get('call_drop_rate', 0), metric_name='call_drop_rate')
+        inconsistency_cmp = _compute_delta(row['inconsistency_rate'], previous_row.get('inconsistency_rate', 0), metric_name='inconsistency_rate')
+        duration_cmp = _compute_delta(row['avg_duration_seconds'], previous_row.get('avg_duration_seconds', 0), metric_name='avg_duration_seconds')
 
         comparison_rows.append(
             {
@@ -692,21 +747,27 @@ def _build_assistant_comparison_table(
                 'total_calls_delta': total_calls_cmp['delta'],
                 'total_calls_delta_pct': total_calls_cmp['delta_pct'],
                 'total_calls_direction': total_calls_cmp['direction'],
+                'total_calls_trend_tone': total_calls_cmp['trend_tone'],
                 'retention_rate_previous': retention_cmp['previous'],
                 'retention_rate_delta_pp': retention_cmp['delta'],
                 'retention_rate_direction': retention_cmp['direction'],
+                'retention_rate_trend_tone': retention_cmp['trend_tone'],
                 'non_retention_rate_previous': non_retention_cmp['previous'],
                 'non_retention_rate_delta_pp': non_retention_cmp['delta'],
                 'non_retention_rate_direction': non_retention_cmp['direction'],
+                'non_retention_rate_trend_tone': non_retention_cmp['trend_tone'],
                 'call_drop_rate_previous': call_drop_cmp['previous'],
                 'call_drop_rate_delta_pp': call_drop_cmp['delta'],
                 'call_drop_rate_direction': call_drop_cmp['direction'],
+                'call_drop_rate_trend_tone': call_drop_cmp['trend_tone'],
                 'inconsistency_rate_previous': inconsistency_cmp['previous'],
                 'inconsistency_rate_delta_pp': inconsistency_cmp['delta'],
                 'inconsistency_rate_direction': inconsistency_cmp['direction'],
+                'inconsistency_rate_trend_tone': inconsistency_cmp['trend_tone'],
                 'avg_duration_seconds_previous': duration_cmp['previous'],
                 'avg_duration_seconds_delta': duration_cmp['delta'],
                 'avg_duration_seconds_direction': duration_cmp['direction'],
+                'avg_duration_seconds_trend_tone': duration_cmp['trend_tone'],
             }
         )
 

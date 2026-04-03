@@ -23,7 +23,7 @@
             <span class="kpi-label">Total chamadas</span>
             <strong class="kpi-value">{{ dashboard.general_kpis.total_calls }}</strong>
             {% if dashboard.comparison_kpis.total_calls %}
-            <span class="kpi-comparison kpi-comparison-{{ dashboard.comparison_kpis.total_calls.direction }}">
+            <span class="kpi-comparison kpi-comparison-{{ dashboard.comparison_kpis.total_calls.trend_tone }}">
                 vs anterior: {{ dashboard.comparison_kpis.total_calls.previous|floatformat:2 }}
                 ({{ dashboard.comparison_kpis.total_calls.delta|floatformat:2 }})
             </span>
@@ -33,7 +33,7 @@
             <span class="kpi-label">Taxa retencao</span>
             <strong class="kpi-value">{{ dashboard.general_kpis.retention_rate|floatformat:2 }}%</strong>
             {% if dashboard.comparison_kpis.retention_rate %}
-            <span class="kpi-comparison kpi-comparison-{{ dashboard.comparison_kpis.retention_rate.direction }}">
+            <span class="kpi-comparison kpi-comparison-{{ dashboard.comparison_kpis.retention_rate.trend_tone }}">
                 vs anterior: {{ dashboard.comparison_kpis.retention_rate.previous|floatformat:2 }}%
                 ({{ dashboard.comparison_kpis.retention_rate.delta|floatformat:2 }} pp)
             </span>
@@ -43,7 +43,7 @@
             <span class="kpi-label">Taxa nao retencao</span>
             <strong class="kpi-value">{{ dashboard.general_kpis.non_retention_rate|floatformat:2 }}%</strong>
             {% if dashboard.comparison_kpis.non_retention_rate %}
-            <span class="kpi-comparison kpi-comparison-{{ dashboard.comparison_kpis.non_retention_rate.direction }}">
+            <span class="kpi-comparison kpi-comparison-{{ dashboard.comparison_kpis.non_retention_rate.trend_tone }}">
                 vs anterior: {{ dashboard.comparison_kpis.non_retention_rate.previous|floatformat:2 }}%
                 ({{ dashboard.comparison_kpis.non_retention_rate.delta|floatformat:2 }} pp)
             </span>
@@ -53,7 +53,7 @@
             <span class="kpi-label">Call drop</span>
             <strong class="kpi-value">{{ dashboard.general_kpis.call_drop_rate|floatformat:2 }}%</strong>
             {% if dashboard.comparison_kpis.call_drop_rate %}
-            <span class="kpi-comparison kpi-comparison-{{ dashboard.comparison_kpis.call_drop_rate.direction }}">
+            <span class="kpi-comparison kpi-comparison-{{ dashboard.comparison_kpis.call_drop_rate.trend_tone }}">
                 vs anterior: {{ dashboard.comparison_kpis.call_drop_rate.previous|floatformat:2 }}%
                 ({{ dashboard.comparison_kpis.call_drop_rate.delta|floatformat:2 }} pp)
             </span>
@@ -63,7 +63,7 @@
             <span class="kpi-label">Duracao media</span>
             <strong class="kpi-value">{{ dashboard.general_kpis.avg_duration_seconds|floatformat:2 }}s</strong>
             {% if dashboard.comparison_kpis.avg_duration_seconds %}
-            <span class="kpi-comparison kpi-comparison-{{ dashboard.comparison_kpis.avg_duration_seconds.direction }}">
+            <span class="kpi-comparison kpi-comparison-{{ dashboard.comparison_kpis.avg_duration_seconds.trend_tone }}">
                 vs anterior: {{ dashboard.comparison_kpis.avg_duration_seconds.previous|floatformat:2 }}s
                 ({{ dashboard.comparison_kpis.avg_duration_seconds.delta|floatformat:2 }}s)
             </span>

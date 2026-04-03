@@ -259,9 +259,10 @@
 
 .kpi-comparison {
     display: block;
-    margin-top: 0.45rem;
-    font-size: 0.8rem;
-    font-weight: 600;
+    margin-top: 0.6rem;
+    font-size: 0.72rem;
+    font-weight: 500;
+    opacity: 0.75;
 }
 
 .kpi-comparison-up {
@@ -288,16 +289,28 @@
 
 .table-comparison {
     display: block;
-    margin-top: 0.2rem;
-    font-size: 0.76rem;
-    font-weight: 600;
+    margin-top: 0.3rem;
+    font-size: 0.68rem;
+    font-weight: 500;
+    opacity: 0.7;
+}
+
+.table-current-value {
+    display: flex;
+    font-weight: 700;
+    color: #0f4c81;
+    letter-spacing: -0.01em;
+    font-size: 1rem;
 }
 
 .kpi-value {
     display: block;
     margin-top: 1rem;
-    font-size: 2.1rem;
+    font-size: 2.2rem;
+    font-weight: 700;
     line-height: 1;
+    color: #0f4c81;
+    letter-spacing: -0.02em;
 }
 
 .analytics-grid {

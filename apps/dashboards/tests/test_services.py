@@ -13,6 +13,7 @@ from apps.dashboards.services import (
     get_status_class,
     generate_insights,
 )
+_compute_delta,
 from apps.inbound.models import ChurnReason, Interaction, ServiceType
 
 
@@ -904,3 +905,103 @@ def test_assistant_comparison_respects_equivalent_days_period_rule(interaction_f
     assert payload['comparison_context']['previous_start'] == date(2026, 3, 1)
     assert payload['comparison_context']['previous_end'] == date(2026, 3, 3)
     assert ana['total_calls_previous'] == 1.0
+
+
+def test_trend_tone_retention_rate_up_is_positive():
+    """Retencao subindo deve ter trend_tone positivo (up)."""
+    delta = _compute_delta(40.0, 35.0, metric_name='retention_rate')
+    assert delta['direction'] == 'up'
+    assert delta['trend_tone'] == 'up'
+
+
+def test_trend_tone_retention_rate_down_is_negative():
+    """Retencao descendo deve ter trend_tone negativo (down)."""
+    delta = _compute_delta(35.0, 40.0, metric_name='retention_rate')
+    assert delta['direction'] == 'down'
+    assert delta['trend_tone'] == 'down'
+
+
+def test_trend_tone_non_retention_rate_up_is_negative():
+    """Nao-retencao subindo deve ter trend_tone invertido (negativo)."""
+    delta = _compute_delta(10.0, 5.0, metric_name='non_retention_rate')
+    assert delta['direction'] == 'up'
+    assert delta['trend_tone'] == 'down'
+
+
+def test_trend_tone_non_retention_rate_down_is_positive():
+    """Nao-retencao descendo deve ter trend_tone invertido (positivo)."""
+    delta = _compute_delta(5.0, 10.0, metric_name='non_retention_rate')
+    assert delta['direction'] == 'down'
+    assert delta['trend_tone'] == 'up'
+
+
+def test_trend_tone_call_drop_rate_up_is_negative():
+    """Call drop subindo deve ter trend_tone invertido (negativo)."""
+    delta = _compute_delta(8.0, 3.0, metric_name='call_drop_rate')
+    assert delta['direction'] == 'up'
+    assert delta['trend_tone'] == 'down'
+
+
+def test_trend_tone_call_drop_rate_down_is_positive():
+    """Call drop descendo deve ter trend_tone invertido (positivo)."""
+    delta = _compute_delta(3.0, 8.0, metric_name='call_drop_rate')
+    assert delta['direction'] == 'down'
+    assert delta['trend_tone'] == 'up'
+
+
+def test_trend_tone_inconsistency_rate_up_is_negative():
+    """Inconsistencia subindo deve ter trend_tone invertido (negativo)."""
+    delta = _compute_delta(15.0, 10.0, metric_name='inconsistency_rate')
+    assert delta['direction'] == 'up'
+    assert delta['trend_tone'] == 'down'
+
+
+def test_trend_tone_inconsistency_rate_down_is_positive():
+    """Inconsistencia descendo deve ter trend_tone invertido (positivo)."""
+    delta = _compute_delta(10.0, 15.0, metric_name='inconsistency_rate')
+    assert delta['direction'] == 'down'
+    assert delta['trend_tone'] == 'up'
+
+
+def test_trend_tone_avg_duration_up_is_negative():
+    """Duracao media subindo deve ter trend_tone invertido (negativo)."""
+    delta = _compute_delta(125.0, 110.0, metric_name='avg_duration_seconds')
+    assert delta['direction'] == 'up'
+    assert delta['trend_tone'] == 'down'
+
+
+def test_trend_tone_avg_duration_down_is_positive():
+    """Duracao media descendo deve ter trend_tone invertido (positivo)."""
+    delta = _compute_delta(110.0, 125.0, metric_name='avg_duration_seconds')
+    assert delta['direction'] == 'down'
+    assert delta['trend_tone'] == 'up'
+
+
+def test_trend_tone_total_calls_matches_direction():
+    """Total de chamadas: trend_tone sempre = direction (neutro)."""
+    delta_up = _compute_delta(150.0, 100.0, metric_name='total_calls')
+    assert delta_up['trend_tone'] == delta_up['direction']
+    assert delta_up['trend_tone'] == 'up'
+
+    delta_down = _compute_delta(100.0, 150.0, metric_name='total_calls')
+    assert delta_down['trend_tone'] == delta_down['direction']
+    assert delta_down['trend_tone'] == 'down'
+
+    delta_neutral = _compute_delta(100.0, 100.0, metric_name='total_calls')
+    assert delta_neutral['trend_tone'] == 'neutral'
+
+
+def test_trend_tone_zero_delta_stays_neutral():
+    """Delta zero deve ser neutral em todas as metricas."""
+    metrics = ['retention_rate', 'non_retention_rate', 'call_drop_rate', 'inconsistency_rate', 'avg_duration_seconds', 'total_calls']
+    for metric in metrics:
+        delta = _compute_delta(50.0, 50.0, metric_name=metric)
+        assert delta['direction'] == 'neutral', f"Falha em {metric}: direction nao neutral"
+        assert delta['trend_tone'] == 'neutral', f"Falha em {metric}: trend_tone nao neutral"
+
+
+def test_trend_tone_backward_compatibility_without_metric_name():
+    """Sem metric_name, trend_tone = direction (compatibilidade)."""
+    delta = _compute_delta(10.0, 5.0)
+    assert delta['trend_tone'] == delta['direction']
+    assert delta['trend_tone'] == 'up'
