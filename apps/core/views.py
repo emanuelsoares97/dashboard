@@ -1,6 +1,7 @@
-from django.shortcuts import render
+from django.shortcuts import redirect
+from django.urls import reverse
 
 
 def home(request):
-	"""Apresenta a pagina inicial com o enquadramento da fase 1 do sistema."""
-	return render(request, 'core/home.html')
+	"""Redireciona a entrada principal para a visao geral do dashboard."""
+	return redirect(reverse('dashboards:overview'))
