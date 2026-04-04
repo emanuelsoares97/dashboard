@@ -813,6 +813,75 @@ def build_monthly_rates_summary(rows):
     }
 
 
+def build_daily_rates_table(queryset, start_date=None, end_date=None):
+    """Gera tabela diaria com totais e taxas para leitura operacional."""
+    rows = []
+    aggregated = {}
+
+    for row in selectors.select_temporal(queryset, granularity='day'):
+        period = _normalize_period(row['period'])
+        if period is None:
+            continue
+        aggregated[period] = {
+            'total_calls': row['total_calls'] or 0,
+            'total_retained': row['total_retained'] or 0,
+            'total_call_drop': row['total_call_drop'] or 0,
+        }
+
+    period_keys = _iter_periods(start_date, end_date, 'day') if start_date and end_date else sorted(aggregated)
+
+    for period in period_keys:
+        totals = aggregated.get(period, {'total_calls': 0, 'total_retained': 0, 'total_call_drop': 0})
+        total_calls = totals['total_calls']
+        total_retained = totals['total_retained']
+        total_call_drop = totals['total_call_drop']
+        total_non_retained = _totals_with_non_retained(total_calls, total_retained, total_call_drop)
+
+        rows.append(
+            {
+                'day': period.strftime('%Y-%m-%d'),
+                'total_calls': total_calls,
+                'total_retained': total_retained,
+                'total_non_retained': total_non_retained,
+                'total_call_drop': total_call_drop,
+                'retention_rate': _pct(total_retained, total_calls),
+                'non_retention_rate': _pct(total_non_retained, total_calls),
+                'call_drop_rate': _pct(total_call_drop, total_calls),
+            }
+        )
+
+    _apply_status_badges(rows, metric_key='retention_rate', status_key='retention_status_class')
+    return rows
+
+
+def build_daily_rates_summary(rows):
+    """Resume dias com melhor e pior retencao para leitura rapida do periodo."""
+    valid_rows = [row for row in rows if row.get('total_calls', 0) > 0]
+    if not valid_rows:
+        return {
+            'days_with_data': 0,
+            'best_day': None,
+            'worst_day': None,
+        }
+
+    best_day = max(valid_rows, key=lambda row: (row['retention_rate'], row['total_calls'], row['day']))
+    worst_day = min(valid_rows, key=lambda row: (row['retention_rate'], -row['total_calls'], row['day']))
+
+    return {
+        'days_with_data': len(valid_rows),
+        'best_day': {
+            'day': best_day['day'],
+            'retention_rate': best_day['retention_rate'],
+            'total_calls': best_day['total_calls'],
+        },
+        'worst_day': {
+            'day': worst_day['day'],
+            'retention_rate': worst_day['retention_rate'],
+            'total_calls': worst_day['total_calls'],
+        },
+    }
+
+
 def build_assistant_ranking_table(queryset):
     """Gera ranking de assistentes com taxas e inconsistencias."""
     rows = []
@@ -1536,6 +1605,11 @@ def build_dashboard_payload(
         start_date=start_date,
         end_date=end_date,
     )
+    daily_rates_table = build_daily_rates_table(
+        base_qs,
+        start_date=start_date,
+        end_date=end_date,
+    )
     assistant_ranking_table = build_assistant_ranking_table(base_qs)
     inconsistency_section = build_inconsistency_section(base_qs)
     tipification_tables = build_tipification_tables(base_qs)
@@ -1547,6 +1621,7 @@ def build_dashboard_payload(
         'service_type_table': service_type_table,
         'temporal_table': temporal_table,
         'monthly_rates_table': monthly_rates_table,
+        'daily_rates_table': daily_rates_table,
         'assistant_ranking_table': assistant_ranking_table,
         'inconsistency_section': inconsistency_section,
         'tipification_tables': tipification_tables,

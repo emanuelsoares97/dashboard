@@ -6,6 +6,8 @@ from apps.dashboards.views import (
     assistants_csv,
     assistants,
     churn_reasons,
+    daily_rates_csv,
+    daily_rates,
     insights,
     inconsistencies_csv,
     inconsistencies,
@@ -35,6 +37,8 @@ urlpatterns = [
     path('insights/', insights, name='insights'),
     path('monthly-rates/', monthly_rates, name='monthly_rates'),
     path('monthly-rates/export.csv', monthly_rates_csv, name='monthly_rates_csv'),
+    path('daily-rates/', daily_rates, name='daily_rates'),
+    path('daily-rates/export.csv', daily_rates_csv, name='daily_rates_csv'),
     path('teams/', team_dashboard, name='team_dashboard'),
     path('agents/', agent_dashboard, name='agent_dashboard'),
 ]

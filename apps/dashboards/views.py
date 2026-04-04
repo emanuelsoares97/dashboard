@@ -7,7 +7,7 @@ from django.utils.dateparse import parse_date
 
 from apps.dashboards import selectors
 from apps.dashboards import exporters
-from apps.dashboards.services import build_dashboard_payload, build_monthly_rates_summary, generate_insights
+from apps.dashboards.services import build_dashboard_payload, build_monthly_rates_summary, build_daily_rates_summary, generate_insights
 from apps.inbound.models import Agent
 
 
@@ -300,6 +300,29 @@ def monthly_rates(request):
 	context['rows'] = payload['monthly_rates_table']
 	context['summary'] = build_monthly_rates_summary(context['rows'])
 	return render(request, 'dashboards/monthly_rates.html', context)
+
+
+def daily_rates(request):
+	"""Renderiza pagina com leitura diaria de retidos, nao retidos e call drop."""
+	filters = _resolve_filters(request, force_assistant_name='')
+	payload = _build_dashboard_payload_from_filters(filters)
+
+	context = _build_common_context(
+		page_title='Taxas Diarias',
+		active_section='daily_rates',
+		filters=filters,
+		dashboard_payload=payload,
+	)
+	context['rows'] = payload['daily_rates_table']
+	context['summary'] = build_daily_rates_summary(context['rows'])
+	return render(request, 'dashboards/daily_rates.html', context)
+
+
+def daily_rates_csv(request):
+	"""Exporta a tabela de taxas diarias para CSV com os filtros ativos."""
+	filters = _resolve_filters(request, force_assistant_name='')
+	payload = _build_dashboard_payload_from_filters(filters)
+	return exporters.export_daily_rates_csv(payload['daily_rates_table'], filters)
 
 
 def assistants_csv(request):

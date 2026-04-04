@@ -97,6 +97,35 @@ def export_monthly_rates_csv(rows, filters):
     return _build_csv_response(filename=filename, headers=headers, rows=csv_rows)
 
 
+def export_daily_rates_csv(rows, filters):
+    """Exporta tabela de taxas diarias para CSV."""
+    filename = _build_filename('taxas_diarias', filters)
+    headers = [
+        'Dia',
+        'Total chamadas',
+        'Total retidos',
+        'Total nao retidos',
+        'Total call drop',
+        'Taxa retencao (%)',
+        'Taxa nao retencao (%)',
+        'Taxa call drop (%)',
+    ]
+    csv_rows = [
+        [
+            row['day'],
+            row['total_calls'],
+            row['total_retained'],
+            row['total_non_retained'],
+            row['total_call_drop'],
+            _format_decimal(row['retention_rate']),
+            _format_decimal(row['non_retention_rate']),
+            _format_decimal(row['call_drop_rate']),
+        ]
+        for row in rows
+    ]
+    return _build_csv_response(filename=filename, headers=headers, rows=csv_rows)
+
+
 def export_services_csv(rows, filters):
     """Exporta tabela de servicos para CSV."""
     filename = _build_filename('servicos', filters)

@@ -33,3 +33,13 @@
 .table th.is-sortable[data-sort-order='desc']::after {
     content: ' \2193';
 }
+
+.table-link {
+    color: inherit;
+    text-decoration: none;
+}
+
+.table-link:hover {
+    text-decoration: underline;
+    opacity: 0.75;
+}
