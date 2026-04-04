@@ -468,3 +468,28 @@ def test_inconsistencies_context_includes_comparison_section(client, interaction
     assert response.context['dashboard']['comparison_context']['enabled'] is True
     assert 'total_inconsistencies_previous' in response.context['section']['kpis']
     assert 'global_inconsistency_rate_delta_pp' in response.context['section']['kpis']
+
+
+@pytest.mark.django_db
+def test_assistant_detail_context_includes_comparison_kpis(client, interaction_factory, base_dimensions):
+    interaction_factory(
+        call_id_external='det-view-1',
+        agent=base_dimensions['agent'],
+        final_outcome=base_dimensions['retained'],
+    )
+
+    response = client.get(
+        reverse('dashboards:assistant_detail', args=[base_dimensions['agent'].id]),
+        {
+            'date_preset': 'custom',
+            'start_date': '2026-01-10',
+            'end_date': '2026-01-10',
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.context['dashboard']['comparison_context']['enabled'] is True
+    detail = response.context['detail']
+    assert 'total_calls_previous' in detail['kpis']
+    assert 'retention_rate_delta_pp' in detail['kpis']
+    assert 'avg_duration_seconds_previous' in detail['kpis']

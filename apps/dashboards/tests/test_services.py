@@ -13,7 +13,7 @@ from apps.dashboards.services import (
     get_status_class,
     generate_insights,
 )
-_compute_delta,
+from apps.dashboards.services import _compute_delta
 from apps.inbound.models import ChurnReason, Interaction, ServiceType
 
 
@@ -1451,3 +1451,125 @@ def test_trend_tone_backward_compatibility_without_metric_name():
     delta = _compute_delta(10.0, 5.0)
     assert delta['trend_tone'] == delta['direction']
     assert delta['trend_tone'] == 'up'
+
+
+@pytest.mark.django_db
+def test_assistant_detail_comparison_calculates_kpi_deltas(interaction_factory, base_dimensions):
+    interaction_factory(
+        call_id_external='det-cmp-cur-1',
+        start_at=datetime(2026, 1, 10, 10, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 1, 10, 10, 5, tzinfo=timezone.utc),
+        agent=base_dimensions['agent'],
+        final_outcome=base_dimensions['retained'],
+    )
+    interaction_factory(
+        call_id_external='det-cmp-cur-2',
+        start_at=datetime(2026, 1, 10, 11, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 1, 10, 11, 5, tzinfo=timezone.utc),
+        agent=base_dimensions['agent'],
+        final_outcome=base_dimensions['not_retained'],
+    )
+    interaction_factory(
+        call_id_external='det-cmp-prev-1',
+        start_at=datetime(2026, 1, 8, 10, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 1, 8, 10, 5, tzinfo=timezone.utc),
+        agent=base_dimensions['agent'],
+        final_outcome=base_dimensions['retained'],
+    )
+
+    payload = build_dashboard_payload(
+        date_preset='custom',
+        start_date=date(2026, 1, 10),
+        end_date=date(2026, 1, 10),
+        assistant_id=base_dimensions['agent'].id,
+    )
+
+    detail = payload['assistant_detail']
+    kpis = detail['kpis']
+
+    assert kpis['total_calls'] == 2
+    assert kpis['total_calls_previous'] == 1.0
+    assert kpis['total_calls_delta'] == 1.0
+    assert kpis['total_calls_delta_pct'] == 100.0
+    assert kpis['total_calls_direction'] == 'up'
+
+    assert kpis['retention_rate'] == 50.0
+    assert kpis['retention_rate_previous'] == 100.0
+    assert kpis['retention_rate_delta_pp'] == -50.0
+    assert kpis['retention_rate_direction'] == 'down'
+
+    assert kpis['non_retention_rate'] == 50.0
+    assert kpis['non_retention_rate_previous'] == 0.0
+    assert kpis['non_retention_rate_direction'] == 'up'
+
+    assert 'avg_duration_seconds_previous' in kpis
+    assert 'avg_duration_seconds_delta' in kpis
+
+
+@pytest.mark.django_db
+def test_assistant_detail_comparison_handles_no_previous_data(interaction_factory, base_dimensions):
+    interaction_factory(
+        call_id_external='det-cmp-only-cur-1',
+        start_at=datetime(2026, 1, 10, 10, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 1, 10, 10, 5, tzinfo=timezone.utc),
+        agent=base_dimensions['agent'],
+        final_outcome=base_dimensions['retained'],
+    )
+
+    payload = build_dashboard_payload(
+        date_preset='custom',
+        start_date=date(2026, 1, 10),
+        end_date=date(2026, 1, 10),
+        assistant_id=base_dimensions['agent'].id,
+    )
+
+    detail = payload['assistant_detail']
+    kpis = detail['kpis']
+
+    assert kpis['total_calls'] == 1
+    assert kpis['total_calls_previous'] == 0.0
+    assert kpis['total_calls_delta'] == 1.0
+    assert kpis['total_calls_delta_pct'] is None
+    assert kpis['total_calls_direction'] == 'up'
+
+
+@pytest.mark.django_db
+def test_assistant_detail_comparison_respects_equivalent_days_period_rule(interaction_factory, base_dimensions):
+    interaction_factory(
+        call_id_external='det-mtd-cur-1',
+        start_at=datetime(2026, 4, 1, 10, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 4, 1, 10, 5, tzinfo=timezone.utc),
+        agent=base_dimensions['agent'],
+        final_outcome=base_dimensions['retained'],
+    )
+    # dentro da janela equivalente (1 a 3 de Marco)
+    interaction_factory(
+        call_id_external='det-mtd-prev-match',
+        start_at=datetime(2026, 3, 2, 10, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 3, 2, 10, 5, tzinfo=timezone.utc),
+        agent=base_dimensions['agent'],
+        final_outcome=base_dimensions['retained'],
+    )
+    # fora da janela equivalente
+    interaction_factory(
+        call_id_external='det-mtd-prev-outside',
+        start_at=datetime(2026, 3, 25, 10, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 3, 25, 10, 5, tzinfo=timezone.utc),
+        agent=base_dimensions['agent'],
+        final_outcome=base_dimensions['retained'],
+    )
+
+    payload = build_dashboard_payload(
+        date_preset='current_month',
+        start_date=date(2026, 4, 1),
+        end_date=date(2026, 4, 3),
+        assistant_id=base_dimensions['agent'].id,
+    )
+
+    assert payload['comparison_context']['previous_start'] == date(2026, 3, 1)
+    assert payload['comparison_context']['previous_end'] == date(2026, 3, 3)
+
+    kpis = payload['assistant_detail']['kpis']
+    assert kpis['total_calls'] == 1
+    assert kpis['total_calls_previous'] == 1.0
+

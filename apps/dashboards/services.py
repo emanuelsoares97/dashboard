@@ -1215,6 +1215,70 @@ def _build_inconsistency_comparison_section(
     }
 
 
+def _build_assistant_detail_comparison(
+    *,
+    current_detail,
+    previous_start,
+    previous_end,
+    assistant_id,
+    assistant_name,
+    service_type_id,
+    churn_reason_id,
+    retention_action_id,
+    final_outcome_id,
+    granularity,
+):
+    """Enriquece o detalhe do assistente com comparacao ao periodo anterior."""
+    if not previous_start or not previous_end:
+        return current_detail
+
+    previous_qs = selectors.get_inbound_queryset()
+    previous_qs = selectors.apply_filters(
+        previous_qs,
+        assistant_id=assistant_id,
+        assistant_name=assistant_name,
+        start_date=previous_start,
+        end_date=previous_end,
+        service_type_id=service_type_id,
+        churn_reason_id=churn_reason_id,
+        retention_action_id=retention_action_id,
+        final_outcome_id=final_outcome_id,
+    )
+    previous_detail = build_assistant_detail(previous_qs, assistant_id, granularity=granularity)
+    prev_kpis = previous_detail['kpis']
+    curr_kpis = current_detail['kpis']
+
+    total_calls_cmp = _compute_delta(curr_kpis['total_calls'], prev_kpis['total_calls'], metric_name='total_calls')
+    retention_cmp = _compute_delta(curr_kpis['retention_rate'], prev_kpis['retention_rate'], metric_name='retention_rate')
+    non_retention_cmp = _compute_delta(curr_kpis['non_retention_rate'], prev_kpis['non_retention_rate'], metric_name='non_retention_rate')
+    call_drop_cmp = _compute_delta(curr_kpis['call_drop_rate'], prev_kpis['call_drop_rate'], metric_name='call_drop_rate')
+    duration_cmp = _compute_delta(curr_kpis['avg_duration_seconds'], prev_kpis['avg_duration_seconds'], metric_name='avg_duration_seconds')
+
+    return {
+        **current_detail,
+        'kpis': {
+            **curr_kpis,
+            'total_calls_previous': total_calls_cmp['previous'],
+            'total_calls_delta': total_calls_cmp['delta'],
+            'total_calls_delta_pct': total_calls_cmp['delta_pct'],
+            'total_calls_direction': total_calls_cmp['direction'],
+            'retention_rate_previous': retention_cmp['previous'],
+            'retention_rate_delta_pp': retention_cmp['delta'],
+            'retention_rate_direction': retention_cmp['direction'],
+            'non_retention_rate_previous': non_retention_cmp['previous'],
+            'non_retention_rate_delta_pp': non_retention_cmp['delta'],
+            'non_retention_rate_direction': non_retention_cmp['direction'],
+            'call_drop_rate_previous': call_drop_cmp['previous'],
+            'call_drop_rate_delta_pp': call_drop_cmp['delta'],
+            'call_drop_rate_direction': call_drop_cmp['direction'],
+            'avg_duration_seconds_previous': duration_cmp['previous'],
+            'avg_duration_seconds_delta': duration_cmp['delta'],
+            'avg_duration_seconds_delta_pct': duration_cmp['delta_pct'],
+            'avg_duration_seconds_direction': duration_cmp['direction'],
+        },
+    }
+
+
 def generate_insights(filters):
     """Gera insights automaticos para leitura executiva na visao geral."""
     base_qs = selectors.get_inbound_queryset()
@@ -1719,9 +1783,21 @@ def build_dashboard_payload(
 
     resolved_assistant_id = assistant_id or selectors.get_single_assistant_id(base_qs, assistant_name)
     if resolved_assistant_id:
-        payload['assistant_detail'] = build_assistant_detail(
+        current_detail = build_assistant_detail(
             base_qs,
             resolved_assistant_id,
+            granularity=granularity,
+        )
+        payload['assistant_detail'] = _build_assistant_detail_comparison(
+            current_detail=current_detail,
+            previous_start=payload['comparison_context']['previous_start'],
+            previous_end=payload['comparison_context']['previous_end'],
+            assistant_id=resolved_assistant_id,
+            assistant_name=assistant_name,
+            service_type_id=service_type_id,
+            churn_reason_id=churn_reason_id,
+            retention_action_id=retention_action_id,
+            final_outcome_id=final_outcome_id,
             granularity=granularity,
         )
 

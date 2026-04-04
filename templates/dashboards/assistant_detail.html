@@ -13,11 +13,41 @@
     </section>
 
     <section class="kpi-grid kpi-grid-detail">
-        <article class="kpi-card kpi-card-neutral card"><span class="kpi-label">Total chamadas</span><strong class="kpi-value">{{ detail.kpis.total_calls }}</strong></article>
-        <article class="kpi-card kpi-card-success card"><span class="kpi-label">Taxa retencao</span><strong class="kpi-value">{{ detail.kpis.retention_rate|floatformat:2 }}%</strong></article>
-        <article class="kpi-card kpi-card-danger card"><span class="kpi-label">Taxa nao retencao</span><strong class="kpi-value">{{ detail.kpis.non_retention_rate|floatformat:2 }}%</strong></article>
-        <article class="kpi-card kpi-card-warning card"><span class="kpi-label">Call drop</span><strong class="kpi-value">{{ detail.kpis.call_drop_rate|floatformat:2 }}%</strong></article>
-        <article class="kpi-card kpi-card-primary card"><span class="kpi-label">Duracao media</span><strong class="kpi-value">{{ detail.kpis.avg_duration_seconds|floatformat:2 }}s</strong></article>
+        <article class="kpi-card kpi-card-neutral card">
+            <span class="kpi-label">Total chamadas</span>
+            <strong class="kpi-value">{{ detail.kpis.total_calls }}</strong>
+            {% if dashboard.comparison_context.enabled %}
+            <span class="kpi-comparison">vs {{ detail.kpis.total_calls_previous|floatformat:0 }} ({{ detail.kpis.total_calls_delta|floatformat:0 }}{% if detail.kpis.total_calls_delta_pct is not None %} | {{ detail.kpis.total_calls_delta_pct|floatformat:2 }}%{% endif %})</span>
+            {% endif %}
+        </article>
+        <article class="kpi-card kpi-card-success card">
+            <span class="kpi-label">Taxa retencao</span>
+            <strong class="kpi-value">{{ detail.kpis.retention_rate|floatformat:2 }}%</strong>
+            {% if dashboard.comparison_context.enabled %}
+            <span class="kpi-comparison">vs {{ detail.kpis.retention_rate_previous|floatformat:2 }}% ({{ detail.kpis.retention_rate_delta_pp|floatformat:2 }}pp)</span>
+            {% endif %}
+        </article>
+        <article class="kpi-card kpi-card-danger card">
+            <span class="kpi-label">Taxa nao retencao</span>
+            <strong class="kpi-value">{{ detail.kpis.non_retention_rate|floatformat:2 }}%</strong>
+            {% if dashboard.comparison_context.enabled %}
+            <span class="kpi-comparison">vs {{ detail.kpis.non_retention_rate_previous|floatformat:2 }}% ({{ detail.kpis.non_retention_rate_delta_pp|floatformat:2 }}pp)</span>
+            {% endif %}
+        </article>
+        <article class="kpi-card kpi-card-warning card">
+            <span class="kpi-label">Call drop</span>
+            <strong class="kpi-value">{{ detail.kpis.call_drop_rate|floatformat:2 }}%</strong>
+            {% if dashboard.comparison_context.enabled %}
+            <span class="kpi-comparison">vs {{ detail.kpis.call_drop_rate_previous|floatformat:2 }}% ({{ detail.kpis.call_drop_rate_delta_pp|floatformat:2 }}pp)</span>
+            {% endif %}
+        </article>
+        <article class="kpi-card kpi-card-primary card">
+            <span class="kpi-label">Duracao media</span>
+            <strong class="kpi-value">{{ detail.kpis.avg_duration_seconds|floatformat:2 }}s</strong>
+            {% if dashboard.comparison_context.enabled %}
+            <span class="kpi-comparison">vs {{ detail.kpis.avg_duration_seconds_previous|floatformat:2 }}s ({{ detail.kpis.avg_duration_seconds_delta|floatformat:2 }}{% if detail.kpis.avg_duration_seconds_delta_pct is not None %} | {{ detail.kpis.avg_duration_seconds_delta_pct|floatformat:2 }}%{% endif %})</span>
+            {% endif %}
+        </article>
     </section>
 
     <section class="analytics-grid analytics-grid-top">
