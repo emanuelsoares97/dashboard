@@ -14,7 +14,7 @@ from apps.dashboards.services import (
     generate_insights,
 )
 from apps.dashboards.services import _compute_delta
-from apps.inbound.models import ChurnReason, Interaction, ServiceType
+from apps.inbound.models import ChurnReason, Interaction, RetentionAction, ServiceType
 
 
 def test_kpis_return_zero_when_queryset_is_empty(db):
@@ -978,7 +978,7 @@ def test_retention_action_comparison_table_calculates_values_and_directions(inte
 
 
 def test_retention_action_comparison_table_handles_action_missing_in_previous_period(interaction_factory, base_dimensions):
-    new_action = base_dimensions['team'].retention_actions.create(code='nova', label='Nova')
+    new_action = RetentionAction.objects.create(code='nova', label='Nova')
 
     interaction_factory(
         call_id_external='action-only-current',
@@ -1453,8 +1453,7 @@ def test_trend_tone_backward_compatibility_without_metric_name():
     assert delta['trend_tone'] == 'up'
 
 
-@pytest.mark.django_db
-def test_assistant_detail_comparison_calculates_kpi_deltas(interaction_factory, base_dimensions):
+def test_assistant_detail_comparison_calculates_kpi_deltas(db, interaction_factory, base_dimensions):
     interaction_factory(
         call_id_external='det-cmp-cur-1',
         start_at=datetime(2026, 1, 10, 10, 0, tzinfo=timezone.utc),
@@ -1471,8 +1470,8 @@ def test_assistant_detail_comparison_calculates_kpi_deltas(interaction_factory, 
     )
     interaction_factory(
         call_id_external='det-cmp-prev-1',
-        start_at=datetime(2026, 1, 8, 10, 0, tzinfo=timezone.utc),
-        end_at=datetime(2026, 1, 8, 10, 5, tzinfo=timezone.utc),
+        start_at=datetime(2026, 1, 9, 10, 0, tzinfo=timezone.utc),
+        end_at=datetime(2026, 1, 9, 10, 5, tzinfo=timezone.utc),
         agent=base_dimensions['agent'],
         final_outcome=base_dimensions['retained'],
     )
@@ -1506,8 +1505,7 @@ def test_assistant_detail_comparison_calculates_kpi_deltas(interaction_factory, 
     assert 'avg_duration_seconds_delta' in kpis
 
 
-@pytest.mark.django_db
-def test_assistant_detail_comparison_handles_no_previous_data(interaction_factory, base_dimensions):
+def test_assistant_detail_comparison_handles_no_previous_data(db, interaction_factory, base_dimensions):
     interaction_factory(
         call_id_external='det-cmp-only-cur-1',
         start_at=datetime(2026, 1, 10, 10, 0, tzinfo=timezone.utc),
@@ -1533,8 +1531,7 @@ def test_assistant_detail_comparison_handles_no_previous_data(interaction_factor
     assert kpis['total_calls_direction'] == 'up'
 
 
-@pytest.mark.django_db
-def test_assistant_detail_comparison_respects_equivalent_days_period_rule(interaction_factory, base_dimensions):
+def test_assistant_detail_comparison_respects_equivalent_days_period_rule(db, interaction_factory, base_dimensions):
     interaction_factory(
         call_id_external='det-mtd-cur-1',
         start_at=datetime(2026, 4, 1, 10, 0, tzinfo=timezone.utc),
