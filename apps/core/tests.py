@@ -29,6 +29,16 @@ class CoreViewsTests(TestCase):
 		self.assertEqual(response.status_code, 302)
 		self.assertEqual(response.url, reverse('dashboards:overview'))
 
+	def test_home_renders_friendly_page_for_authenticated_user_without_dashboard_group(self):
+		user = self._create_user('sem-acesso')
+		self.client.force_login(user)
+
+		response = self.client.get(reverse('core:home'))
+
+		self.assertEqual(response.status_code, 200)
+		self.assertTemplateUsed(response, 'core/no_dashboard_access.html')
+		self.assertContains(response, 'Acesso ao dashboard pendente')
+
 	def test_login_page_renders(self):
 		response = self.client.get(reverse('core:login'))
 
