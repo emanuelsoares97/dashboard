@@ -121,6 +121,29 @@ body {
     margin: 0 auto;
 }
 
+.site-footer {
+    max-width: 1440px;
+    margin: var(--space-3) auto 0;
+    padding: 0.95rem 1rem;
+    text-align: center;
+    border: 1px solid #dfe5ea;
+    border-radius: 10px;
+    background: #f3f5f7;
+}
+
+.site-footer-link {
+    color: #5a6570;
+    text-decoration: none;
+    font-size: 0.92rem;
+    display: inline-block;
+    text-align: center;
+}
+
+.site-footer-link:hover {
+    color: var(--color-primary-strong);
+    text-decoration: underline;
+}
+
 @media (max-width: 768px) {
     body {
         padding: 5.7rem var(--space-2) var(--space-2);
@@ -169,5 +192,10 @@ body {
 
     .site-nav-dropdown-link {
         padding: 0.64rem 0.72rem;
+    }
+
+    .site-footer {
+        margin-top: var(--space-2);
+        padding-bottom: 0.2rem;
     }
 }
