@@ -124,7 +124,6 @@ dashboard/
 	templates/
 	manage.py
 	requirements.txt
-	requirements-dev.txt
 	pytest.ini
 ```
 
@@ -142,23 +141,50 @@ python -m venv .venv
 & ".\.venv\Scripts\python.exe" -m pip install -r requirements.txt
 ```
 
-### 3. Instalar dependencias de desenvolvimento
-
-```powershell
-& ".\.venv\Scripts\python.exe" -m pip install -r requirements-dev.txt
-```
-
-### 4. Aplicar migracoes
+### 3. Aplicar migracoes
 
 ```powershell
 & ".\.venv\Scripts\python.exe" manage.py migrate
 ```
 
-### 5. Iniciar o servidor
+### 4. Iniciar o servidor
 
 ```powershell
 & ".\.venv\Scripts\python.exe" manage.py runserver
 ```
+
+## Base de dados (PostgreSQL / Supabase)
+
+O projeto usa `DATABASE_URL` como configuracao principal de base de dados.
+
+- Se `DATABASE_URL` estiver definido, o Django usa PostgreSQL (incluindo Supabase).
+- Se `DATABASE_URL` nao estiver definido, o projeto usa SQLite local como fallback de desenvolvimento.
+
+### 1. Criar ficheiro `.env`
+
+```powershell
+Copy-Item .env.example .env
+```
+
+### 2. Definir a connection string
+
+Exemplo:
+
+```env
+DATABASE_URL=postgresql://postgres.<project-ref>:<password>@aws-0-<region>.pooler.supabase.com:6543/postgres?sslmode=require
+```
+
+### 3. Aplicar migracoes na base PostgreSQL
+
+```powershell
+& ".\.venv\Scripts\python.exe" manage.py migrate
+```
+
+### Nota sobre Supabase: direct connection vs pooler (Supavisor)
+
+- `Pooler/Supavisor` e recomendado para aplicacoes web e workers (melhor controlo de conexoes).
+- `Direct connection` pode ser usada em operacoes administrativas pontuais.
+- Em ambos os casos, mantenha `sslmode=require` na URL.
 
 ## Rotas principais
 
