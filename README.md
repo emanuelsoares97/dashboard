@@ -1,116 +1,205 @@
-# Internal Retention Analytics (Django)
+# Internal Retention Analytics
 
-Projeto Django local para analytics de retention, com foco inicial em inbound e importacao manual de Excel.
+Projeto Django para importacao, normalizacao e analise operacional de chamadas inbound, com dashboards server-rendered, exports CSV e monitorizacao de inconsistencias de tipificacao.
 
-## Regras de negocio implementadas
+## Visao geral
 
-- Cada linha do relatorio representa 1 chamada.
-- Ret Resolution representa o resultado final oficial.
-- resolution representa a acao detalhada de retencao.
-- third_category representa o motivo de churn.
-- service_type representa o tipo de atendimento.
-- Duracao da chamada calculada como enddate - startDate.
-- Call Drop tratado como outcome proprio.
-- Inconsistencia de tipificacao monitorada quando resolution = Pendente e Ret Resolution = Retido.
+O sistema foi desenhado para apoiar analise de retenções a partir de ficheiros Excel importados manualmente. O fluxo principal hoje e:
 
-## 1) Apps recomendados
+1. importar um ficheiro Excel;
+2. validar e persistir os registos de inbound;
+3. sinalizar inconsistencias de qualidade;
+4. consultar dashboards analiticos por varias dimensoes;
+5. exportar tabelas operacionais em CSV.
 
-- apps.core
-- apps.imports_app
-- apps.inbound
-- apps.dashboards
-- apps.quality
+## Regras de negocio atualmente implementadas
 
-## 2) Responsabilidade de cada app
+- Cada linha importada representa 1 chamada.
+- `Ret Resolution` representa o resultado final oficial.
+- `resolution` representa a acao detalhada de retencao.
+- `third_category` representa o motivo de churn.
+- `service_type` representa o tipo de atendimento.
+- A duracao da chamada e calculada a partir da diferenca entre inicio e fim.
+- `Call Drop` e tratado como outcome proprio.
+- Inconsistencias de tipificacao sao monitorizadas quando a combinacao de campos viola as regras de qualidade definidas.
 
-- apps.core: pagina inicial, navegacao e configuracoes de camada web.
-- apps.imports_app: upload manual de Excel, lote de importacao e orquestracao do parsing.
-- apps.inbound: modelo principal de chamadas inbound e metadados de atendimento.
-- apps.dashboards: dashboards server-rendered por time e por agente.
-- apps.quality: monitoramento de inconsistencias de tipificacao.
+## Apps principais
 
-## 3) Estrutura de pastas
+- `apps.core`: homepage e navegação base.
+- `apps.imports_app`: upload de Excel, historico de importacoes e detalhe de lotes.
+- `apps.inbound`: modelos e dados centrais de chamadas inbound.
+- `apps.dashboards`: selectors, services e views dos dashboards analiticos.
+- `apps.quality`: flags e controlo de qualidade dos dados importados.
+
+## Arquitetura atual
+
+O projeto ja nao depende de ficheiros monoliticos nas camadas principais do dashboard.
+
+### `apps.dashboards.services`
+
+- `tables.py`: KPIs, tabelas e agregados prontos para frontend.
+- `comparison.py`: comparacao com periodo anterior e deltas.
+- `insights.py`: insights automaticos.
+- `payload.py`: orquestracao do payload principal do dashboard.
+- `__init__.py`: fachada compatível para imports antigos.
+
+### `apps.dashboards.views`
+
+- `helpers.py`: filtros, querystring e contexto comum.
+- `pages.py`: paginas principais do dashboard.
+- `exports.py`: exports CSV.
+- `legacy.py`: redirects de rotas antigas.
+- `__init__.py`: fachada compatível para imports antigos.
+
+### `apps.dashboards.selectors`
+
+- `base.py`: queryset base, filtros comuns e opcoes globais.
+- `aggregates.py`: KPIs e agregacoes por dominio.
+- `temporal.py`: agregacoes temporais.
+- `assistants.py`: breakdowns e ranking por assistente.
+- `quality.py`: queries de inconsistencias.
+- `__init__.py`: fachada compatível para o namespace `apps.dashboards.selectors`.
+
+## Estrutura resumida
 
 ```text
 dashboard/
 	apps/
 		core/
-		imports_app/
-			forms.py
-			services.py
-		inbound/
 		dashboards/
+			selectors/
+			services/
+			views/
+			tests/
+		imports_app/
+			parsers/
+			persistence/
+			rules/
+			tests/
+			validators/
+		inbound/
 		quality/
 	config/
-		settings.py
-		urls.py
+	docs/
+	sample_data/
+	static/
 	templates/
-		base.html
-		core/home.html
-		imports_app/upload.html
-		dashboards/team_dashboard.html
-		dashboards/agent_dashboard.html
 	manage.py
 	requirements.txt
-	.gitignore
+	requirements-dev.txt
+	pytest.ini
 ```
-
-## 4) Ordem de implementacao para fase 1
-
-1. Estrutura Django e apps base.
-2. Modelo inbound com regras de negocio e duracao.
-3. Importacao manual de Excel com validacao de colunas obrigatorias.
-4. Deteccao de inconsistencias de tipificacao.
-5. Dashboards por time e agente.
-6. Refino de UX local e filtros adicionais.
-
-## 5) MVP vs postergado
-
-### MVP (fase 1)
-
-- Importacao manual de Excel.
-- Analise inbound.
-- Dashboard por time.
-- Dashboard por agente.
-- Deteccao de inconsistencias de tipificacao.
-
-### Postergar
-
-- Fluxo outbound completo.
-- Validacao avancada de tipificacao por regras configuraveis.
-- Analise semantica de comentarios.
-- API externa e arquitetura API-first.
 
 ## Como executar localmente
 
-1. Criar ambiente virtual:
+### 1. Criar ambiente virtual
 
 ```powershell
 python -m venv .venv
 ```
 
-2. Instalar dependencias:
+### 2. Instalar dependencias da aplicacao
 
 ```powershell
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+& ".\.venv\Scripts\python.exe" -m pip install -r requirements.txt
 ```
 
-3. Rodar migracoes:
+### 3. Instalar dependencias de desenvolvimento
 
 ```powershell
-.\.venv\Scripts\python.exe manage.py makemigrations
-.\.venv\Scripts\python.exe manage.py migrate
+& ".\.venv\Scripts\python.exe" -m pip install -r requirements-dev.txt
 ```
 
-4. Iniciar servidor:
+### 4. Aplicar migracoes
 
 ```powershell
-.\.venv\Scripts\python.exe manage.py runserver
+& ".\.venv\Scripts\python.exe" manage.py migrate
 ```
 
-Paginas principais:
+### 5. Iniciar o servidor
 
-- /
-- /imports/
-- /dashboards/teams/
-- /dashboards/agents/
+```powershell
+& ".\.venv\Scripts\python.exe" manage.py runserver
+```
+
+## Rotas principais
+
+### Core
+
+- `/`
+
+### Importacoes
+
+- `/imports/`
+- `/imports/history/`
+- `/imports/history/<batch_id>/`
+
+### Dashboards
+
+- `/dashboards/overview/`
+- `/dashboards/churn-reasons/`
+- `/dashboards/retention-actions/`
+- `/dashboards/services/`
+- `/dashboards/assistants/`
+- `/dashboards/assistants/<assistant_id>/`
+- `/dashboards/inconsistencies/`
+- `/dashboards/insights/`
+- `/dashboards/monthly-rates/`
+- `/dashboards/daily-rates/`
+
+### Exports CSV
+
+- `/dashboards/services/export.csv`
+- `/dashboards/assistants/export.csv`
+- `/dashboards/inconsistencies/export.csv`
+- `/dashboards/monthly-rates/export.csv`
+- `/dashboards/daily-rates/export.csv`
+
+### Rotas legadas mantidas por compatibilidade
+
+- `/dashboards/teams/`
+- `/dashboards/agents/`
+
+## Testes
+
+### Correr a suite completa
+
+```powershell
+& ".\.venv\Scripts\python.exe" -m pytest
+```
+
+### Correr testes com coverage no terminal
+
+```powershell
+& ".\.venv\Scripts\python.exe" -m pytest --cov --cov-config=.coveragerc --cov-report=term-missing
+```
+
+### Gerar coverage HTML
+
+```powershell
+& ".\.venv\Scripts\python.exe" -m pytest --cov --cov-config=.coveragerc --cov-report=html
+```
+
+Documentacao complementar de testes: `docs/testing_with_pytest.md`
+
+## Dados e ficheiros uteis
+
+- `sample_data/`: ficheiros de apoio para testes manuais.
+- `media/imports/`: ficheiros importados em ambiente local.
+- `test_media/imports/`: suporte a testes automatizados.
+- `docs/imports_operational_evolution.md`: notas de evolucao funcional do fluxo de importacao.
+
+## Stack principal
+
+- Django 6.0.3
+- Pytest 8.3.5
+- pytest-django 4.11.1
+- pytest-cov 6.1.1
+- pandas / openpyxl para leitura e tratamento de Excel
+
+## Estado atual
+
+- Projeto funcional em ambiente local.
+- Camadas de `services`, `views` e `selectors` do dashboard ja modularizadas.
+- Imports antigos preservados com fachadas compatíveis.
+- Suite automatizada verde.

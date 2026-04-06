@@ -6,10 +6,20 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from apps.imports_app.models import ImportBatch
+from apps.imports_app.views import import_batch_detail
+from apps.imports_app.views import import_excel
+from apps.imports_app.views import import_history
+from apps.imports_app.views import upload_excel
 
 
 @override_settings(MEDIA_ROOT='test_media')
 class ImportViewsTests(TestCase):
+    def test_views_facade_exports_expected_symbols(self):
+        self.assertTrue(callable(upload_excel))
+        self.assertTrue(callable(import_history))
+        self.assertTrue(callable(import_batch_detail))
+        self.assertTrue(callable(import_excel))
+
     def test_upload_view_get_renders_form_and_recent_batches(self):
         ImportBatch.objects.create(original_filename='recent.xlsx')
 

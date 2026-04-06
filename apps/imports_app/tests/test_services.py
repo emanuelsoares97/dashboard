@@ -1,4 +1,12 @@
+from pathlib import Path
+from unittest.mock import patch
+
+import pandas as pd
+
 from apps.imports_app.models import ImportBatch
+from apps.imports_app.services import build_batch_detail_context
+from apps.imports_app.services import get_import_batch_detail
+from apps.imports_app.services import import_excel
 from apps.imports_app.services import list_import_batches
 
 
@@ -22,3 +30,22 @@ def test_list_import_batches_sorted_by_latest_first(db):
 
     assert page.object_list[0].id == second.id
     assert page.object_list[1].id == first.id
+
+
+def test_services_facade_exports_expected_symbols():
+    assert callable(import_excel)
+    assert callable(list_import_batches)
+    assert callable(get_import_batch_detail)
+    assert callable(build_batch_detail_context)
+
+
+def test_import_excel_keeps_legacy_read_excel_patch_target(db):
+    batch = ImportBatch.objects.create(original_filename='compat.xlsx')
+    dataframe = pd.DataFrame(columns=['agent_name', 'start_date', 'end_date', 'final_outcome'])
+
+    with patch('apps.imports_app.services.read_excel_dataframe', return_value=dataframe):
+        summary = import_excel(Path('fake.xlsx'), batch)
+
+    batch.refresh_from_db()
+    assert summary['total_rows'] == 0
+    assert batch.total_rows == 0
