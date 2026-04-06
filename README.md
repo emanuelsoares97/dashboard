@@ -188,6 +188,7 @@ Documentacao complementar de testes: `docs/testing_with_pytest.md`
 - `media/imports/`: ficheiros importados em ambiente local.
 - `test_media/imports/`: suporte a testes automatizados.
 - `docs/imports_operational_evolution.md`: notas de evolucao funcional do fluxo de importacao.
+- `docs/public_contracts.md`: contratos publicos estaveis das fachadas modulares.
 
 ## Stack principal
 
