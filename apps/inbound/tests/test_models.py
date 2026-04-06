@@ -2,6 +2,7 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 from django.core.exceptions import ValidationError
+from django.contrib.auth import get_user_model
 
 from apps.imports_app.models import ImportBatch
 from apps.inbound.models import Agent, Interaction, OutcomeFinal, RetentionAction, Team
@@ -55,3 +56,14 @@ def test_interaction_clean_raises_when_agent_does_not_belong_to_team():
 
     with pytest.raises(ValidationError):
         interaction.clean()
+
+
+@pytest.mark.django_db
+def test_agent_can_be_explicitly_linked_to_a_django_user():
+    team = Team.objects.create(name='Team User Link')
+    user = get_user_model().objects.create_user(username='agente-link', password='testpass123')
+
+    agent = Agent.objects.create(team=team, name='Agente Linkado', user=user)
+
+    assert agent.user_id == user.id
+    assert user.agent_profile.id == agent.id

@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
 
@@ -21,6 +22,13 @@ class Agent(models.Model):
 	external_code = models.CharField(max_length=100, blank=True)
 	name = models.CharField(max_length=120)
 	team = models.ForeignKey(Team, on_delete=models.PROTECT, related_name='agents')
+	user = models.OneToOneField(
+		settings.AUTH_USER_MODEL,
+		on_delete=models.SET_NULL,
+		null=True,
+		blank=True,
+		related_name='agent_profile',
+	)
 	is_active = models.BooleanField(default=True)
 	created_at = models.DateTimeField(auto_now_add=True)
 

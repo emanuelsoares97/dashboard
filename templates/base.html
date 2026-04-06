@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="pt-PT">
 <head>
-    {% load static %}
+    {% load static access_tags %}
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Retention Analytics</title>
@@ -31,9 +31,14 @@
 
             <nav id="site-navigation" class="site-nav" data-nav-menu>
                 {% if request.user.is_authenticated %}
+                {% if not request.user|user_is_assistant and request.user|user_can_access_imports %}
                 <a class="site-nav-link site-nav-link-primary {% if '/imports/' in request.path and '/imports/history/' not in request.path %}is-active{% endif %}" href="{% url 'imports_app:upload_excel' %}">Importar Excel</a>
                 <a class="site-nav-link {% if '/imports/history/' in request.path %}is-active{% endif %}" href="{% url 'imports_app:history' %}">Histórico Imports</a>
+                {% endif %}
+
+                {% if not request.user|user_is_assistant %}
                 <a class="site-nav-link {% if '/dashboards/' in request.path %}is-active{% endif %}" href="{% url 'dashboards:overview' %}">Dashboard</a>
+                {% endif %}
                 <span class="site-nav-link">{{ request.user.get_username }}</span>
                 <form method="post" action="{% url 'core:logout' %}" class="site-nav-logout-form">
                     {% csrf_token %}

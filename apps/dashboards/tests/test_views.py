@@ -17,8 +17,10 @@ def client(dashboard_client_factory):
 
 @pytest.fixture
 def assistant_client(dashboard_client_factory):
-    client, _ = dashboard_client_factory(username='assistant-user', group_names=['Assistentes'])
-    return client
+    client, user = dashboard_client_factory(username='assistant-user', group_names=['Assistentes'])
+    team = Team.objects.create(name='Equipa Assistente Ligado')
+    agent = Agent.objects.create(team=team, name='Assistente Ligado', user=user)
+    return client, user, agent
 
 
 @pytest.fixture
@@ -30,6 +32,18 @@ def coordination_client(dashboard_client_factory):
 @pytest.fixture
 def ungrouped_client(dashboard_client_factory):
     client, _ = dashboard_client_factory(username='no-group-user')
+    return client
+
+
+@pytest.fixture
+def superuser_client(django_user_model):
+    user = django_user_model.objects.create_superuser(
+        username='root-dashboard',
+        email='root-dashboard@example.com',
+        password='testpass123',
+    )
+    client = Client()
+    client.force_login(user)
     return client
 
 
@@ -59,7 +73,7 @@ def test_dashboard_forbids_authenticated_user_without_dashboard_group(ungrouped_
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize('client_fixture_name', ['assistant_client', 'client', 'coordination_client'])
+@pytest.mark.parametrize('client_fixture_name', ['client', 'coordination_client'])
 @pytest.mark.parametrize(
     'route_name',
     [
@@ -81,7 +95,29 @@ def test_base_pages_allow_all_dashboard_groups(request, client_fixture_name, rou
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize('client_fixture_name', ['assistant_client', 'client', 'coordination_client'])
+@pytest.mark.parametrize(
+    'route_name',
+    [
+        'dashboards:overview',
+        'dashboards:churn_reasons',
+        'dashboards:retention_actions',
+        'dashboards:services',
+        'dashboards:assistants',
+        'dashboards:monthly_rates',
+        'dashboards:daily_rates',
+    ],
+)
+def test_assistant_is_redirected_to_own_detail_from_other_dashboard_pages(assistant_client, route_name):
+    test_client, _, linked_agent = assistant_client
+
+    response = test_client.get(reverse(route_name))
+
+    assert response.status_code == 302
+    assert response.url == reverse('dashboards:assistant_detail', args=[linked_agent.id])
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize('client_fixture_name', ['client', 'coordination_client'])
 def test_assistant_detail_allows_all_dashboard_groups(request, client_fixture_name):
     test_client = request.getfixturevalue(client_fixture_name)
     team = Team.objects.create(name='Equipa Permissoes')
@@ -93,9 +129,32 @@ def test_assistant_detail_allows_all_dashboard_groups(request, client_fixture_na
 
 
 @pytest.mark.django_db
+def test_assistant_can_access_only_own_detail(assistant_client):
+    test_client, _, linked_agent = assistant_client
+
+    response = test_client.get(reverse('dashboards:assistant_detail', args=[linked_agent.id]))
+
+    assert response.status_code == 200
+
+
+@pytest.mark.django_db
+def test_assistant_cannot_access_other_assistant_detail(assistant_client):
+    test_client, _, linked_agent = assistant_client
+    other_team = Team.objects.create(name='Equipa Outro Assistente')
+    other_agent = Agent.objects.create(team=other_team, name='Outro Assistente')
+
+    assert other_agent.id != linked_agent.id
+
+    response = test_client.get(reverse('dashboards:assistant_detail', args=[other_agent.id]))
+
+    assert response.status_code == 403
+
+
+@pytest.mark.django_db
 @pytest.mark.parametrize('route_name', ['dashboards:inconsistencies', 'dashboards:insights'])
 def test_sensitive_pages_forbid_assistants(assistant_client, route_name):
-    response = assistant_client.get(reverse(route_name))
+    test_client, _, linked_agent = assistant_client
+    response = test_client.get(reverse(route_name))
 
     assert response.status_code == 403
 
@@ -112,6 +171,14 @@ def test_sensitive_pages_allow_supervisors_and_coordination(request, client_fixt
 
 
 @pytest.mark.django_db
+@pytest.mark.parametrize('route_name', ['dashboards:inconsistencies', 'dashboards:insights'])
+def test_sensitive_pages_allow_superuser(superuser_client, route_name):
+    response = superuser_client.get(reverse(route_name))
+
+    assert response.status_code == 200
+
+
+@pytest.mark.django_db
 @pytest.mark.parametrize(
     'route_name',
     [
@@ -123,7 +190,8 @@ def test_sensitive_pages_allow_supervisors_and_coordination(request, client_fixt
     ],
 )
 def test_csv_exports_forbid_assistants(assistant_client, route_name):
-    response = assistant_client.get(reverse(route_name))
+    test_client, _, _ = assistant_client
+    response = test_client.get(reverse(route_name))
 
     assert response.status_code == 403
 
@@ -149,8 +217,26 @@ def test_csv_exports_allow_supervisors_and_coordination(request, client_fixture_
 
 
 @pytest.mark.django_db
+@pytest.mark.parametrize(
+    'route_name',
+    [
+        'dashboards:assistants_csv',
+        'dashboards:services_csv',
+        'dashboards:inconsistencies_csv',
+        'dashboards:monthly_rates_csv',
+        'dashboards:daily_rates_csv',
+    ],
+)
+def test_csv_exports_allow_superuser(superuser_client, route_name):
+    response = superuser_client.get(reverse(route_name))
+
+    assert response.status_code == 200
+
+
+@pytest.mark.django_db
 def test_forbidden_dashboard_page_shows_friendly_access_denied_message(assistant_client):
-    response = assistant_client.get(reverse('dashboards:insights'))
+    test_client, _, linked_agent = assistant_client
+    response = test_client.get(reverse('dashboards:insights'))
 
     assert response.status_code == 403
     assert 'Acesso negado' in response.content.decode('utf-8')

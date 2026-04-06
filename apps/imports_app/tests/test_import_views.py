@@ -2,6 +2,8 @@ from io import BytesIO
 from unittest.mock import patch
 
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
@@ -14,6 +16,12 @@ from apps.imports_app.views import upload_excel
 
 @override_settings(MEDIA_ROOT='test_media')
 class ImportViewsTests(TestCase):
+    def setUp(self):
+        user = get_user_model().objects.create_user(username='imports-supervisor', password='testpass123')
+        supervisors_group, _ = Group.objects.get_or_create(name='Supervisores')
+        user.groups.add(supervisors_group)
+        self.client.force_login(user)
+
     def test_views_facade_exports_expected_symbols(self):
         self.assertTrue(callable(upload_excel))
         self.assertTrue(callable(import_history))
@@ -128,3 +136,29 @@ class ImportViewsTests(TestCase):
 
         self.assertEqual(response.status_code, 302)
         self.assertRedirects(response, reverse('imports_app:history'))
+
+    def test_assistant_cannot_access_import_pages(self):
+        self.client.logout()
+        user = get_user_model().objects.create_user(username='imports-assistant', password='testpass123')
+        assistants_group, _ = Group.objects.get_or_create(name='Assistentes')
+        user.groups.add(assistants_group)
+        self.client.force_login(user)
+
+        response = self.client.get(reverse('imports_app:upload_excel'))
+
+        self.assertEqual(response.status_code, 403)
+
+    def test_superuser_can_access_import_pages(self):
+        self.client.logout()
+        user = get_user_model().objects.create_superuser(
+            username='imports-root',
+            email='imports-root@example.com',
+            password='testpass123',
+        )
+        self.client.force_login(user)
+
+        upload_response = self.client.get(reverse('imports_app:upload_excel'))
+        history_response = self.client.get(reverse('imports_app:history'))
+
+        self.assertEqual(upload_response.status_code, 200)
+        self.assertEqual(history_response.status_code, 200)

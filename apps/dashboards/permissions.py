@@ -9,20 +9,24 @@ from django.shortcuts import resolve_url
 GROUP_ASSISTANTS = 'Assistentes'
 GROUP_SUPERVISORS = 'Supervisores'
 GROUP_COORDINATION = 'Coordenacao'
+GROUP_COORDINATION_ALT = 'Coordenação'
 
 DASHBOARD_ACCESS_GROUPS = (
     GROUP_ASSISTANTS,
     GROUP_SUPERVISORS,
     GROUP_COORDINATION,
+    GROUP_COORDINATION_ALT,
 )
 
 SENSITIVE_ANALYTICS_GROUPS = (
     GROUP_SUPERVISORS,
     GROUP_COORDINATION,
+    GROUP_COORDINATION_ALT,
 )
 
 DASHBOARD_MANAGEMENT_GROUPS = (
     GROUP_COORDINATION,
+    GROUP_COORDINATION_ALT,
 )
 
 
@@ -50,6 +54,28 @@ def can_manage_dashboard(user):
     return _is_in_any_group(user, DASHBOARD_MANAGEMENT_GROUPS)
 
 
+def is_assistant(user):
+    if not user or not user.is_authenticated:
+        return False
+    if user.is_superuser:
+        return False
+    return user.groups.filter(name=GROUP_ASSISTANTS).exists()
+
+
+def get_linked_agent(user):
+    if not user or not user.is_authenticated:
+        return None
+    return getattr(user, 'agent_profile', None)
+
+
+def can_access_imports(user):
+    if not user.is_authenticated:
+        return False
+    if user.is_superuser:
+        return True
+    return _is_in_any_group(user, SENSITIVE_ANALYTICS_GROUPS)
+
+
 def _permission_required(rule):
     def decorator(view_func):
         @wraps(view_func)
@@ -72,3 +98,4 @@ require_dashboard_access = _permission_required(has_dashboard_access)
 require_sensitive_analytics = _permission_required(can_view_sensitive_analytics)
 require_report_exports = _permission_required(can_export_reports)
 require_dashboard_management = _permission_required(can_manage_dashboard)
+require_imports_access = _permission_required(can_access_imports)

@@ -4,6 +4,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.shortcuts import redirect, render
 
+from apps.dashboards.permissions import require_imports_access
 from apps.imports_app.forms import ExcelUploadForm
 from apps.imports_app.models import ImportBatch
 
@@ -30,6 +31,7 @@ def _create_import_batch(*, excel_file, request):
     )
 
 
+@require_imports_access
 def handle_upload_excel(request, *, import_excel_func):
     """Recebe um ficheiro Excel manual, cria o lote e desencadeia a importacao."""
     form = ExcelUploadForm(request.POST or None, request.FILES or None)

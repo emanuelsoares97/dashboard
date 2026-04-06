@@ -1,10 +1,14 @@
-from django.shortcuts import get_object_or_404, render
+from django.core.exceptions import PermissionDenied
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 
 from apps.dashboards.services import build_daily_rates_summary
 from apps.dashboards.services import build_monthly_rates_summary
 from apps.dashboards.services import generate_insights
 from apps.inbound.models import Agent
 
+from apps.dashboards.permissions import get_linked_agent
+from apps.dashboards.permissions import is_assistant
 from apps.dashboards.permissions import require_dashboard_access
 from apps.dashboards.permissions import require_sensitive_analytics
 
@@ -13,9 +17,24 @@ from .helpers import _build_dashboard_payload_from_filters
 from .helpers import _resolve_filters
 
 
+def _redirect_assistant_to_own_detail_if_needed(request):
+    if not is_assistant(request.user):
+        return None
+
+    linked_agent = get_linked_agent(request.user)
+    if not linked_agent:
+        raise PermissionDenied
+
+    return redirect(reverse('dashboards:assistant_detail', args=[linked_agent.id]))
+
+
 @require_dashboard_access
 def overview(request):
     """Renderiza a pagina principal com KPIs, graficos e resumo executivo."""
+    assistant_redirect = _redirect_assistant_to_own_detail_if_needed(request)
+    if assistant_redirect:
+        return assistant_redirect
+
     filters = _resolve_filters(request, force_assistant_name='')
     payload = _build_dashboard_payload_from_filters(filters)
 
@@ -31,6 +50,10 @@ def overview(request):
 @require_dashboard_access
 def churn_reasons(request):
     """Renderiza pagina dedicada aos motivos de churn."""
+    assistant_redirect = _redirect_assistant_to_own_detail_if_needed(request)
+    if assistant_redirect:
+        return assistant_redirect
+
     filters = _resolve_filters(request, force_assistant_name='')
     payload = _build_dashboard_payload_from_filters(filters)
 
@@ -47,6 +70,10 @@ def churn_reasons(request):
 @require_dashboard_access
 def retention_actions(request):
     """Renderiza pagina dedicada as acoes de retencao."""
+    assistant_redirect = _redirect_assistant_to_own_detail_if_needed(request)
+    if assistant_redirect:
+        return assistant_redirect
+
     filters = _resolve_filters(request, force_assistant_name='')
     payload = _build_dashboard_payload_from_filters(filters)
 
@@ -63,6 +90,10 @@ def retention_actions(request):
 @require_dashboard_access
 def services(request):
     """Renderiza pagina dedicada ao desempenho por servico."""
+    assistant_redirect = _redirect_assistant_to_own_detail_if_needed(request)
+    if assistant_redirect:
+        return assistant_redirect
+
     filters = _resolve_filters(request, force_assistant_name='')
     payload = _build_dashboard_payload_from_filters(filters)
 
@@ -79,6 +110,10 @@ def services(request):
 @require_dashboard_access
 def assistants(request):
     """Renderiza pagina de ranking geral de assistentes."""
+    assistant_redirect = _redirect_assistant_to_own_detail_if_needed(request)
+    if assistant_redirect:
+        return assistant_redirect
+
     filters = _resolve_filters(request)
     payload = _build_dashboard_payload_from_filters(filters)
 
@@ -95,6 +130,13 @@ def assistants(request):
 @require_dashboard_access
 def assistant_detail(request, assistant_id):
     """Renderiza pagina individual de assistente com detalhe analitico."""
+    if is_assistant(request.user):
+        linked_agent = get_linked_agent(request.user)
+        if not linked_agent:
+            raise PermissionDenied
+        if linked_agent.id != assistant_id:
+            raise PermissionDenied
+
     assistant = get_object_or_404(Agent, id=assistant_id)
     filters = _resolve_filters(request, force_assistant_name=assistant.name)
     payload = _build_dashboard_payload_from_filters(filters, assistant_id=assistant.id)
@@ -117,6 +159,10 @@ def assistant_detail(request, assistant_id):
 @require_sensitive_analytics
 def inconsistencies(request):
     """Renderiza pagina dedicada a inconsistencias de tipificacao."""
+    assistant_redirect = _redirect_assistant_to_own_detail_if_needed(request)
+    if assistant_redirect:
+        return assistant_redirect
+
     filters = _resolve_filters(request, force_assistant_name='')
     payload = _build_dashboard_payload_from_filters(filters)
 
@@ -133,6 +179,10 @@ def inconsistencies(request):
 @require_sensitive_analytics
 def insights(request):
     """Renderiza pagina dedicada a insights automaticos."""
+    assistant_redirect = _redirect_assistant_to_own_detail_if_needed(request)
+    if assistant_redirect:
+        return assistant_redirect
+
     filters = _resolve_filters(request, force_assistant_name='')
     payload = _build_dashboard_payload_from_filters(filters)
 
@@ -149,6 +199,10 @@ def insights(request):
 @require_dashboard_access
 def monthly_rates(request):
     """Renderiza pagina com leitura mensal de retidos, nao retidos e call drop."""
+    assistant_redirect = _redirect_assistant_to_own_detail_if_needed(request)
+    if assistant_redirect:
+        return assistant_redirect
+
     filters = _resolve_filters(request, force_assistant_name='')
     # Nesta aba, o objetivo e sempre ver historico mensal completo.
     payload = _build_dashboard_payload_from_filters(filters, use_filter_dates=False)
@@ -167,6 +221,10 @@ def monthly_rates(request):
 @require_dashboard_access
 def daily_rates(request):
     """Renderiza pagina com leitura diaria de retidos, nao retidos e call drop."""
+    assistant_redirect = _redirect_assistant_to_own_detail_if_needed(request)
+    if assistant_redirect:
+        return assistant_redirect
+
     filters = _resolve_filters(request, force_assistant_name='')
     payload = _build_dashboard_payload_from_filters(filters)
 

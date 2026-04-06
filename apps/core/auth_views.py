@@ -1,4 +1,8 @@
 from django.contrib.auth.views import LoginView, LogoutView
+from django.urls import reverse
+
+from apps.dashboards.permissions import get_linked_agent
+from apps.dashboards.permissions import is_assistant
 
 
 class DashboardLoginView(LoginView):
@@ -21,6 +25,15 @@ class DashboardLoginView(LoginView):
             }
         )
         return form
+
+    def get_success_url(self):
+        user = self.request.user
+        if is_assistant(user):
+            linked_agent = get_linked_agent(user)
+            if linked_agent:
+                return reverse('dashboards:assistant_detail', args=[linked_agent.id])
+            return reverse('core:home')
+        return super().get_success_url()
 
 
 class DashboardLogoutView(LogoutView):
