@@ -99,3 +99,27 @@
         order: 1;
     }
 }
+
+@media (max-width: 560px) {
+    .login-shell {
+        margin: 0.4rem auto;
+        gap: 0.7rem;
+    }
+
+    .login-card,
+    .login-aside {
+        padding: 0.95rem;
+    }
+
+    .login-kicker {
+        font-size: 0.68rem;
+    }
+
+    .login-input {
+        min-height: 2.55rem;
+    }
+
+    .login-submit {
+        min-height: 2.7rem;
+    }
+}

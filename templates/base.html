@@ -24,9 +24,7 @@
                 aria-controls="site-navigation"
                 aria-label="Abrir menu de navegação"
             >
-                <span></span>
-                <span></span>
-                <span></span>
+                <span class="site-nav-toggle-icon" aria-hidden="true">☰</span>
             </button>
 
             <nav id="site-navigation" class="site-nav" data-nav-menu>
@@ -50,6 +48,8 @@
             </nav>
         </div>
     </header>
+
+    <div class="site-nav-backdrop" data-nav-backdrop aria-hidden="true"></div>
 
     {% if messages %}
     <ul class="messages">

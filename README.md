@@ -199,6 +199,34 @@ DATABASE_URL=postgresql://postgres.<project-ref>:<password>@aws-0-<region>.poole
 & ".\.venv\Scripts\python.exe" manage.py collectstatic --noinput
 ```
 
+## Deploy no Render
+
+O repositório inclui o ficheiro `render.yaml` para criar o Web Service automaticamente.
+
+### O que esta configurado
+
+- `buildCommand`: instala dependencias e executa `collectstatic`.
+- `preDeployCommand`: executa `migrate` antes de cada release.
+- `startCommand`: sobe a app com `gunicorn` usando `config.wsgi:application`.
+- Variaveis de ambiente de producao:
+	- `DEBUG=False`
+	- `SECRET_KEY` gerado no Render
+	- `ALLOWED_HOSTS`
+	- `CSRF_TRUSTED_ORIGINS`
+	- `DATABASE_URL` (definido manualmente com a URL do Supabase)
+
+### Passos no Render
+
+1. Criar novo serviço via Blueprint apontando para este repositório.
+2. Confirmar o nome/domínio final e ajustar `ALLOWED_HOSTS` e `CSRF_TRUSTED_ORIGINS` no painel.
+3. Definir `DATABASE_URL` com a string do Supabase.
+4. Fazer deploy.
+
+### Nota sobre `DATABASE_URL` (Supabase)
+
+- Use a connection string completa com `sslmode=require`.
+- Se a password tiver caracteres especiais (`@`, `:`, `/`, `#`, `%`, `?`), aplique URL encoding.
+
 ## Rotas principais
 
 ### Core

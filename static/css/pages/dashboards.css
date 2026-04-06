@@ -402,6 +402,12 @@
     border-radius: 14px;
 }
 
+.table-wrap .table,
+.table-wrap-compact .table,
+.table-wrap-tall .table {
+    min-width: 640px;
+}
+
 .table-wrap-compact {
     max-height: 24rem;
 }
@@ -530,5 +536,62 @@
 
     .dashboard-title {
         font-size: 1.6rem;
+    }
+
+    .kpi-value {
+        font-size: 1.9rem;
+    }
+
+    .table-compact th,
+    .table-compact td {
+        padding: 0.4rem 0.52rem;
+        font-size: 0.86rem;
+    }
+
+    .panel-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.55rem;
+    }
+
+    .dashboard-sidebar {
+        padding: 0.65rem;
+    }
+
+    .dashboard-menu {
+        display: flex;
+        gap: 0.45rem;
+        overflow-x: auto;
+        padding-bottom: 0.2rem;
+        scrollbar-width: thin;
+    }
+
+    .dashboard-menu-link {
+        white-space: nowrap;
+        flex: 0 0 auto;
+    }
+}
+
+@media (max-width: 480px) {
+    .dashboard-topbar-title {
+        font-size: 1.08rem;
+    }
+
+    .dashboard-title {
+        font-size: 1.35rem;
+    }
+
+    .dashboard-subtitle,
+    .panel-subtitle {
+        font-size: 0.9rem;
+    }
+
+    .chart-shell {
+        min-height: 240px;
+        padding: 0.4rem;
+    }
+
+    .chart-shell-compact {
+        min-height: 190px;
     }
 }

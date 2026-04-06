@@ -12,6 +12,10 @@
     border-radius: 12px;
 }
 
+.table-wrap-ops .table {
+    min-width: 640px;
+}
+
 .ops-kpi-grid {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -53,6 +57,7 @@
     display: flex;
     align-items: center;
     gap: 0.8rem;
+    flex-wrap: wrap;
 }
 
 .pager-info {
@@ -71,5 +76,15 @@
     .ops-kpi-grid,
     .ops-sample-grid {
         grid-template-columns: 1fr;
+    }
+
+    .pager {
+        align-items: flex-start;
+        gap: 0.55rem;
+    }
+
+    .pager .btn,
+    .pager a.btn {
+        width: 100%;
     }
 }
