@@ -23,6 +23,44 @@ O sistema foi desenhado para apoiar analise de retenções a partir de ficheiros
 - `Call Drop` e tratado como outcome proprio.
 - Inconsistencias de tipificacao sao monitorizadas quando a combinacao de campos viola as regras de qualidade definidas.
 
+## Controlo de acesso
+
+O projeto usa autenticacao Django com controlo de acesso por grupos.
+
+### Grupos suportados
+
+- `Assistentes`
+- `Supervisores`
+- `Coordenacao`
+- `Coordenação`
+
+Os grupos `Coordenacao` e `Coordenação` sao tratados como equivalentes para compatibilidade com dados ja existentes.
+
+### Regras por perfil
+
+- `superuser`: acesso total ao sistema, sem restricoes de assistente.
+- `Supervisores`: acesso completo aos dashboards, analise sensivel, exports e importacoes.
+- `Coordenacao` / `Coordenação`: acesso completo aos dashboards, analise sensivel, exports e importacoes.
+- `Assistentes`: acesso apenas aos seus proprios dados no dashboard.
+
+### Ligacao entre utilizador e assistente
+
+Existe uma ligacao explicita entre utilizadores autenticados e registos de assistente atraves de `Agent.user`.
+
+Esta associacao permite:
+
+- redirecionar automaticamente o assistente para a sua pagina individual apos login;
+- limitar a visualizacao do assistente aos seus proprios dados;
+- gerir a associacao tanto no admin de `Agent` como no admin de `User`.
+
+### Comportamento das views por perfil
+
+- Assistentes autenticados sao encaminhados para a sua pagina individual de assistente quando aplicavel.
+- Assistentes nao veem opcoes de importacao na navegacao.
+- Rotas de importacao continuam protegidas no backend e devolvem negacao de acesso para perfis sem permissao.
+- Paginas sensiveis do dashboard continuam protegidas por permissao dedicada, mesmo que o utilizador tente aceder diretamente por URL.
+- Supervisao, coordenacao e superuser mantem acesso integral a navegacao e vistas analiticas.
+
 ## Apps principais
 
 - `apps.core`: homepage e navegação base.
@@ -147,6 +185,8 @@ python -m venv .venv
 - `/dashboards/monthly-rates/`
 - `/dashboards/daily-rates/`
 
+Nota: para utilizadores do grupo `Assistentes`, o fluxo normal de navegacao privilegia a pagina individual do proprio assistente em vez das paginas globais.
+
 ### Exports CSV
 
 - `/dashboards/services/export.csv`
@@ -203,4 +243,6 @@ Documentacao complementar de testes: `docs/testing_with_pytest.md`
 - Projeto funcional em ambiente local.
 - Camadas de `services`, `views` e `selectors` do dashboard ja modularizadas.
 - Imports antigos preservados com fachadas compatíveis.
+- Controlo de acesso por grupos aplicado nas views e navegacao.
+- Fluxo especifico para assistentes implementado com restricao a dados proprios.
 - Suite automatizada verde.
