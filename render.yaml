@@ -4,8 +4,7 @@ services:
     runtime: python
     plan: free
     region: frankfurt
-    buildCommand: pip install -r requirements.txt ; python manage.py collectstatic --noinput
-    preDeployCommand: python manage.py migrate --noinput
+    buildCommand: pip install -r requirements.txt ; python manage.py migrate --noinput ; python manage.py collectstatic --noinput
     startCommand: gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 3 --timeout 120
     envVars:
       - key: PYTHON_VERSION

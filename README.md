@@ -205,8 +205,7 @@ O repositório inclui o ficheiro `render.yaml` para criar o Web Service automati
 
 ### O que esta configurado
 
-- `buildCommand`: instala dependencias e executa `collectstatic`.
-- `preDeployCommand`: executa `migrate` antes de cada release.
+- `buildCommand`: instala dependencias, executa `migrate` e depois `collectstatic`.
 - `startCommand`: sobe a app com `gunicorn` usando `config.wsgi:application`.
 - Variaveis de ambiente de producao:
 	- `DEBUG=False`
