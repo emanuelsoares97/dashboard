@@ -5,7 +5,7 @@
     <div class="panel-header">
         <div>
             <h3 class="card-title">Ranking geral de assistentes</h3>
-            <p class="panel-subtitle">Comparacao individual com foco em resultados, duracao e consistencia.</p>
+            <p class="panel-subtitle">Comparação individual com foco em resultados, duração e consistência.</p>
         </div>
         <div class="panel-actions">
             <a class="btn btn-secondary" href="{% url 'dashboards:assistants_csv' %}?{{ dashboard_querystring }}">Exportar CSV</a>
@@ -18,11 +18,11 @@
                 <tr>
                     <th>Assistente</th>
                     <th>Total chamadas</th>
-                    <th>Duracao media</th>
+                    <th>Duração média</th>
                     <th>Total retidos</th>
-                    <th>Total nao retidos</th>
-                    <th>% retencao</th>
-                    <th>% nao retencao</th>
+                    <th>Total não retidos</th>
+                    <th>% retenção</th>
+                    <th>% não retenção</th>
                     <th>% call drop</th>
                     <th>% inconsistência</th>
                 </tr>
@@ -90,3 +90,4 @@
     </div>
 </section>
 {% endblock %}
+

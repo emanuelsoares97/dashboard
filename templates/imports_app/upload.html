@@ -8,8 +8,8 @@
 {% block content %}
 <section class="card" data-page="imports">
     <div class="import-header">
-        <h2 class="card-title">Importacao Manual de Excel</h2>
-        <a class="btn btn-secondary" href="{% url 'imports_app:history' %}">Ver historico</a>
+        <h2 class="card-title">Importação Manual de Excel</h2>
+        <a class="btn btn-secondary" href="{% url 'imports_app:history' %}">Ver histórico</a>
     </div>
     <form class="form" method="post" enctype="multipart/form-data">
         {% csrf_token %}
@@ -19,7 +19,7 @@
 </section>
 
 <section class="card">
-    <h3 class="card-title">Ultimos lotes</h3>
+    <h3 class="card-title">Últimos lotes</h3>
     <table class="table">
         <thead>
             <tr>
@@ -27,7 +27,7 @@
                 <th>Status</th>
                 <th>Total</th>
                 <th>Importadas</th>
-                <th>Observacoes</th>
+                <th>Observações</th>
             </tr>
         </thead>
         <tbody>
@@ -52,3 +52,4 @@
 {% block extra_js %}
 <script src="{% static 'js/pages/imports.js' %}" defer></script>
 {% endblock %}
+

@@ -9,7 +9,7 @@
 <div class="dashboard-shell" data-page="dashboard">
     <header class="dashboard-topbar">
         <div class="dashboard-topbar-brand">
-            <p class="dashboard-eyebrow">Retention Analytics System</p>
+            <p class="dashboard-eyebrow">Sistema de Análise de Retenção</p>
             <h2 class="dashboard-topbar-title">{{ page_title }}</h2>
         </div>
         <form class="dashboard-topbar-filters" method="get">
@@ -18,9 +18,9 @@
                 <select id="date_preset" name="date_preset">
                     <option value="custom" {% if date_preset == 'custom' %}selected{% endif %}>Personalizado</option>
                     <option value="today" {% if date_preset == 'today' %}selected{% endif %}>Hoje</option>
-                    <option value="last_7_days" {% if date_preset == 'last_7_days' %}selected{% endif %}>Ultimos 7 dias</option>
-                    <option value="current_month" {% if date_preset == 'current_month' %}selected{% endif %}>Mes atual</option>
-                    <option value="previous_month" {% if date_preset == 'previous_month' %}selected{% endif %}>Mes anterior</option>
+                    <option value="last_7_days" {% if date_preset == 'last_7_days' %}selected{% endif %}>Últimos 7 dias</option>
+                    <option value="current_month" {% if date_preset == 'current_month' %}selected{% endif %}>Mês atual</option>
+                    <option value="previous_month" {% if date_preset == 'previous_month' %}selected{% endif %}>Mês anterior</option>
                 </select>
             </div>
             <div class="filter-group">
@@ -32,7 +32,7 @@
                 <input id="end_date" name="end_date" type="date" value="{{ end_date }}">
             </div>
             <div class="filter-group">
-                <label class="filter-label" for="service_type_id">Servico</label>
+                <label class="filter-label" for="service_type_id">Serviço</label>
                 <select id="service_type_id" name="service_type_id">
                     <option value="">Todos</option>
                     {% for option in filter_options.service_types %}
@@ -50,7 +50,7 @@
                 </select>
             </div>
             <div class="filter-group">
-                <label class="filter-label" for="retention_action_id">Acao de retencao</label>
+                <label class="filter-label" for="retention_action_id">Ação de retenção</label>
                 <select id="retention_action_id" name="retention_action_id">
                     <option value="">Todas</option>
                     {% for option in filter_options.retention_actions %}
@@ -89,7 +89,7 @@
                 <select id="period" name="period">
                     <option value="day" {% if period == 'day' %}selected{% endif %}>Dia</option>
                     <option value="week" {% if period == 'week' %}selected{% endif %}>Semana</option>
-                    <option value="month" {% if period == 'month' %}selected{% endif %}>Mes</option>
+                    <option value="month" {% if period == 'month' %}selected{% endif %}>Mês</option>
                 </select>
             </div>
             <div class="filter-actions">
@@ -103,7 +103,7 @@
         {% if not dashboard.ui_state.has_data %}
         <section class="dashboard-state-banner dashboard-state-banner-empty" role="status">
             <strong>Sem dados para os filtros selecionados.</strong>
-            <span>Nao existem chamadas no periodo indicado.</span>
+            <span>Não existem chamadas no período indicado.</span>
         </section>
         {% elif dashboard.ui_state.is_low_sample %}
         <section class="dashboard-state-banner dashboard-state-banner-warning" role="status">
@@ -117,13 +117,13 @@
         <nav class="dashboard-menu">
             <a class="dashboard-menu-link {% if active_section == 'overview' %}is-active{% endif %}" href="{% url 'dashboards:overview' %}?{{ dashboard_querystring }}">Visão Geral</a>
             <a class="dashboard-menu-link {% if active_section == 'churn' %}is-active{% endif %}" href="{% url 'dashboards:churn_reasons' %}?{{ dashboard_querystring }}">Motivos de Corte</a>
-            <a class="dashboard-menu-link {% if active_section == 'actions' %}is-active{% endif %}" href="{% url 'dashboards:retention_actions' %}?{{ dashboard_querystring }}">Acoes de Retencao</a>
+            <a class="dashboard-menu-link {% if active_section == 'actions' %}is-active{% endif %}" href="{% url 'dashboards:retention_actions' %}?{{ dashboard_querystring }}">Ações de Retenção</a>
             <a class="dashboard-menu-link {% if active_section == 'services' %}is-active{% endif %}" href="{% url 'dashboards:services' %}?{{ dashboard_querystring }}">Serviços</a>
             <a class="dashboard-menu-link {% if active_section == 'assistants' %}is-active{% endif %}" href="{% url 'dashboards:assistants' %}?{{ dashboard_querystring }}">Assistentes</a>
             <a class="dashboard-menu-link {% if active_section == 'inconsistencies' %}is-active{% endif %}" href="{% url 'dashboards:inconsistencies' %}?{{ dashboard_querystring }}">Inconsistências</a>
             <a class="dashboard-menu-link {% if active_section == 'insights' %}is-active{% endif %}" href="{% url 'dashboards:insights' %}?{{ dashboard_querystring }}">Insights</a>
             <a class="dashboard-menu-link {% if active_section == 'monthly_rates' %}is-active{% endif %}" href="{% url 'dashboards:monthly_rates' %}?{{ dashboard_querystring }}">Taxas Mensais</a>
-            <a class="dashboard-menu-link {% if active_section == 'daily_rates' %}is-active{% endif %}" href="{% url 'dashboards:daily_rates' %}?{{ dashboard_querystring }}">Taxas Diarias</a>
+            <a class="dashboard-menu-link {% if active_section == 'daily_rates' %}is-active{% endif %}" href="{% url 'dashboards:daily_rates' %}?{{ dashboard_querystring }}">Taxas Diárias</a>
         </nav>
     </aside>
 
@@ -137,3 +137,4 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="{% static 'js/pages/dashboards.js' %}" defer></script>
 {% endblock %}
+

@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/pages/login.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="login-shell" data-page="login">
+    <aside class="login-aside card">
+        <p class="login-kicker">Área Interna</p>
+        <h2 class="card-title">Retention Analytics</h2>
+        <p class="card-subtitle">Acompanhe performance, inconsistências e tendências de retenção numa visão única.</p>
+        <ul class="login-highlights">
+            <li>KPIs operacionais em tempo real</li>
+            <li>Análise por assistente e serviço</li>
+            <li>Exportação de relatórios CSV</li>
+        </ul>
+    </aside>
+
+    <article class="login-card card">
+        <header class="login-card-header">
+            <h3 class="card-title">Entrar</h3>
+            <p class="card-subtitle">Use as suas credenciais para aceder ao dashboard.</p>
+        </header>
+
+        {% if form.errors %}
+        <ul class="messages">
+            <li class="error">Utilizador ou palavra-passe inválidos.</li>
+        </ul>
+        {% endif %}
+
+        <form method="post" class="login-form">
+            {% csrf_token %}
+
+            <div class="login-field">
+                <label for="id_username">Utilizador</label>
+                {{ form.username }}
+            </div>
+
+            <div class="login-field">
+                <label for="id_password">Palavra-passe</label>
+                {{ form.password }}
+            </div>
+
+            {% if next %}
+            <input type="hidden" name="next" value="{{ next }}">
+            {% endif %}
+
+            <button type="submit" class="btn btn-primary login-submit">Entrar</button>
+        </form>
+    </article>
+</section>
+{% endblock %}

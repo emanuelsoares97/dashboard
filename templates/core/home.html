@@ -8,12 +8,12 @@
 {% block content %}
 <section class="card" data-page="home">
     <h2 class="card-title">Fase 1 - Inbound</h2>
-    <p class="card-subtitle">Fluxo inicial para importacao manual de Excel, analise inbound e visualizacao por time/agente.</p>
+    <p class="card-subtitle">Fluxo inicial para importação manual de Excel, análise inbound e visualização por equipa/agente.</p>
     <ul class="home-rules">
-        <li>Cada linha no relatorio representa 1 chamada.</li>
+        <li>Cada linha no relatório representa 1 chamada.</li>
         <li>Call duration = enddate - startDate.</li>
-        <li>Call Drop eh tratado como outcome proprio.</li>
-        <li>Inconsistencia: resolution=Pendente e Ret Resolution=Retido.</li>
+        <li>Call Drop é tratado como resultado próprio.</li>
+        <li>Inconsistência: resolution=Pendente e Ret Resolution=Retido.</li>
     </ul>
 </section>
 {% endblock %}
@@ -21,3 +21,4 @@
 {% block extra_js %}
 <script src="{% static 'js/pages/home.js' %}" defer></script>
 {% endblock %}
+

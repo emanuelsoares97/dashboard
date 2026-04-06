@@ -4,12 +4,12 @@
 {% if summary.days_with_data %}
 <section class="kpi-grid">
     <article class="kpi-card kpi-card-success card">
-        <span class="kpi-label">Melhor dia de retencao</span>
+        <span class="kpi-label">Melhor dia de retenção</span>
         <strong class="kpi-value">{{ summary.best_day.day }}</strong>
         <span class="kpi-label">{{ summary.best_day.retention_rate|floatformat:2 }}% em {{ summary.best_day.total_calls }} chamadas</span>
     </article>
     <article class="kpi-card kpi-card-danger card">
-        <span class="kpi-label">Pior dia de retencao</span>
+        <span class="kpi-label">Pior dia de retenção</span>
         <strong class="kpi-value">{{ summary.worst_day.day }}</strong>
         <span class="kpi-label">{{ summary.worst_day.retention_rate|floatformat:2 }}% em {{ summary.worst_day.total_calls }} chamadas</span>
     </article>
@@ -20,7 +20,7 @@
     <div class="panel-header">
         <div>
             <h3 class="card-title">Taxas por dia</h3>
-            <p class="panel-subtitle">Visao diaria de retidos, nao retidos e call drop no periodo selecionado.</p>
+            <p class="panel-subtitle">Visão diária de retidos, não retidos e call drop no período selecionado.</p>
         </div>
         <a class="btn btn-secondary" href="{% url 'dashboards:daily_rates_csv' %}?{{ dashboard_querystring }}">Exportar CSV</a>
     </div>
@@ -31,10 +31,10 @@
                     <th>Dia</th>
                     <th>Total chamadas</th>
                     <th>Total retidos</th>
-                    <th>Total nao retidos</th>
+                    <th>Total não retidos</th>
                     <th>Total call drop</th>
-                    <th>% retencao</th>
-                    <th>% nao retencao</th>
+                    <th>% retenção</th>
+                    <th>% não retenção</th>
                     <th>% call drop</th>
                 </tr>
             </thead>
@@ -51,10 +51,11 @@
                     <td><span class="table-current-value">{{ row.call_drop_rate|floatformat:2 }}</span></td>
                 </tr>
                 {% empty %}
-                <tr><td class="table-empty" colspan="8">Sem dados para o periodo selecionado.</td></tr>
+                <tr><td class="table-empty" colspan="8">Sem dados para o período selecionado.</td></tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
 </section>
 {% endblock %}
+

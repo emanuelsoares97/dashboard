@@ -4,8 +4,8 @@
 <section class="card panel">
     <div class="panel-header">
         <div>
-            <h3 class="card-title">Tabela por servico</h3>
-            <p class="panel-subtitle">Desempenho de retencao por tipo de servico. A exportacao respeita os filtros ativos.</p>
+            <h3 class="card-title">Tabela por serviço</h3>
+            <p class="panel-subtitle">Desempenho de retenção por tipo de serviço. A exportação respeita os filtros ativos.</p>
         </div>
         <a class="btn btn-secondary" href="{% url 'dashboards:services_csv' %}?{{ dashboard_querystring }}">Exportar CSV</a>
     </div>
@@ -13,10 +13,10 @@
         <table class="table table-sortable table-analytic" data-highlight-column="3">
             <thead>
                 <tr>
-                    <th>Servico</th>
+                    <th>Serviço</th>
                     <th>Total chamadas</th>
-                    <th>% retencao</th>
-                    <th>% nao retencao</th>
+                    <th>% retenção</th>
+                    <th>% não retenção</th>
                     <th>% call drop</th>
                 </tr>
             </thead>
@@ -65,3 +65,4 @@
     </div>
 </section>
 {% endblock %}
+

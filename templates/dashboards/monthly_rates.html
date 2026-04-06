@@ -4,12 +4,12 @@
 {% if summary.months_with_data %}
 <section class="kpi-grid">
     <article class="kpi-card kpi-card-success card">
-        <span class="kpi-label">Melhor mes de retencao</span>
+        <span class="kpi-label">Melhor mês de retenção</span>
         <strong class="kpi-value">{{ summary.best_month.month }}</strong>
         <span class="kpi-label">{{ summary.best_month.retention_rate|floatformat:2 }}% em {{ summary.best_month.total_calls }} chamadas</span>
     </article>
     <article class="kpi-card kpi-card-danger card">
-        <span class="kpi-label">Pior mes de retencao</span>
+        <span class="kpi-label">Pior mês de retenção</span>
         <strong class="kpi-value">{{ summary.worst_month.month }}</strong>
         <span class="kpi-label">{{ summary.worst_month.retention_rate|floatformat:2 }}% em {{ summary.worst_month.total_calls }} chamadas</span>
     </article>
@@ -19,8 +19,8 @@
 <section class="card panel">
     <div class="panel-header">
         <div>
-            <h3 class="card-title">Taxas por mes</h3>
-            <p class="panel-subtitle">Visao mensal de retidos, nao retidos e call drop. A exportacao respeita os filtros ativos.</p>
+            <h3 class="card-title">Taxas por mês</h3>
+            <p class="panel-subtitle">Visão mensal de retidos, não retidos e call drop. A exportação respeita os filtros ativos.</p>
         </div>
         <a class="btn btn-secondary" href="{% url 'dashboards:monthly_rates_csv' %}?{{ dashboard_querystring }}">Exportar CSV</a>
     </div>
@@ -28,13 +28,13 @@
         <table class="table table-sortable table-analytic" data-highlight-column="6">
             <thead>
                 <tr>
-                    <th>Mes</th>
+                    <th>Mês</th>
                     <th>Total chamadas</th>
                     <th>Total retidos</th>
-                    <th>Total nao retidos</th>
+                    <th>Total não retidos</th>
                     <th>Total call drop</th>
-                    <th>% retencao</th>
-                    <th>% nao retencao</th>
+                    <th>% retenção</th>
+                    <th>% não retenção</th>
                     <th>% call drop</th>
                 </tr>
             </thead>
@@ -58,3 +58,4 @@
     </div>
 </section>
 {% endblock %}
+

@@ -4,18 +4,18 @@
 <section class="card panel">
     <div class="panel-header">
         <div>
-            <h3 class="card-title">Tabela completa por acao de retencao</h3>
-            <p class="panel-subtitle">Leitura detalhada das resolucoes usadas e respetiva eficacia.</p>
+            <h3 class="card-title">Tabela completa por ação de retenção</h3>
+            <p class="panel-subtitle">Leitura detalhada das resoluções usadas e respetiva eficácia.</p>
         </div>
     </div>
     <div class="table-wrap table-wrap-tall">
         <table class="table table-sortable table-analytic" data-highlight-column="5">
             <thead>
                 <tr>
-                    <th>Acao</th>
+                    <th>Ação</th>
                     <th>Total vezes usada</th>
                     <th>Total retidos</th>
-                    <th>Total nao retidos</th>
+                    <th>Total não retidos</th>
                     <th>% sucesso</th>
                     <th>% falha</th>
                 </tr>
@@ -52,10 +52,11 @@
                     </td>
                 </tr>
                 {% empty %}
-                <tr><td class="table-empty" colspan="6">Sem dados para o periodo atual.</td></tr>
+                <tr><td class="table-empty" colspan="6">Sem dados para o período atual.</td></tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
 </section>
 {% endblock %}
+

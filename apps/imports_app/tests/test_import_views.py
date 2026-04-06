@@ -101,7 +101,7 @@ class ImportViewsTests(TestCase):
         response = self.client.get(reverse('imports_app:history'))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Historico de Importacoes')
+        self.assertContains(response, 'Histórico de Importações')
         self.assertContains(response, 'a.xlsx')
 
     def test_batch_detail_view_renders_summary(self):

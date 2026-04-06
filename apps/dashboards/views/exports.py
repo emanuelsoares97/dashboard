@@ -1,9 +1,11 @@
 from apps.dashboards import exporters
+from apps.dashboards.permissions import require_report_exports
 
 from .helpers import _build_dashboard_payload_from_filters
 from .helpers import _resolve_filters
 
 
+@require_report_exports
 def daily_rates_csv(request):
     """Exporta a tabela de taxas diarias para CSV com os filtros ativos."""
     filters = _resolve_filters(request, force_assistant_name='')
@@ -11,6 +13,7 @@ def daily_rates_csv(request):
     return exporters.export_daily_rates_csv(payload['daily_rates_table'], filters)
 
 
+@require_report_exports
 def assistants_csv(request):
     """Exporta a tabela de assistentes para CSV com os filtros ativos."""
     filters = _resolve_filters(request)
@@ -18,6 +21,7 @@ def assistants_csv(request):
     return exporters.export_assistants_csv(payload['assistant_ranking_table'], filters)
 
 
+@require_report_exports
 def monthly_rates_csv(request):
     """Exporta a tabela de taxas mensais para CSV com os filtros ativos."""
     filters = _resolve_filters(request, force_assistant_name='')
@@ -25,6 +29,7 @@ def monthly_rates_csv(request):
     return exporters.export_monthly_rates_csv(payload['monthly_rates_table'], filters)
 
 
+@require_report_exports
 def services_csv(request):
     """Exporta a tabela de servicos para CSV com os filtros ativos."""
     filters = _resolve_filters(request, force_assistant_name='')
@@ -32,6 +37,7 @@ def services_csv(request):
     return exporters.export_services_csv(payload['service_type_table'], filters)
 
 
+@require_report_exports
 def inconsistencies_csv(request):
     """Exporta a tabela de inconsistencias para CSV com os filtros ativos."""
     filters = _resolve_filters(request, force_assistant_name='')

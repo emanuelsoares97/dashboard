@@ -3,5 +3,7 @@ from django.urls import reverse
 
 
 def home(request):
-	"""Redireciona a entrada principal para a visao geral do dashboard."""
-	return redirect(reverse('dashboards:overview'))
+	"""Redireciona utilizadores autenticados ao dashboard e anonimos ao login."""
+	if request.user.is_authenticated:
+		return redirect(reverse('dashboards:overview'))
+	return redirect(reverse('core:login'))

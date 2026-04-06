@@ -10,8 +10,8 @@
     <section class="dashboard-hero card">
         <div>
             <p class="dashboard-eyebrow">Retention Analytics</p>
-            <h2 class="dashboard-title">Leitura executiva da retencao</h2>
-            <p class="dashboard-subtitle">Vista global para perceber rapidamente volume, resultados, causas de churn, eficacia das acoes e pontos de incoerencia.</p>
+            <h2 class="dashboard-title">Leitura executiva da retenção</h2>
+            <p class="dashboard-subtitle">Vista global para perceber rapidamente volume, resultados, causas de churn, eficácia das ações e pontos de incoerência.</p>
         </div>
         <form class="dashboard-filters" method="get">
             <div>
@@ -19,9 +19,9 @@
                 <select id="date_preset" name="date_preset">
                     <option value="custom" {% if date_preset == 'custom' %}selected{% endif %}>Personalizado</option>
                     <option value="today" {% if date_preset == 'today' %}selected{% endif %}>Hoje</option>
-                    <option value="last_7_days" {% if date_preset == 'last_7_days' %}selected{% endif %}>Ultimos 7 dias</option>
-                    <option value="current_month" {% if date_preset == 'current_month' %}selected{% endif %}>Mes atual</option>
-                    <option value="previous_month" {% if date_preset == 'previous_month' %}selected{% endif %}>Mes anterior</option>
+                    <option value="last_7_days" {% if date_preset == 'last_7_days' %}selected{% endif %}>Últimos 7 dias</option>
+                    <option value="current_month" {% if date_preset == 'current_month' %}selected{% endif %}>Mês atual</option>
+                    <option value="previous_month" {% if date_preset == 'previous_month' %}selected{% endif %}>Mês anterior</option>
                 </select>
             </div>
             <div>
@@ -41,7 +41,7 @@
                 <select id="period" name="period">
                     <option value="day" {% if period == 'day' %}selected{% endif %}>Dia</option>
                     <option value="week" {% if period == 'week' %}selected{% endif %}>Semana</option>
-                    <option value="month" {% if period == 'month' %}selected{% endif %}>Mes</option>
+                    <option value="month" {% if period == 'month' %}selected{% endif %}>Mês</option>
                 </select>
             </div>
             <button class="btn btn-primary" type="submit">Atualizar</button>
@@ -54,11 +54,11 @@
             <strong class="kpi-value">{{ dashboard.general_kpis.total_calls }}</strong>
         </article>
         <article class="kpi-card kpi-card-success card">
-            <span class="kpi-label">Taxa retencao</span>
+            <span class="kpi-label">Taxa retenção</span>
             <strong class="kpi-value">{{ dashboard.general_kpis.retention_rate|floatformat:2 }}%</strong>
         </article>
         <article class="kpi-card kpi-card-danger card">
-            <span class="kpi-label">Taxa nao retencao</span>
+            <span class="kpi-label">Taxa não retenção</span>
             <strong class="kpi-value">{{ dashboard.general_kpis.non_retention_rate|floatformat:2 }}%</strong>
         </article>
         <article class="kpi-card kpi-card-warning card">
@@ -66,7 +66,7 @@
             <strong class="kpi-value">{{ dashboard.general_kpis.call_drop_rate|floatformat:2 }}%</strong>
         </article>
         <article class="kpi-card kpi-card-primary card">
-            <span class="kpi-label">Duracao media</span>
+            <span class="kpi-label">Duração média</span>
             <strong class="kpi-value">{{ dashboard.general_kpis.avg_duration_seconds|floatformat:2 }}s</strong>
         </article>
     </section>
@@ -76,7 +76,7 @@
             <div class="panel-header">
                 <div>
                     <h3 class="card-title">Distribuicao de outcomes</h3>
-                    <p class="panel-subtitle">Comparacao direta entre retidos, nao retidos e call drop.</p>
+                    <p class="panel-subtitle">Comparação direta entre retidos, não retidos e call drop.</p>
                 </div>
             </div>
             <div class="chart-shell">
@@ -87,8 +87,8 @@
         <article class="card panel panel-chart">
             <div class="panel-header">
                 <div>
-                    <h3 class="card-title">Evolucao temporal</h3>
-                    <p class="panel-subtitle">Leitura da evolucao das taxas ao longo do periodo selecionado.</p>
+                    <h3 class="card-title">Evolução temporal</h3>
+                    <p class="panel-subtitle">Leitura da evolução das taxas ao longo do período selecionado.</p>
                 </div>
             </div>
             <div class="chart-shell chart-shell-wide">
@@ -110,7 +110,7 @@
                 <table class="table table-sortable table-analytic table-compact">
                     <thead>
                         <tr>
-                            <th>Servico</th>
+                            <th>Serviço</th>
                             <th>Qtde</th>
                             <th>%</th>
                         </tr>
@@ -123,7 +123,7 @@
                             <td>{{ row.pct_total|floatformat:2 }}</td>
                         </tr>
                         {% empty %}
-                        <tr><td class="table-empty" colspan="3">Sem dados para o periodo atual.</td></tr>
+                        <tr><td class="table-empty" colspan="3">Sem dados para o período atual.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
@@ -154,7 +154,7 @@
                             <td>{{ row.pct_total|floatformat:2 }}</td>
                         </tr>
                         {% empty %}
-                        <tr><td class="table-empty" colspan="3">Sem dados para o periodo atual.</td></tr>
+                        <tr><td class="table-empty" colspan="3">Sem dados para o período atual.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
@@ -165,14 +165,14 @@
             <div class="panel-header">
                 <div>
                     <h3 class="card-title">Medidas para reter</h3>
-                    <p class="panel-subtitle">Resolucao mais usada, com peso percentual no periodo.</p>
+                    <p class="panel-subtitle">Resolução mais usada, com peso percentual no período.</p>
                 </div>
             </div>
             <div class="table-wrap table-wrap-compact">
                 <table class="table table-sortable table-analytic table-compact">
                     <thead>
                         <tr>
-                            <th>Resolucao</th>
+                            <th>Resolução</th>
                             <th>Qtde</th>
                             <th>%</th>
                         </tr>
@@ -185,7 +185,7 @@
                             <td>{{ row.pct_total|floatformat:2 }}</td>
                         </tr>
                         {% empty %}
-                        <tr><td class="table-empty" colspan="3">Sem dados para o periodo atual.</td></tr>
+                        <tr><td class="table-empty" colspan="3">Sem dados para o período atual.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
@@ -198,7 +198,7 @@
             <div class="panel-header">
                 <div>
                     <h3 class="card-title">Motivos de corte</h3>
-                    <p class="panel-subtitle">Onde existe maior volume e menor capacidade de retencao.</p>
+                    <p class="panel-subtitle">Onde existe maior volume e menor capacidade de retenção.</p>
                 </div>
             </div>
             <div class="chart-shell chart-shell-compact">
@@ -212,8 +212,8 @@
                             <th>Motivo</th>
                             <th>Total</th>
                             <th>% Total</th>
-                            <th>% Retencao</th>
-                            <th>% Nao Retencao</th>
+                            <th>% Retenção</th>
+                            <th>% Não Retenção</th>
                             <th>% Call Drop</th>
                         </tr>
                     </thead>
@@ -228,7 +228,7 @@
                             <td>{{ row.call_drop_rate|floatformat:2 }}</td>
                         </tr>
                         {% empty %}
-                        <tr><td class="table-empty" colspan="6">Sem dados para o periodo atual.</td></tr>
+                        <tr><td class="table-empty" colspan="6">Sem dados para o período atual.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
@@ -238,7 +238,7 @@
         <article class="card panel">
             <div class="panel-header">
                 <div>
-                    <h3 class="card-title">Acoes de retencao</h3>
+                    <h3 class="card-title">Ações de retenção</h3>
                     <p class="panel-subtitle">Perceber o que esta a funcionar melhor em termos de sucesso.</p>
                 </div>
             </div>
@@ -250,10 +250,10 @@
                 <table class="table table-sortable table-analytic" data-highlight-column="5">
                     <thead>
                         <tr>
-                            <th>Acao</th>
+                            <th>Ação</th>
                             <th>Total</th>
                             <th>Retidos</th>
-                            <th>Nao Retidos</th>
+                            <th>Não Retidos</th>
                             <th>% Sucesso</th>
                             <th>% Falha</th>
                         </tr>
@@ -269,7 +269,7 @@
                             <td>{{ row.failure_rate|floatformat:2 }}</td>
                         </tr>
                         {% empty %}
-                        <tr><td class="table-empty" colspan="6">Sem dados para o periodo atual.</td></tr>
+                        <tr><td class="table-empty" colspan="6">Sem dados para o período atual.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
@@ -281,18 +281,18 @@
         <article class="card panel">
             <div class="panel-header">
                 <div>
-                    <h3 class="card-title">Servicos</h3>
-                    <p class="panel-subtitle">Tipos de servico onde a retencao exige mais atencao.</p>
+                    <h3 class="card-title">Serviços</h3>
+                    <p class="panel-subtitle">Tipos de serviço onde a retenção exige mais atenção.</p>
                 </div>
             </div>
             <div class="table-wrap">
                 <table class="table table-sortable table-analytic" data-highlight-column="3">
                     <thead>
                         <tr>
-                            <th>Servico</th>
+                            <th>Serviço</th>
                             <th>Total</th>
-                            <th>% Retencao</th>
-                            <th>% Nao Retencao</th>
+                            <th>% Retenção</th>
+                            <th>% Não Retenção</th>
                             <th>% Call Drop</th>
                         </tr>
                     </thead>
@@ -306,7 +306,7 @@
                             <td>{{ row.call_drop_rate|floatformat:2 }}</td>
                         </tr>
                         {% empty %}
-                        <tr><td class="table-empty" colspan="5">Sem dados para o periodo atual.</td></tr>
+                        <tr><td class="table-empty" colspan="5">Sem dados para o período atual.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
@@ -317,7 +317,7 @@
             <div class="panel-header">
                 <div>
                     <h3 class="card-title">Ranking de assistentes</h3>
-                    <p class="panel-subtitle">Comparacao da performance individual com foco em resultados e consistencia.</p>
+                    <p class="panel-subtitle">Comparação da performance individual com foco em resultados e consistência.</p>
                 </div>
             </div>
             <div class="table-wrap">
@@ -326,11 +326,11 @@
                         <tr>
                             <th>Assistente</th>
                             <th>Total</th>
-                            <th>Duracao media (s)</th>
-                            <th>% Retencao</th>
-                            <th>% Nao Retencao</th>
+                            <th>Duração média (s)</th>
+                            <th>% Retenção</th>
+                            <th>% Não Retenção</th>
                             <th>% Call Drop</th>
-                            <th>% Inconsistencia</th>
+                            <th>% Inconsistência</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -345,7 +345,7 @@
                             <td>{{ row.inconsistency_rate|floatformat:2 }}</td>
                         </tr>
                         {% empty %}
-                        <tr><td class="table-empty" colspan="7">Sem dados para o periodo atual.</td></tr>
+                        <tr><td class="table-empty" colspan="7">Sem dados para o período atual.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
@@ -356,8 +356,8 @@
     <section class="card panel panel-full">
         <div class="panel-header">
             <div>
-                <h3 class="card-title">Inconsistencias de tipificacao</h3>
-                <p class="panel-subtitle">Casos em que a classificacao introduz risco analitico e exige revisao.</p>
+                <h3 class="card-title">Inconsistências de tipificação</h3>
+                <p class="panel-subtitle">Casos em que a classificação introduz risco analítico e exige revisão.</p>
             </div>
             <div class="panel-kpi-inline">
                 <span>Total: {{ dashboard.inconsistency_section.kpis.total_inconsistencies }}</span>
@@ -370,7 +370,7 @@
                     <tr>
                         <th>Assistente</th>
                         <th>Motivo</th>
-                        <th>Acao</th>
+                        <th>Ação</th>
                         <th>Resultado final</th>
                         <th>Tipo de inconsistência</th>
                     </tr>
@@ -385,7 +385,7 @@
                         <td>{{ row.inconsistency_type }}</td>
                     </tr>
                     {% empty %}
-                    <tr><td class="table-empty" colspan="5">Sem inconsistencias no periodo atual.</td></tr>
+                    <tr><td class="table-empty" colspan="5">Sem inconsistências no período atual.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
@@ -400,3 +400,4 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="{% static 'js/pages/dashboards.js' %}" defer></script>
 {% endblock %}
+

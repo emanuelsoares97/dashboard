@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const submitButton = uploadForm.querySelector('button[type="submit"]');
         if (submitButton) {
             submitButton.disabled = true;
-            submitButton.textContent = 'Importando...';
+            submitButton.textContent = 'A importar...';
         }
     });
 });

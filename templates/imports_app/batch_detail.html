@@ -9,7 +9,7 @@
 <section class="card">
     <div class="import-header">
         <h2 class="card-title">Detalhe do Lote #{{ batch.id }}</h2>
-        <a class="btn btn-secondary" href="{% url 'imports_app:history' %}">Voltar ao historico</a>
+        <a class="btn btn-secondary" href="{% url 'imports_app:history' %}">Voltar ao histórico</a>
     </div>
 
     <div class="ops-kpi-grid">
@@ -65,7 +65,7 @@
             </ul>
         </article>
         <article>
-            <h4>Falhadas por validacao</h4>
+            <h4>Falhadas por validação</h4>
             <ul class="ops-list">
                 {% for row in samples.failed_rows %}
                 <li>Linha {{ row.source_row_number }} - {{ row.processing_error }}</li>
@@ -76,7 +76,7 @@
 </section>
 
 <section class="card">
-    <h3 class="card-title">Amostra de Inconsistencias</h3>
+    <h3 class="card-title">Amostra de Inconsistências</h3>
     <div class="table-wrap-ops">
         <table class="table table-analytic">
             <thead>
@@ -96,10 +96,11 @@
                     <td>{{ flag.description }}</td>
                 </tr>
                 {% empty %}
-                <tr><td class="table-empty" colspan="4">Sem inconsistencias neste lote.</td></tr>
+                <tr><td class="table-empty" colspan="4">Sem inconsistências neste lote.</td></tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
 </section>
 {% endblock %}
+

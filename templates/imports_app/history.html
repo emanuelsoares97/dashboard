@@ -8,8 +8,8 @@
 {% block content %}
 <section class="card">
     <div class="import-header">
-        <h2 class="card-title">Historico de Importacoes</h2>
-        <a class="btn btn-secondary" href="{% url 'imports_app:upload_excel' %}">Nova importacao</a>
+        <h2 class="card-title">Histórico de Importações</h2>
+        <a class="btn btn-secondary" href="{% url 'imports_app:upload_excel' %}">Nova importação</a>
     </div>
 
     <div class="table-wrap-ops">
@@ -52,7 +52,7 @@
         {% if batches_page.has_previous %}
         <a class="btn btn-secondary" href="?page={{ batches_page.previous_page_number }}">Anterior</a>
         {% endif %}
-        <span class="pager-info">Pagina {{ batches_page.number }} de {{ batches_page.paginator.num_pages }}</span>
+        <span class="pager-info">Página {{ batches_page.number }} de {{ batches_page.paginator.num_pages }}</span>
         {% if batches_page.has_next %}
         <a class="btn btn-secondary" href="?page={{ batches_page.next_page_number }}">Seguinte</a>
         {% endif %}
@@ -60,3 +60,4 @@
     {% endif %}
 </section>
 {% endblock %}
+

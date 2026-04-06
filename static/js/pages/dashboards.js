@@ -78,7 +78,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const getChartState = (chartKey) => {
         return payload?.chart_states?.[chartKey] || {
             has_data: true,
-            empty_message: 'Sem dados suficientes para apresentar o grafico.',
+            empty_message: 'Sem dados suficientes para apresentar o gráfico.',
         };
     };
 

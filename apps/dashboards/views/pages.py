@@ -5,11 +5,15 @@ from apps.dashboards.services import build_monthly_rates_summary
 from apps.dashboards.services import generate_insights
 from apps.inbound.models import Agent
 
+from apps.dashboards.permissions import require_dashboard_access
+from apps.dashboards.permissions import require_sensitive_analytics
+
 from .helpers import _build_common_context
 from .helpers import _build_dashboard_payload_from_filters
 from .helpers import _resolve_filters
 
 
+@require_dashboard_access
 def overview(request):
     """Renderiza a pagina principal com KPIs, graficos e resumo executivo."""
     filters = _resolve_filters(request, force_assistant_name='')
@@ -24,6 +28,7 @@ def overview(request):
     return render(request, 'dashboards/overview.html', context)
 
 
+@require_dashboard_access
 def churn_reasons(request):
     """Renderiza pagina dedicada aos motivos de churn."""
     filters = _resolve_filters(request, force_assistant_name='')
@@ -39,6 +44,7 @@ def churn_reasons(request):
     return render(request, 'dashboards/churn_reasons.html', context)
 
 
+@require_dashboard_access
 def retention_actions(request):
     """Renderiza pagina dedicada as acoes de retencao."""
     filters = _resolve_filters(request, force_assistant_name='')
@@ -54,6 +60,7 @@ def retention_actions(request):
     return render(request, 'dashboards/retention_actions.html', context)
 
 
+@require_dashboard_access
 def services(request):
     """Renderiza pagina dedicada ao desempenho por servico."""
     filters = _resolve_filters(request, force_assistant_name='')
@@ -69,6 +76,7 @@ def services(request):
     return render(request, 'dashboards/services.html', context)
 
 
+@require_dashboard_access
 def assistants(request):
     """Renderiza pagina de ranking geral de assistentes."""
     filters = _resolve_filters(request)
@@ -84,6 +92,7 @@ def assistants(request):
     return render(request, 'dashboards/assistants.html', context)
 
 
+@require_dashboard_access
 def assistant_detail(request, assistant_id):
     """Renderiza pagina individual de assistente com detalhe analitico."""
     assistant = get_object_or_404(Agent, id=assistant_id)
@@ -105,6 +114,7 @@ def assistant_detail(request, assistant_id):
     return render(request, 'dashboards/assistant_detail.html', context)
 
 
+@require_sensitive_analytics
 def inconsistencies(request):
     """Renderiza pagina dedicada a inconsistencias de tipificacao."""
     filters = _resolve_filters(request, force_assistant_name='')
@@ -120,6 +130,7 @@ def inconsistencies(request):
     return render(request, 'dashboards/inconsistencies.html', context)
 
 
+@require_sensitive_analytics
 def insights(request):
     """Renderiza pagina dedicada a insights automaticos."""
     filters = _resolve_filters(request, force_assistant_name='')
@@ -135,6 +146,7 @@ def insights(request):
     return render(request, 'dashboards/insights.html', context)
 
 
+@require_dashboard_access
 def monthly_rates(request):
     """Renderiza pagina com leitura mensal de retidos, nao retidos e call drop."""
     filters = _resolve_filters(request, force_assistant_name='')
@@ -152,6 +164,7 @@ def monthly_rates(request):
     return render(request, 'dashboards/monthly_rates.html', context)
 
 
+@require_dashboard_access
 def daily_rates(request):
     """Renderiza pagina com leitura diaria de retidos, nao retidos e call drop."""
     filters = _resolve_filters(request, force_assistant_name='')

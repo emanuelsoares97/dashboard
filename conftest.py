@@ -1,6 +1,8 @@
 from datetime import datetime, timedelta, timezone
 
 import pytest
+from django.contrib.auth.models import Group
+from django.test import Client
 
 from apps.imports_app.models import ImportBatch
 from apps.inbound.models import Agent, ChurnReason, Interaction, OutcomeFinal, RetentionAction, ServiceType, Team
@@ -57,5 +59,30 @@ def interaction_factory(db, base_dimensions):
         }
         defaults.update(overrides)
         return Interaction.objects.create(**defaults)
+
+    return _factory
+
+
+@pytest.fixture
+def dashboard_user_factory(django_user_model):
+    def _factory(*, username, password='testpass123', group_names=None):
+        user = django_user_model.objects.create_user(username=username, password=password)
+
+        for group_name in group_names or []:
+            group, _ = Group.objects.get_or_create(name=group_name)
+            user.groups.add(group)
+
+        return user
+
+    return _factory
+
+
+@pytest.fixture
+def dashboard_client_factory(dashboard_user_factory):
+    def _factory(*, username, password='testpass123', group_names=None):
+        user = dashboard_user_factory(username=username, password=password, group_names=group_names)
+        client = Client()
+        client.force_login(user)
+        return client, user
 
     return _factory

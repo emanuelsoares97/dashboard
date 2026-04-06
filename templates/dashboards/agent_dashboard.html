@@ -18,9 +18,9 @@
             <select id="date_preset" name="date_preset">
                 <option value="custom" {% if date_preset == 'custom' %}selected{% endif %}>Personalizado</option>
                 <option value="today" {% if date_preset == 'today' %}selected{% endif %}>Hoje</option>
-                <option value="last_7_days" {% if date_preset == 'last_7_days' %}selected{% endif %}>Ultimos 7 dias</option>
-                <option value="current_month" {% if date_preset == 'current_month' %}selected{% endif %}>Mes atual</option>
-                <option value="previous_month" {% if date_preset == 'previous_month' %}selected{% endif %}>Mes anterior</option>
+                <option value="last_7_days" {% if date_preset == 'last_7_days' %}selected{% endif %}>Últimos 7 dias</option>
+                <option value="current_month" {% if date_preset == 'current_month' %}selected{% endif %}>Mês atual</option>
+                <option value="previous_month" {% if date_preset == 'previous_month' %}selected{% endif %}>Mês anterior</option>
             </select>
         </div>
         <div>
@@ -32,11 +32,11 @@
             <input id="end_date" name="end_date" type="date" value="{{ end_date }}">
         </div>
         <div>
-            <label for="period">Periodo:</label>
+            <label for="period">Período:</label>
             <select id="period" name="period">
                 <option value="day" {% if period == 'day' %}selected{% endif %}>Dia</option>
                 <option value="week" {% if period == 'week' %}selected{% endif %}>Semana</option>
-                <option value="month" {% if period == 'month' %}selected{% endif %}>Mes</option>
+                <option value="month" {% if period == 'month' %}selected{% endif %}>Mês</option>
             </select>
         </div>
         <button class="btn btn-primary" type="submit">Aplicar</button>
@@ -50,11 +50,11 @@
             <tr>
                 <th>Assistente</th>
                 <th>Total de chamadas</th>
-                <th>Duracao media (s)</th>
-                <th>Retencao (%)</th>
-                <th>Nao Retencao (%)</th>
+                <th>Duração média (s)</th>
+                <th>Retenção (%)</th>
+                <th>Não Retenção (%)</th>
                 <th>Call Drop (%)</th>
-                <th>Inconsistencia (%)</th>
+                <th>Inconsistência (%)</th>
             </tr>
         </thead>
         <tbody>
@@ -80,7 +80,7 @@
 {% if dashboard.assistant_detail %}
 <section class="card">
     <h3 class="card-title">Detalhe do Assistente</h3>
-    <p>Duracao media: <strong>{{ dashboard.assistant_detail.avg_duration_seconds|floatformat:2 }}</strong> segundos</p>
+    <p>Duração média: <strong>{{ dashboard.assistant_detail.avg_duration_seconds|floatformat:2 }}</strong> segundos</p>
 </section>
 {% endif %}
 {% endblock %}
@@ -88,3 +88,4 @@
 {% block extra_js %}
 <script src="{% static 'js/pages/dashboards.js' %}" defer></script>
 {% endblock %}
+

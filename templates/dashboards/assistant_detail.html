@@ -7,7 +7,7 @@
         <div class="panel-header">
             <div>
                 <h3 class="card-title">{{ assistant.label }}</h3>
-                <p class="panel-subtitle">Analise individual do assistente para o periodo selecionado.</p>
+                <p class="panel-subtitle">Análise individual do assistente para o período selecionado.</p>
             </div>
         </div>
     </section>
@@ -21,14 +21,14 @@
             {% endif %}
         </article>
         <article class="kpi-card kpi-card-success card">
-            <span class="kpi-label">Taxa retencao</span>
+            <span class="kpi-label">Taxa retenção</span>
             <strong class="kpi-value">{{ detail.kpis.retention_rate|floatformat:2 }}%</strong>
             {% if dashboard.comparison_context.enabled %}
             <span class="kpi-comparison">vs {{ detail.kpis.retention_rate_previous|floatformat:2 }}% ({{ detail.kpis.retention_rate_delta_pp|floatformat:2 }}pp)</span>
             {% endif %}
         </article>
         <article class="kpi-card kpi-card-danger card">
-            <span class="kpi-label">Taxa nao retencao</span>
+            <span class="kpi-label">Taxa não retenção</span>
             <strong class="kpi-value">{{ detail.kpis.non_retention_rate|floatformat:2 }}%</strong>
             {% if dashboard.comparison_context.enabled %}
             <span class="kpi-comparison">vs {{ detail.kpis.non_retention_rate_previous|floatformat:2 }}% ({{ detail.kpis.non_retention_rate_delta_pp|floatformat:2 }}pp)</span>
@@ -42,7 +42,7 @@
             {% endif %}
         </article>
         <article class="kpi-card kpi-card-primary card">
-            <span class="kpi-label">Duracao media</span>
+            <span class="kpi-label">Duração média</span>
             <strong class="kpi-value">{{ detail.kpis.avg_duration_seconds|floatformat:2 }}s</strong>
             {% if dashboard.comparison_context.enabled %}
             <span class="kpi-comparison">vs {{ detail.kpis.avg_duration_seconds_previous|floatformat:2 }}s ({{ detail.kpis.avg_duration_seconds_delta|floatformat:2 }}{% if detail.kpis.avg_duration_seconds_delta_pct is not None %} | {{ detail.kpis.avg_duration_seconds_delta_pct|floatformat:2 }}%{% endif %})</span>
@@ -52,18 +52,18 @@
 
     <section class="analytics-grid analytics-grid-top">
         <article class="card panel panel-chart">
-            <div class="panel-header"><div><h3 class="card-title">Evolucao temporal individual</h3></div></div>
+            <div class="panel-header"><div><h3 class="card-title">Evolução temporal individual</h3></div></div>
             <div class="chart-shell chart-shell-wide"><span class="chart-loading">A carregar...</span><canvas id="temporal-chart"></canvas></div>
         </article>
         <article class="card panel">
-            <div class="panel-header"><div><h3 class="card-title">Inconsistencias</h3></div></div>
+            <div class="panel-header"><div><h3 class="card-title">Inconsistências</h3></div></div>
             <div class="table-wrap table-wrap-compact">
                 <table class="table table-sortable table-analytic">
-                    <thead><tr><th>Motivo</th><th>Acao</th><th>Resultado</th><th>Tipo</th></tr></thead>
+                    <thead><tr><th>Motivo</th><th>Ação</th><th>Resultado</th><th>Tipo</th></tr></thead>
                     <tbody>
                         {% for row in inconsistency_section.table %}
                         <tr><td>{{ row.churn_reason }}</td><td>{{ row.retention_action }}</td><td>{{ row.final_outcome }}</td><td>{{ row.inconsistency_type }}</td></tr>
-                        {% empty %}<tr><td class="table-empty" colspan="4">Sem inconsistencias no periodo atual.</td></tr>{% endfor %}
+                        {% empty %}<tr><td class="table-empty" colspan="4">Sem inconsistências no período atual.</td></tr>{% endfor %}
                     </tbody>
                 </table>
             </div>
@@ -75,24 +75,24 @@
             <div class="panel-header"><div><h3 class="card-title">Top motivos de corte</h3></div></div>
             <div class="table-wrap table-wrap-compact">
                 <table class="table table-sortable table-analytic" data-highlight-column="4">
-                    <thead><tr><th>Motivo</th><th>Total</th><th>% do assistente</th><th>% retencao</th></tr></thead>
+                    <thead><tr><th>Motivo</th><th>Total</th><th>% do assistente</th><th>% retenção</th></tr></thead>
                     <tbody>
                         {% for row in detail.top_churn_reasons %}
                         <tr><td>{{ row.churn_reason }}</td><td>{{ row.total_calls }}</td><td>{{ row.pct_total|floatformat:2 }}</td><td>{{ row.retention_rate|floatformat:2 }}</td></tr>
-                        {% empty %}<tr><td class="table-empty" colspan="4">Sem dados para o periodo atual.</td></tr>{% endfor %}
+                        {% empty %}<tr><td class="table-empty" colspan="4">Sem dados para o período atual.</td></tr>{% endfor %}
                     </tbody>
                 </table>
             </div>
         </article>
         <article class="card panel">
-            <div class="panel-header"><div><h3 class="card-title">Acoes mais usadas</h3></div></div>
+            <div class="panel-header"><div><h3 class="card-title">Ações mais usadas</h3></div></div>
             <div class="table-wrap table-wrap-compact">
                 <table class="table table-sortable table-analytic" data-highlight-column="3">
-                    <thead><tr><th>Acao</th><th>Total</th><th>% sucesso</th><th>Duracao media</th></tr></thead>
+                    <thead><tr><th>Ação</th><th>Total</th><th>% sucesso</th><th>Duração média</th></tr></thead>
                     <tbody>
                         {% for row in detail.retention_actions %}
                         <tr><td>{{ row.retention_action }}</td><td>{{ row.total_used }}</td><td>{{ row.success_rate|floatformat:2 }}</td><td>{{ row.avg_duration_seconds|floatformat:2 }}</td></tr>
-                        {% empty %}<tr><td class="table-empty" colspan="4">Sem dados para o periodo atual.</td></tr>{% endfor %}
+                        {% empty %}<tr><td class="table-empty" colspan="4">Sem dados para o período atual.</td></tr>{% endfor %}
                     </tbody>
                 </table>
             </div>
@@ -101,10 +101,10 @@
 
     <section class="analytics-grid analytics-grid-middle">
         <article class="card panel">
-            <div class="panel-header"><div><h3 class="card-title">Tipificacoes com mais nao retidos ({{ assistant.label }})</h3></div></div>
+            <div class="panel-header"><div><h3 class="card-title">Tipificações com mais não retidos ({{ assistant.label }})</h3></div></div>
             <div class="table-wrap table-wrap-compact">
                 <table class="table table-sortable table-analytic" data-highlight-column="4">
-                    <thead><tr><th>Tipificacao</th><th>Total</th><th>Retidos</th><th>Nao retidos</th><th>% do total</th></tr></thead>
+                    <thead><tr><th>Tipificação</th><th>Total</th><th>Retidos</th><th>Não retidos</th><th>% do total</th></tr></thead>
                     <tbody>
                         {% for row in detail.tipification_non_retained %}
                         <tr>
@@ -114,16 +114,16 @@
                             <td>{{ row.total_non_retained }}</td>
                             <td>{{ row.pct_total|floatformat:2 }}</td>
                         </tr>
-                        {% empty %}<tr><td class="table-empty" colspan="5">Sem dados para o periodo atual.</td></tr>{% endfor %}
+                        {% empty %}<tr><td class="table-empty" colspan="5">Sem dados para o período atual.</td></tr>{% endfor %}
                     </tbody>
                 </table>
             </div>
         </article>
         <article class="card panel">
-            <div class="panel-header"><div><h3 class="card-title">Tipificacoes com mais retidos ({{ assistant.label }})</h3></div></div>
+            <div class="panel-header"><div><h3 class="card-title">Tipificações com mais retidos ({{ assistant.label }})</h3></div></div>
             <div class="table-wrap table-wrap-compact">
                 <table class="table table-sortable table-analytic" data-highlight-column="3">
-                    <thead><tr><th>Tipificacao</th><th>Total</th><th>Retidos</th><th>Nao retidos</th><th>% do total</th></tr></thead>
+                    <thead><tr><th>Tipificação</th><th>Total</th><th>Retidos</th><th>Não retidos</th><th>% do total</th></tr></thead>
                     <tbody>
                         {% for row in detail.tipification_retained %}
                         <tr>
@@ -133,7 +133,7 @@
                             <td>{{ row.total_non_retained }}</td>
                             <td>{{ row.pct_total|floatformat:2 }}</td>
                         </tr>
-                        {% empty %}<tr><td class="table-empty" colspan="5">Sem dados para o periodo atual.</td></tr>{% endfor %}
+                        {% empty %}<tr><td class="table-empty" colspan="5">Sem dados para o período atual.</td></tr>{% endfor %}
                     </tbody>
                 </table>
             </div>
@@ -142,3 +142,4 @@
 </div>
 {{ detail.frontend_payload|json_script:'dashboard-data' }}
 {% endblock %}
+
