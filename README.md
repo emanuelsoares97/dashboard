@@ -186,6 +186,19 @@ DATABASE_URL=postgresql://postgres.<project-ref>:<password>@aws-0-<region>.poole
 - `Direct connection` pode ser usada em operacoes administrativas pontuais.
 - Em ambos os casos, mantenha `sslmode=require` na URL.
 
+## Producao (static files e seguranca basica)
+
+- `WhiteNoise` serve os static files em producao sem dependencia externa.
+- `DEBUG`, `ALLOWED_HOSTS` e `CSRF_TRUSTED_ORIGINS` sao lidos por variaveis de ambiente.
+- Com `DEBUG=False`, o storage de static usa arquivos comprimidos e com hash (`CompressedManifestStaticFilesStorage`).
+
+### Comandos essenciais para preparar deploy
+
+```powershell
+& ".\.venv\Scripts\python.exe" manage.py migrate
+& ".\.venv\Scripts\python.exe" manage.py collectstatic --noinput
+```
+
 ## Rotas principais
 
 ### Core
