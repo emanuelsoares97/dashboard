@@ -75,6 +75,8 @@ def test_build_dashboard_payload_includes_assistant_detail(interaction_factory):
     assert 'assistant_detail' in payload
     assert payload['assistant_detail']['kpis']['total_calls'] >= 1
     assert 'tipification_non_retained' in payload['assistant_detail']
+    assert 'typing_analysis' in payload['assistant_detail']
+    assert 'table' in payload['assistant_detail']['typing_analysis']
 
 
 def test_build_temporal_table_fills_previous_month_with_zero_when_no_data(db):

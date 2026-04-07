@@ -40,6 +40,14 @@ def apply_filters(
 
 def select_global_filter_options(queryset):
     """Devolve opcoes reais de filtros globais com base no queryset atual."""
+    assistants = [
+        {'id': row['agent_id'], 'name': row['agent__name']}
+        for row in queryset.exclude(agent__isnull=True)
+        .values('agent_id', 'agent__name')
+        .distinct()
+        .order_by('agent__name')
+    ]
+
     service_types = [
         {'id': row['service_type_id'], 'label': row['service_type__label']}
         for row in queryset.exclude(service_type__isnull=True)
@@ -76,6 +84,7 @@ def select_global_filter_options(queryset):
     ]
 
     return {
+        'assistants': assistants,
         'service_types': service_types,
         'churn_reasons': churn_reasons,
         'retention_actions': retention_actions,

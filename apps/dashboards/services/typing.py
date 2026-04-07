@@ -20,6 +20,12 @@ _TABLE_LIMIT = 500
 def build_typing_analysis_payload(filters: dict) -> dict:
     """Executa a validação de tipificações para todas as interações e devolve os resultados estruturados."""
     qs = get_typing_queryset(filters)
+    return build_typing_analysis_payload_from_queryset(qs)
+
+
+def build_typing_analysis_payload_from_queryset(queryset) -> dict:
+    """Executa a validação de tipificações para o queryset recebido."""
+    qs = queryset.select_related('agent', 'churn_reason').order_by('-occurred_on')
     interactions = list(qs[:_TABLE_LIMIT])
 
     definitions = load_tipification_definitions()

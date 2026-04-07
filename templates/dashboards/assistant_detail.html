@@ -139,6 +139,54 @@
             </div>
         </article>
     </section>
+
+    <section class="analytics-grid analytics-grid-compact">
+        <article class="card panel panel-full">
+            <div class="panel-header">
+                <div>
+                    <h3 class="card-title">Análise de tipificações do assistente</h3>
+                    <p class="panel-subtitle">Leitura das tipificações usadas por {{ assistant.label }} no período selecionado.</p>
+                </div>
+            </div>
+            <div class="panel-kpi-inline">
+                <span>Total: <strong>{{ detail.typing_analysis.kpis.total_interactions }}</strong></span>
+                <span>Alinhamento: <strong>{{ detail.typing_analysis.kpis.correctness_rate }}%</strong></span>
+                <span>Em branco: <strong>{{ detail.typing_analysis.kpis.total_blank_typification }}</strong></span>
+                <span>Revisão: <strong>{{ detail.typing_analysis.kpis.total_needs_review }}</strong></span>
+                <span>Provável incorreto: <strong>{{ detail.typing_analysis.kpis.total_likely_incorrect }}</strong></span>
+            </div>
+            <div class="table-wrap table-wrap-compact">
+                <table class="table table-sortable table-analytic">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Categoria</th>
+                            <th>Subcategoria</th>
+                            <th>Motivo</th>
+                            <th>Status</th>
+                            <th>Score</th>
+                            <th>Sugestão</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in detail.typing_analysis.table %}
+                        <tr>
+                            <td>{{ row.occurred_on }}</td>
+                            <td>{{ row.category|default:"—" }}</td>
+                            <td>{{ row.subcategory|default:"—" }}</td>
+                            <td>{{ row.third_category|default:"—" }}</td>
+                            <td><span class="badge {{ row.status_css }}">{{ row.status_label }}</span></td>
+                            <td>{{ row.used_score|floatformat:2 }}</td>
+                            <td>{% if row.suggestion %}{{ row.suggestion|truncatechars:60 }}{% else %}—{% endif %}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td class="table-empty" colspan="7">Sem tipificações para o período atual.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </article>
+    </section>
 </div>
 {{ detail.frontend_payload|json_script:'dashboard-data' }}
 {% endblock %}

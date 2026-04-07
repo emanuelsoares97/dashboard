@@ -6,6 +6,7 @@ from apps.dashboards.services.comparison import _build_comparison_block
 from apps.dashboards.services.comparison import _build_inconsistency_comparison_section
 from apps.dashboards.services.comparison import _build_retention_action_comparison_table
 from apps.dashboards.services.comparison import _build_service_type_comparison_table
+from apps.dashboards.services.typing import build_typing_analysis_payload_from_queryset
 from apps.dashboards.services.tables import _pct
 from apps.dashboards.services.tables import _round2
 from apps.dashboards.services.tables import build_assistant_ranking_table
@@ -74,6 +75,7 @@ def _build_table_states(*, churn_reason_table, retention_action_table, service_t
 def build_assistant_detail(queryset, assistant_id, granularity='day'):
     """Gera analise detalhada para um assistente especifico."""
     assistant_qs = queryset.filter(agent_id=assistant_id)
+    assistant_typing_analysis = build_typing_analysis_payload_from_queryset(assistant_qs)
 
     churn_rows = []
     assistant_total_calls = assistant_qs.count()
@@ -118,6 +120,10 @@ def build_assistant_detail(queryset, assistant_id, granularity='day'):
         'avg_duration_seconds': base_kpis['avg_duration_seconds'],
         'tipification_non_retained': tipification_tables['non_retained'],
         'tipification_retained': tipification_tables['retained'],
+        'typing_analysis': {
+            **assistant_typing_analysis,
+            'table': assistant_typing_analysis['table'][:12],
+        },
         'frontend_payload': build_frontend_payload(
             general_kpis=base_kpis,
             temporal_table=temporal_table,

@@ -728,3 +728,5 @@ def test_assistant_detail_context_includes_comparison_kpis(client, interaction_f
     assert 'total_calls_previous' in detail['kpis']
     assert 'retention_rate_delta_pp' in detail['kpis']
     assert 'avg_duration_seconds_previous' in detail['kpis']
+    assert 'typing_analysis' in detail
+    assert 'kpis' in detail['typing_analysis']
