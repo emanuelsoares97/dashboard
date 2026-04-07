@@ -114,19 +114,28 @@
     {% endif %}
 
     <aside class="dashboard-sidebar card">
-        <nav class="dashboard-menu">
+        <button
+            class="dashboard-menu-toggle"
+            type="button"
+            data-dashboard-menu-toggle
+            aria-expanded="false"
+            aria-controls="dashboard-menu-nav"
+        >
+            Abrir seções do dashboard
+        </button>
+        <nav class="dashboard-menu" id="dashboard-menu-nav" data-dashboard-menu>
             {% if request.user|user_is_assistant and request.user|linked_agent_id %}
             <a class="dashboard-menu-link is-active" href="{% url 'dashboards:assistant_detail' request.user|linked_agent_id %}?{{ dashboard_querystring }}">Assistentes</a>
             {% else %}
             <a class="dashboard-menu-link {% if active_section == 'overview' %}is-active{% endif %}" href="{% url 'dashboards:overview' %}?{{ dashboard_querystring }}">Visão Geral</a>
+            <a class="dashboard-menu-link {% if active_section == 'daily_rates' %}is-active{% endif %}" href="{% url 'dashboards:daily_rates' %}?{{ dashboard_querystring }}">Taxas Diárias</a>
+            <a class="dashboard-menu-link {% if active_section == 'monthly_rates' %}is-active{% endif %}" href="{% url 'dashboards:monthly_rates' %}?{{ dashboard_querystring }}">Taxas Mensais</a>
             <a class="dashboard-menu-link {% if active_section == 'churn' %}is-active{% endif %}" href="{% url 'dashboards:churn_reasons' %}?{{ dashboard_querystring }}">Motivos de Corte</a>
+            <a class="dashboard-menu-link {% if active_section == 'assistants' %}is-active{% endif %}" href="{% url 'dashboards:assistants' %}?{{ dashboard_querystring }}">Assistentes</a>
             <a class="dashboard-menu-link {% if active_section == 'actions' %}is-active{% endif %}" href="{% url 'dashboards:retention_actions' %}?{{ dashboard_querystring }}">Ações de Retenção</a>
             <a class="dashboard-menu-link {% if active_section == 'services' %}is-active{% endif %}" href="{% url 'dashboards:services' %}?{{ dashboard_querystring }}">Serviços</a>
-            <a class="dashboard-menu-link {% if active_section == 'assistants' %}is-active{% endif %}" href="{% url 'dashboards:assistants' %}?{{ dashboard_querystring }}">Assistentes</a>
             <a class="dashboard-menu-link {% if active_section == 'inconsistencies' %}is-active{% endif %}" href="{% url 'dashboards:inconsistencies' %}?{{ dashboard_querystring }}">Inconsistências</a>
             <a class="dashboard-menu-link {% if active_section == 'insights' %}is-active{% endif %}" href="{% url 'dashboards:insights' %}?{{ dashboard_querystring }}">Insights</a>
-            <a class="dashboard-menu-link {% if active_section == 'monthly_rates' %}is-active{% endif %}" href="{% url 'dashboards:monthly_rates' %}?{{ dashboard_querystring }}">Taxas Mensais</a>
-            <a class="dashboard-menu-link {% if active_section == 'daily_rates' %}is-active{% endif %}" href="{% url 'dashboards:daily_rates' %}?{{ dashboard_querystring }}">Taxas Diárias</a>
             {% endif %}
         </nav>
     </aside>

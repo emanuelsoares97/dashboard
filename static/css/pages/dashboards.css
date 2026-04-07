@@ -3,6 +3,8 @@
     grid-template-columns: 250px minmax(0, 1fr);
     gap: 1rem;
     align-items: start;
+    width: 100%;
+    min-width: 0;
 }
 
 .dashboard-topbar {
@@ -101,6 +103,18 @@
     gap: 0.35rem;
 }
 
+.dashboard-menu-toggle {
+    display: none;
+    width: 100%;
+    min-height: 2.55rem;
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    background: #f4f7fb;
+    color: #233143;
+    font-weight: 700;
+    cursor: pointer;
+}
+
 .dashboard-menu-link {
     display: block;
     padding: 0.62rem 0.72rem;
@@ -129,6 +143,7 @@
 .dashboard-page {
     display: grid;
     gap: 1.25rem;
+    min-width: 0;
 }
 
 .dashboard-hero {
@@ -529,9 +544,16 @@
     .analytics-grid-top,
     .analytics-grid-middle,
     .analytics-grid-bottom,
-    .kpi-grid,
     .dashboard-filters {
         grid-template-columns: 1fr;
+    }
+
+    .kpi-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .kpi-grid .kpi-card:last-child {
+        grid-column: 1 / -1;
     }
 
     .dashboard-title {
@@ -558,17 +580,34 @@
         padding: 0.65rem;
     }
 
+    .dashboard-menu-toggle {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 0.55rem;
+    }
+
     .dashboard-menu {
-        display: flex;
+        display: none;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 0.45rem;
-        overflow-x: auto;
-        padding-bottom: 0.2rem;
-        scrollbar-width: thin;
+        overflow: visible;
+        padding-bottom: 0;
+        scrollbar-width: auto;
+    }
+
+    .dashboard-menu.is-open {
+        display: grid;
     }
 
     .dashboard-menu-link {
-        white-space: nowrap;
-        flex: 0 0 auto;
+        white-space: normal;
+        text-align: center;
+        min-height: 2.4rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1.2;
     }
 }
 
@@ -593,5 +632,13 @@
 
     .chart-shell-compact {
         min-height: 190px;
+    }
+
+    .dashboard-menu {
+        grid-template-columns: 1fr;
+    }
+
+    .kpi-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }

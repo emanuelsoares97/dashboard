@@ -28,6 +28,58 @@ document.addEventListener('DOMContentLoaded', () => {
         syncDateInputs();
     }
 
+    const mobileBreakpoint = window.matchMedia('(max-width: 720px)');
+    const menuToggle = dashboard.querySelector('[data-dashboard-menu-toggle]');
+    const menu = dashboard.querySelector('[data-dashboard-menu]');
+
+    const closeDashboardMenu = () => {
+        if (!menuToggle || !menu) {
+            return;
+        }
+        menu.classList.remove('is-open');
+        menuToggle.setAttribute('aria-expanded', 'false');
+        menuToggle.textContent = 'Abrir seções do dashboard';
+    };
+
+    const openDashboardMenu = () => {
+        if (!menuToggle || !menu) {
+            return;
+        }
+        menu.classList.add('is-open');
+        menuToggle.setAttribute('aria-expanded', 'true');
+        menuToggle.textContent = 'Fechar seções do dashboard';
+    };
+
+    if (menuToggle && menu) {
+        menuToggle.addEventListener('click', () => {
+            if (menu.classList.contains('is-open')) {
+                closeDashboardMenu();
+                return;
+            }
+            openDashboardMenu();
+        });
+
+        menu.querySelectorAll('a').forEach((link) => {
+            link.addEventListener('click', () => {
+                if (mobileBreakpoint.matches) {
+                    closeDashboardMenu();
+                }
+            });
+        });
+
+        if (!mobileBreakpoint.matches) {
+            openDashboardMenu();
+        }
+
+        mobileBreakpoint.addEventListener('change', (event) => {
+            if (event.matches) {
+                closeDashboardMenu();
+                return;
+            }
+            openDashboardMenu();
+        });
+    }
+
     const chartDefaults = {
         plugins: {
             legend: {
