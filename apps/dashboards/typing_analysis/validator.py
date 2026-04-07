@@ -10,6 +10,7 @@ STATUS_NEEDS_REVIEW = 'needs_review'
 STATUS_LIKELY_INCORRECT = 'likely_incorrect'
 STATUS_INSUFFICIENT = 'insufficient_info'
 STATUS_EMPTY = 'empty'
+STATUS_BLANK_TYPIFICATION = 'blank_typification'
 
 STATUS_LABELS: dict[str, str] = {
     STATUS_CORRECT: 'Correto',
@@ -18,6 +19,7 @@ STATUS_LABELS: dict[str, str] = {
     STATUS_LIKELY_INCORRECT: 'Provável incorreto',
     STATUS_INSUFFICIENT: 'Info. insuficiente',
     STATUS_EMPTY: 'Observação vazia',
+    STATUS_BLANK_TYPIFICATION: 'Tipificação em branco',
 }
 
 STATUS_CSS: dict[str, str] = {
@@ -27,6 +29,7 @@ STATUS_CSS: dict[str, str] = {
     STATUS_LIKELY_INCORRECT: 'badge-critical',
     STATUS_INSUFFICIENT: 'badge-neutral',
     STATUS_EMPTY: 'badge-neutral',
+    STATUS_BLANK_TYPIFICATION: 'badge-warning',
 }
 
 _MIN_WORDS = 4
@@ -100,6 +103,20 @@ def _insufficient_result() -> ValidationResult:
     )
 
 
+def _blank_typification_result() -> ValidationResult:
+    return ValidationResult(
+        status=STATUS_BLANK_TYPIFICATION,
+        status_label=STATUS_LABELS[STATUS_BLANK_TYPIFICATION],
+        status_css=STATUS_CSS[STATUS_BLANK_TYPIFICATION],
+        used_score=0.0,
+        best_score=0.0,
+        best_path='',
+        delta=0.0,
+        reason='Falta preencher pelo menos um dos níveis da tipificação.',
+        suggestion=None,
+    )
+
+
 def validate(
     observations: str,
     category: str,
@@ -110,6 +127,9 @@ def validate(
 ) -> ValidationResult:
     if definitions is None:
         definitions = load_tipification_definitions()
+
+    if not category.strip() or not subcategory.strip() or not third_category.strip():
+        return _blank_typification_result()
 
     if not observations or not observations.strip():
         return _empty_result()

@@ -1,6 +1,7 @@
 from apps.dashboards.permissions import require_dashboard_access, require_report_exports
 from apps.dashboards.services.typing import build_typing_analysis_payload
 from apps.dashboards.typing_analysis.validator import (
+    STATUS_BLANK_TYPIFICATION,
     STATUS_CORRECT,
     STATUS_EMPTY,
     STATUS_INSUFFICIENT,
@@ -18,6 +19,7 @@ from .helpers import _build_common_context, _build_filter_options, _resolve_filt
 _TYPING_STATUS_OPTIONS = (
     ('all', 'Todos os estados'),
     ('manual_review', 'Com duvida (revisao manual)'),
+    (STATUS_BLANK_TYPIFICATION, 'Tipificacao em branco'),
     (STATUS_NEEDS_REVIEW, 'Requer revisao'),
     (STATUS_LIKELY_INCORRECT, 'Provavel incorreto'),
     (STATUS_INSUFFICIENT, 'Info. insuficiente'),
@@ -49,6 +51,7 @@ def _filter_typing_rows(rows, *, typing_status: str, selected_ids: set[int] | No
         STATUS_LIKELY_INCORRECT,
         STATUS_INSUFFICIENT,
         STATUS_EMPTY,
+        STATUS_BLANK_TYPIFICATION,
     }
 
     filtered = rows

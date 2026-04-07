@@ -3,6 +3,7 @@ from collections import defaultdict
 from apps.dashboards.selectors.typing import get_typing_queryset
 from apps.dashboards.typing_analysis.loader import load_tipification_definitions
 from apps.dashboards.typing_analysis.validator import (
+    STATUS_BLANK_TYPIFICATION,
     STATUS_CORRECT,
     STATUS_EMPTY,
     STATUS_INSUFFICIENT,
@@ -85,6 +86,7 @@ def build_typing_analysis_payload(filters: dict) -> dict:
         'total_needs_review': kpi_counts[STATUS_NEEDS_REVIEW],
         'total_likely_incorrect': kpi_counts[STATUS_LIKELY_INCORRECT],
         'total_insufficient': kpi_counts[STATUS_INSUFFICIENT],
+        'total_blank_typification': kpi_counts[STATUS_BLANK_TYPIFICATION],
         'correctness_rate': correct_rate,
     }
 

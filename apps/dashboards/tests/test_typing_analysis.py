@@ -11,6 +11,7 @@ from apps.dashboards.typing_analysis.scorer import (
 )
 from apps.dashboards.typing_analysis.validator import (
     validate,
+    STATUS_BLANK_TYPIFICATION,
     STATUS_CORRECT,
     STATUS_LIKELY_CORRECT,
     STATUS_NEEDS_REVIEW,
@@ -129,6 +130,16 @@ class TestValidator:
         result = validate('ok', 'cancelamento', 'pedido do cliente', 'cancelamento voluntario',
                           definitions=definitions)
         assert result.status == STATUS_INSUFFICIENT
+
+    def test_missing_any_typification_level_returns_blank_typification(self, definitions):
+        result = validate(
+            'cliente quer cancelar o servico e pede encerramento ainda hoje',
+            'cancelamento',
+            '',
+            'cancelamento voluntario',
+            definitions=definitions,
+        )
+        assert result.status == STATUS_BLANK_TYPIFICATION
 
     def test_well_aligned_returns_correct_or_likely(self, definitions):
         obs = 'cliente quer cancelar servico pede cancelamento imediato pois vai sair'
