@@ -31,6 +31,12 @@
                 <label class="filter-label" for="end_date">Data fim</label>
                 <input id="end_date" name="end_date" type="date" value="{{ end_date }}">
             </div>
+            <div class="filter-actions">
+                <button class="btn btn-primary" type="submit">Aplicar filtros</button>
+            </div>
+            <details class="advanced-filters filter-group-full" {% if service_type_id or churn_reason_id or retention_action_id or final_outcome_id or assistant_name or period != 'day' %}open{% endif %}>
+                <summary>Filtros avançados</summary>
+                <div class="advanced-filters-grid">
             <div class="filter-group">
                 <label class="filter-label" for="service_type_id">Serviço</label>
                 <select id="service_type_id" name="service_type_id">
@@ -92,9 +98,8 @@
                     <option value="month" {% if period == 'month' %}selected{% endif %}>Mês</option>
                 </select>
             </div>
-            <div class="filter-actions">
-                <button class="btn btn-primary" type="submit">Aplicar filtros</button>
-            </div>
+                </div>
+            </details>
         </form>
 
     </header>

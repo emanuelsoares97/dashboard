@@ -48,7 +48,7 @@
 
 .dashboard-topbar-filters {
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 0.7rem;
     align-items: end;
 }
@@ -91,6 +91,39 @@
 .filter-actions .btn {
     min-height: 2.45rem;
     width: 100%;
+}
+
+.filter-group-full {
+    grid-column: 1 / -1;
+}
+
+.advanced-filters {
+    border: 1px solid #d7e1ee;
+    border-radius: 12px;
+    background: #ffffff;
+    padding: 0.15rem 0.55rem 0.55rem;
+}
+
+.advanced-filters > summary {
+    cursor: pointer;
+    list-style: none;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-muted);
+    font-weight: 700;
+    padding: 0.52rem 0.15rem;
+}
+
+.advanced-filters > summary::-webkit-details-marker {
+    display: none;
+}
+
+.advanced-filters-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.7rem;
+    padding: 0.1rem 0.15rem 0.15rem;
 }
 
 .dashboard-sidebar {
@@ -503,6 +536,10 @@
         grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 
+    .advanced-filters-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
     .dashboard-sidebar {
         position: static;
     }
@@ -525,6 +562,10 @@
 
 @media (max-width: 720px) {
     .dashboard-topbar-filters {
+        grid-template-columns: 1fr;
+    }
+
+    .advanced-filters-grid {
         grid-template-columns: 1fr;
     }
 
