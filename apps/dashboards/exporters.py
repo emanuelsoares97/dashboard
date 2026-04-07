@@ -1,5 +1,8 @@
 import csv
+from io import BytesIO
 from datetime import date
+
+from openpyxl import Workbook
 
 from django.http import HttpResponse
 
@@ -11,7 +14,7 @@ def _format_decimal(value):
     return f'{float(value):.2f}'
 
 
-def _build_filename(prefix, filters, *, default_suffix='geral'):
+def _build_filename(prefix, filters, *, default_suffix='geral', extension='csv'):
     """Constroi nome de ficheiro consistente a partir do intervalo ativo."""
     start_date = filters.get('start_date')
     end_date = filters.get('end_date')
@@ -21,7 +24,7 @@ def _build_filename(prefix, filters, *, default_suffix='geral'):
     else:
         suffix = default_suffix
 
-    return f'{prefix}_{suffix}.csv'
+    return f'{prefix}_{suffix}.{extension}'
 
 
 def _build_csv_response(*, filename, headers, rows):
@@ -211,3 +214,66 @@ def export_typing_analysis_csv(rows, filters, *, day_filter=None):
         for row in rows
     ]
     return _build_csv_response(filename=filename, headers=headers, rows=csv_rows)
+
+
+def export_typing_analysis_excel(rows, filters, *, day_filter=None):
+    """Exporta análise de tipificações para Excel (geral ou filtrado por dia)."""
+    if day_filter:
+        filename = _build_filename(
+            'tipificacoes',
+            {'start_date': day_filter, 'end_date': day_filter},
+            extension='xlsx',
+        )
+    else:
+        filename = _build_filename('tipificacoes', filters, extension='xlsx')
+
+    workbook = Workbook()
+    worksheet = workbook.active
+    worksheet.title = 'Analise Tipificacoes'
+
+    headers = [
+        'ID interacao',
+        'Assistente',
+        'Data',
+        'Categoria',
+        'Subcategoria',
+        'Motivo de corte',
+        'Observacao',
+        'Status',
+        'Score utilizado',
+        'Melhor score',
+        'Delta',
+        'Melhor sugestao',
+        'Razao',
+    ]
+    worksheet.append(headers)
+
+    for row in rows:
+        worksheet.append(
+            [
+                row['interaction_id'],
+                row['assistant_name'],
+                row['occurred_on'].isoformat() if row['occurred_on'] else '',
+                row['category'],
+                row['subcategory'],
+                row['third_category'],
+                row['observations'],
+                row['status_label'],
+                float(_format_decimal(row['used_score']) or 0),
+                float(_format_decimal(row['best_score']) or 0),
+                float(_format_decimal(row['delta']) or 0),
+                row['suggestion'] or '',
+                row['reason'],
+            ]
+        )
+
+    output = BytesIO()
+    workbook.save(output)
+    output.seek(0)
+
+    response = HttpResponse(
+        output.getvalue(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    )
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response

@@ -22,4 +22,4 @@ from .pages import overview
 from .pages import retention_actions
 from .pages import services
 from .typing_pages import typing_analysis
-from .typing_pages import typing_analysis_csv
+from .typing_pages import typing_analysis_excel

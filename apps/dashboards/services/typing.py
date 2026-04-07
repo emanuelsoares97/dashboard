@@ -52,6 +52,7 @@ def build_typing_analysis_payload(filters: dict) -> dict:
                 segment_agg[seg_key]['correct'] += 1
 
         rows.append({
+            'interaction_id': interaction.id,
             'assistant_name': agent_name,
             'occurred_on': interaction.occurred_on,
             'category': cat,

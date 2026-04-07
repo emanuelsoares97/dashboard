@@ -28,7 +28,6 @@
         </article>
     </section>
 
-    {# ── Download buttons ─────────────────────────────────────────── #}
     <section class="analytics-grid analytics-grid-compact">
         <article class="card panel panel-full">
             <div class="panel-header">
@@ -40,43 +39,73 @@
                         {% if typing.definitions_loaded == 0 %}<strong class="text-warning">Ficheiro de referência não carregado.</strong>{% endif %}
                     </p>
                 </div>
-                <div class="panel-actions">
-                    <a class="btn btn-secondary" href="{% url 'dashboards:typing_analysis_csv' %}?{{ dashboard_querystring }}">
-                        Exportar CSV geral
-                    </a>
-                    {% if filters.start_date == filters.end_date and filters.start_date %}
-                    <a class="btn btn-secondary" href="{% url 'dashboards:typing_analysis_csv' %}?{{ dashboard_querystring }}&day={{ filters.start_date }}">
-                        Exportar dia
-                    </a>
-                    {% endif %}
-                </div>
             </div>
 
-            {# Filters row #}
-            <form method="get" class="filter-row filter-row-inline">
+            <form method="get" class="typing-filter-bar">
                 <input type="hidden" name="period" value="{{ filters.period }}">
                 <input type="hidden" name="date_preset" value="{{ filters.date_preset }}">
                 <input type="hidden" name="start_date" value="{{ filters.start_date_raw }}">
                 <input type="hidden" name="end_date" value="{{ filters.end_date_raw }}">
-                <select name="assistant_name" class="filter-select">
-                    <option value="">Todos os assistentes</option>
-                    {% for opt in filter_options.assistants %}
-                    <option value="{{ opt.name }}" {% if filters.assistant_name == opt.name %}selected{% endif %}>{{ opt.name }}</option>
-                    {% endfor %}
-                </select>
-                <select name="churn_reason_id" class="filter-select">
-                    <option value="">Todos os motivos</option>
-                    {% for opt in filter_options.churn_reasons %}
-                    <option value="{{ opt.id }}" {% if filters.churn_reason_id_raw == opt.id|stringformat:'s' %}selected{% endif %}>{{ opt.label }}</option>
-                    {% endfor %}
-                </select>
-                <button type="submit" class="btn btn-primary btn-sm">Filtrar</button>
+                <div class="typing-filter-group">
+                    <label for="assistant_name">Assistente</label>
+                    <select id="assistant_name" name="assistant_name">
+                        <option value="">Todos os assistentes</option>
+                        {% for opt in filter_options.assistants %}
+                        <option value="{{ opt.name }}" {% if filters.assistant_name == opt.name %}selected{% endif %}>{{ opt.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="typing-filter-group">
+                    <label for="churn_reason_id">Motivo de corte</label>
+                    <select id="churn_reason_id" name="churn_reason_id">
+                        <option value="">Todos os motivos</option>
+                        {% for opt in filter_options.churn_reasons %}
+                        <option value="{{ opt.id }}" {% if filters.churn_reason_id_raw == opt.id|stringformat:'s' %}selected{% endif %}>{{ opt.label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="typing-filter-group">
+                    <label for="typing_status">Estado da validação</label>
+                    <select id="typing_status" name="typing_status">
+                        {% for value, label in typing_status_options %}
+                        <option value="{{ value }}" {% if typing_status == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="typing-filter-actions">
+                    <button type="submit" class="btn btn-primary">Aplicar</button>
+                    <a class="btn btn-secondary" href="{% url 'dashboards:typing_analysis' %}?period={{ filters.period }}&date_preset={{ filters.date_preset }}&start_date={{ filters.start_date_raw }}&end_date={{ filters.end_date_raw }}">Limpar</a>
+                </div>
             </form>
+
+            <div class="typing-toolbar">
+                <span class="typing-toolbar-meta">
+                    {{ typing.table|length }} registos visíveis
+                    <strong id="typing-selected-count">0</strong> selecionados
+                </span>
+                <div class="panel-actions">
+                    <a class="btn btn-secondary" href="{% url 'dashboards:typing_analysis_excel' %}?{{ request.GET.urlencode }}">
+                        Exportar Excel (filtros ativos)
+                    </a>
+                    <button
+                        type="button"
+                        id="typing-export-selected"
+                        class="btn btn-primary"
+                        data-export-url="{% url 'dashboards:typing_analysis_excel' %}"
+                        disabled
+                    >
+                        Exportar selecionados para revisão
+                    </button>
+                </div>
+            </div>
 
             <div class="table-wrap table-wrap-tall">
                 <table class="table table-sortable table-analytic">
                     <thead>
                         <tr>
+                            <th>
+                                <input type="checkbox" id="typing-select-all" aria-label="Selecionar todos os registos visíveis">
+                            </th>
                             <th>Assistente</th>
                             <th>Data</th>
                             <th>Categoria</th>
@@ -92,6 +121,14 @@
                     <tbody>
                         {% for row in typing.table %}
                         <tr>
+                            <td>
+                                <input
+                                    type="checkbox"
+                                    class="typing-row-select"
+                                    value="{{ row.interaction_id }}"
+                                    aria-label="Selecionar interação {{ row.interaction_id }}"
+                                >
+                            </td>
                             <td>{{ row.assistant_name }}</td>
                             <td>{{ row.occurred_on }}</td>
                             <td>{{ row.category|default:"—" }}</td>
@@ -122,7 +159,7 @@
                             </td>
                         </tr>
                         {% empty %}
-                        <tr><td class="table-empty" colspan="10">Sem interações para o período selecionado.</td></tr>
+                        <tr><td class="table-empty" colspan="11">Sem interações para o período selecionado.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
@@ -173,4 +210,79 @@
     {% endif %}
 
 </div>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script>
+    (function () {
+        var selectAll = document.getElementById('typing-select-all');
+        var rowCheckboxes = Array.from(document.querySelectorAll('.typing-row-select'));
+        var selectedCount = document.getElementById('typing-selected-count');
+        var exportSelectedButton = document.getElementById('typing-export-selected');
+
+        if (!selectAll || !selectedCount || !exportSelectedButton) {
+            return;
+        }
+
+        function getCheckedRows() {
+            return rowCheckboxes.filter(function (checkbox) { return checkbox.checked; });
+        }
+
+        function syncSelectionUi() {
+            var checkedRows = getCheckedRows();
+            selectedCount.textContent = String(checkedRows.length);
+            exportSelectedButton.disabled = checkedRows.length === 0;
+
+            if (!rowCheckboxes.length) {
+                selectAll.checked = false;
+                selectAll.indeterminate = false;
+                return;
+            }
+
+            if (!checkedRows.length) {
+                selectAll.checked = false;
+                selectAll.indeterminate = false;
+                return;
+            }
+
+            if (checkedRows.length === rowCheckboxes.length) {
+                selectAll.checked = true;
+                selectAll.indeterminate = false;
+                return;
+            }
+
+            selectAll.checked = false;
+            selectAll.indeterminate = true;
+        }
+
+        selectAll.addEventListener('change', function () {
+            rowCheckboxes.forEach(function (checkbox) {
+                checkbox.checked = selectAll.checked;
+            });
+            syncSelectionUi();
+        });
+
+        rowCheckboxes.forEach(function (checkbox) {
+            checkbox.addEventListener('change', syncSelectionUi);
+        });
+
+        exportSelectedButton.addEventListener('click', function () {
+            var checkedRows = getCheckedRows();
+            if (!checkedRows.length) {
+                return;
+            }
+
+            var params = new URLSearchParams(window.location.search);
+            params.delete('selected_id');
+            checkedRows.forEach(function (checkbox) {
+                params.append('selected_id', checkbox.value);
+            });
+
+            window.location.href = exportSelectedButton.dataset.exportUrl + '?' + params.toString();
+        });
+
+        syncSelectionUi();
+    })();
+</script>
 {% endblock %}

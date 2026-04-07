@@ -19,7 +19,7 @@ from apps.dashboards.views import (
     services,
     team_dashboard,
     typing_analysis,
-    typing_analysis_csv,
+    typing_analysis_excel,
 )
 
 app_name = 'dashboards'
@@ -44,5 +44,5 @@ urlpatterns = [
     path('teams/', team_dashboard, name='team_dashboard'),
     path('agents/', agent_dashboard, name='agent_dashboard'),
     path('typing-analysis/', typing_analysis, name='typing_analysis'),
-    path('typing-analysis/export.csv', typing_analysis_csv, name='typing_analysis_csv'),
+    path('typing-analysis/export.xlsx', typing_analysis_excel, name='typing_analysis_excel'),
 ]

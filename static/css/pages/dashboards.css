@@ -525,9 +525,73 @@
     font-weight: 700;
 }
 
+.typing-filter-bar {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.75rem;
+    align-items: end;
+    padding: 0.75rem;
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    background: #f8fbff;
+}
+
+.typing-filter-group {
+    display: grid;
+    gap: 0.3rem;
+}
+
+.typing-filter-group label {
+    margin: 0;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-muted);
+    font-weight: 700;
+}
+
+.typing-filter-group select {
+    width: 100%;
+    min-height: 2.45rem;
+    border: 1px solid #d7e1ee;
+    border-radius: 10px;
+    background: #ffffff;
+    color: #233143;
+    padding: 0.5rem 0.6rem;
+}
+
+.typing-filter-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.typing-filter-actions .btn {
+    min-height: 2.45rem;
+}
+
+.typing-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.typing-toolbar-meta {
+    color: var(--color-muted);
+    font-weight: 600;
+}
+
+.typing-toolbar-meta strong {
+    color: #0f4c81;
+    margin: 0 0.25rem;
+}
+
 .badge-good,
+.badge-info,
 .badge-warning,
-.badge-critical {
+.badge-critical,
+.badge-neutral {
     display: inline-block;
     padding: 0.12rem 0.4rem;
     border-radius: 999px;
@@ -540,6 +604,11 @@
     background: #e7f5ee;
 }
 
+.badge-info {
+    color: #0d4f76;
+    background: #e5f2fb;
+}
+
 .badge-warning {
     color: #7a5610;
     background: #faf2df;
@@ -548,6 +617,11 @@
 .badge-critical {
     color: #9f3232;
     background: #fbe9e9;
+}
+
+.badge-neutral {
+    color: #475569;
+    background: #eef2f7;
 }
 
 @media (max-width: 1100px) {
@@ -589,6 +663,18 @@
 }
 
 @media (max-width: 720px) {
+    .typing-filter-bar {
+        grid-template-columns: 1fr;
+    }
+
+    .typing-filter-actions {
+        flex-direction: column;
+    }
+
+    .typing-filter-actions .btn {
+        width: 100%;
+    }
+
     .dashboard-topbar-filters {
         grid-template-columns: 1fr;
     }
