@@ -1,0 +1,176 @@
+{% extends 'dashboards/layout.html' %}
+
+{% block dashboard_content %}
+<div class="dashboard-page">
+
+    {# ── KPI strip ────────────────────────────────────────────────── #}
+    <section class="kpi-grid">
+        <article class="kpi-card card">
+            <span class="kpi-label">Total interações</span>
+            <strong class="kpi-value">{{ typing.kpis.total_interactions }}</strong>
+        </article>
+        <article class="kpi-card kpi-card-warning card">
+            <span class="kpi-label">Sem observação</span>
+            <strong class="kpi-value">{{ typing.kpis.total_empty_observations }}</strong>
+        </article>
+        <article class="kpi-card kpi-card-good card">
+            <span class="kpi-label">Taxa de alinhamento</span>
+            <strong class="kpi-value">{{ typing.kpis.correctness_rate }}%</strong>
+            <span class="kpi-sub">correto + provável correto</span>
+        </article>
+        <article class="kpi-card kpi-card-warning card">
+            <span class="kpi-label">Requer revisão</span>
+            <strong class="kpi-value">{{ typing.kpis.total_needs_review }}</strong>
+        </article>
+        <article class="kpi-card kpi-card-danger card">
+            <span class="kpi-label">Provável incorreto</span>
+            <strong class="kpi-value">{{ typing.kpis.total_likely_incorrect }}</strong>
+        </article>
+    </section>
+
+    {# ── Download buttons ─────────────────────────────────────────── #}
+    <section class="analytics-grid analytics-grid-compact">
+        <article class="card panel panel-full">
+            <div class="panel-header">
+                <div>
+                    <h3 class="card-title">Análise de Tipificações</h3>
+                    <p class="panel-subtitle">
+                        Validação automática do alinhamento entre a observação registada e a tipificação usada.
+                        {% if typing.is_limited %}Limitado às últimas {{ typing.table|length }} interações.{% endif %}
+                        {% if typing.definitions_loaded == 0 %}<strong class="text-warning">Ficheiro de referência não carregado.</strong>{% endif %}
+                    </p>
+                </div>
+                <div class="panel-actions">
+                    <a class="btn btn-secondary" href="{% url 'dashboards:typing_analysis_csv' %}?{{ dashboard_querystring }}">
+                        Exportar CSV geral
+                    </a>
+                    {% if filters.start_date == filters.end_date and filters.start_date %}
+                    <a class="btn btn-secondary" href="{% url 'dashboards:typing_analysis_csv' %}?{{ dashboard_querystring }}&day={{ filters.start_date }}">
+                        Exportar dia
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+
+            {# Filters row #}
+            <form method="get" class="filter-row filter-row-inline">
+                <input type="hidden" name="period" value="{{ filters.period }}">
+                <input type="hidden" name="date_preset" value="{{ filters.date_preset }}">
+                <input type="hidden" name="start_date" value="{{ filters.start_date_raw }}">
+                <input type="hidden" name="end_date" value="{{ filters.end_date_raw }}">
+                <select name="assistant_name" class="filter-select">
+                    <option value="">Todos os assistentes</option>
+                    {% for opt in filter_options.assistants %}
+                    <option value="{{ opt.name }}" {% if filters.assistant_name == opt.name %}selected{% endif %}>{{ opt.name }}</option>
+                    {% endfor %}
+                </select>
+                <select name="churn_reason_id" class="filter-select">
+                    <option value="">Todos os motivos</option>
+                    {% for opt in filter_options.churn_reasons %}
+                    <option value="{{ opt.id }}" {% if filters.churn_reason_id_raw == opt.id|stringformat:'s' %}selected{% endif %}>{{ opt.label }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit" class="btn btn-primary btn-sm">Filtrar</button>
+            </form>
+
+            <div class="table-wrap table-wrap-tall">
+                <table class="table table-sortable table-analytic">
+                    <thead>
+                        <tr>
+                            <th>Assistente</th>
+                            <th>Data</th>
+                            <th>Categoria</th>
+                            <th>Subcategoria</th>
+                            <th>Motivo de corte</th>
+                            <th>Observação</th>
+                            <th>Status</th>
+                            <th>Score</th>
+                            <th>Sugestão</th>
+                            <th>Razão</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in typing.table %}
+                        <tr>
+                            <td>{{ row.assistant_name }}</td>
+                            <td>{{ row.occurred_on }}</td>
+                            <td>{{ row.category|default:"—" }}</td>
+                            <td>{{ row.subcategory|default:"—" }}</td>
+                            <td>{{ row.third_category|default:"—" }}</td>
+                            <td class="cell-observations">
+                                {% if row.observations %}
+                                    <span class="obs-text" title="{{ row.observations }}">{{ row.observations|truncatechars:80 }}</span>
+                                {% else %}
+                                    <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge {{ row.status_css }}">{{ row.status_label }}</span>
+                            </td>
+                            <td class="text-right">
+                                <span title="Utilizado: {{ row.used_score }} | Melhor: {{ row.best_score }} | Delta: {{ row.delta }}">
+                                    {{ row.used_score|floatformat:2 }}
+                                </span>
+                            </td>
+                            <td class="cell-suggestion">
+                                {% if row.suggestion %}
+                                    <span class="text-hint" title="{{ row.suggestion }}">{{ row.suggestion|truncatechars:50 }}</span>
+                                {% else %}—{% endif %}
+                            </td>
+                            <td class="cell-reason">
+                                <span title="{{ row.reason }}">{{ row.reason|truncatechars:60 }}</span>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td class="table-empty" colspan="10">Sem interações para o período selecionado.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </article>
+    </section>
+
+    {# ── Segment table (assistant × category) ────────────────────── #}
+    {% if typing.segment_table %}
+    <section class="analytics-grid analytics-grid-compact">
+        <article class="card panel panel-full">
+            <div class="panel-header">
+                <div>
+                    <h3 class="card-title">Segmentos por assistente</h3>
+                    <p class="panel-subtitle">Alinhamento por assistente e categoria de tipificação.</p>
+                </div>
+            </div>
+            <div class="table-wrap table-wrap-compact">
+                <table class="table table-sortable table-analytic">
+                    <thead>
+                        <tr>
+                            <th>Assistente</th>
+                            <th>Categoria</th>
+                            <th>Total</th>
+                            <th>Alinhados</th>
+                            <th>Taxa (%)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in typing.segment_table %}
+                        <tr>
+                            <td>{{ row.assistant_name }}</td>
+                            <td>{{ row.category }}</td>
+                            <td>{{ row.total }}</td>
+                            <td>{{ row.correct }}</td>
+                            <td>
+                                <span class="badge {% if row.correctness_rate >= 70 %}badge-good{% elif row.correctness_rate >= 40 %}badge-warning{% else %}badge-critical{% endif %}">
+                                    {{ row.correctness_rate }}%
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </article>
+    </section>
+    {% endif %}
+
+</div>
+{% endblock %}

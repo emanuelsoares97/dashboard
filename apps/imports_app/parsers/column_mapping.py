@@ -13,20 +13,21 @@ EXCEL_TO_INTERNAL_MAP = {
     'Week': 'week',
     'Month': 'month',
     'Exclude': 'exclude',
+    'category': 'category',
+    'subcategory': 'subcategory',
+    'observations': 'observations',
 }
 
-# Estas colunas existem no ficheiro, mas nao entram na logica da V1.
+# Estas colunas existem no ficheiro, mas nao entram na logica principal.
 IGNORED_V1_COLUMNS = {
-    'category',
-    'subcategory',
     'category2',
+    'subcategory2',
     'subcategory2',
     'resolution2',
     'promote',
     'Tipe of service promoted',
     'actions',
     'Clients Status',
-    'observations',
     'breakdown',
     'bonification',
     'id_apel',

@@ -115,6 +115,9 @@ def persist_interaction(
         churn_reason=get_churn_reason(row_data.churn_reason),
         service_type=get_service_type(row_data.service_type),
         is_call_drop=row_data.is_call_drop,
+        category=row_data.category,
+        subcategory=row_data.subcategory,
+        observations=row_data.observations,
         metadata={
             'source': 'manual_excel',
             'original_ret_resolution': row_data.final_outcome,

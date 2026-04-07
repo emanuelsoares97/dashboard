@@ -16,3 +16,4 @@ from .quality import select_inconsistency_by_assistant
 from .quality import select_inconsistency_count_by_agent
 from .quality import select_inconsistency_table
 from .temporal import select_temporal
+from .typing import get_typing_queryset

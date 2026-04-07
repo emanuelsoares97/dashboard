@@ -70,4 +70,7 @@ def map_row(row_number: int, row: dict[str, Any]) -> ImportRowData:
         week=normalize_text(row.get('week')),
         month=normalize_text(row.get('month')),
         exclude=normalize_text(row.get('exclude')),
+        category=normalize_text(row.get('category')),
+        subcategory=normalize_text(row.get('subcategory')),
+        observations=normalize_text(row.get('observations')),
     )

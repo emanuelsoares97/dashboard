@@ -140,6 +140,7 @@
             <a class="dashboard-menu-link {% if active_section == 'actions' %}is-active{% endif %}" href="{% url 'dashboards:retention_actions' %}?{{ dashboard_querystring }}">Ações de Retenção</a>
             <a class="dashboard-menu-link {% if active_section == 'services' %}is-active{% endif %}" href="{% url 'dashboards:services' %}?{{ dashboard_querystring }}">Serviços</a>
             <a class="dashboard-menu-link {% if active_section == 'inconsistencies' %}is-active{% endif %}" href="{% url 'dashboards:inconsistencies' %}?{{ dashboard_querystring }}">Inconsistências</a>
+            <a class="dashboard-menu-link {% if active_section == 'typing_analysis' %}is-active{% endif %}" href="{% url 'dashboards:typing_analysis' %}?{{ dashboard_querystring }}">Análise de Tipificações</a>
             <a class="dashboard-menu-link {% if active_section == 'insights' %}is-active{% endif %}" href="{% url 'dashboards:insights' %}?{{ dashboard_querystring }}">Insights</a>
             {% endif %}
         </nav>

@@ -122,6 +122,9 @@ class Interaction(models.Model):
 		related_name='interactions',
 	)
 	is_call_drop = models.BooleanField(default=False)
+	category = models.CharField(max_length=200, blank=True)
+	subcategory = models.CharField(max_length=200, blank=True)
+	observations = models.TextField(blank=True)
 	metadata = models.JSONField(default=dict, blank=True)
 	created_at = models.DateTimeField(auto_now_add=True)
 

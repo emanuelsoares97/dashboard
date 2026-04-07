@@ -20,6 +20,9 @@ class ImportRowData:
     week: str
     month: str
     exclude: str
+    category: str = ''
+    subcategory: str = ''
+    observations: str = ''
     direction: str = 'inbound'
 
 

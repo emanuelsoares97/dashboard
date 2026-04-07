@@ -170,3 +170,44 @@ def export_inconsistencies_csv(section, filters):
         for row in section['table']
     ]
     return _build_csv_response(filename=filename, headers=headers, rows=csv_rows)
+
+
+def export_typing_analysis_csv(rows, filters, *, day_filter=None):
+    """Exporta análise de tipificações para CSV (geral ou filtrado por dia)."""
+    if day_filter:
+        filename = _build_filename('tipificacoes', {'start_date': day_filter, 'end_date': day_filter})
+    else:
+        filename = _build_filename('tipificacoes', filters)
+
+    headers = [
+        'Assistente',
+        'Data',
+        'Categoria',
+        'Subcategoria',
+        'Motivo de corte',
+        'Observacao',
+        'Status',
+        'Score utilizado',
+        'Melhor score',
+        'Delta',
+        'Melhor sugestao',
+        'Razao',
+    ]
+    csv_rows = [
+        [
+            row['assistant_name'],
+            row['occurred_on'],
+            row['category'],
+            row['subcategory'],
+            row['third_category'],
+            row['observations'],
+            row['status_label'],
+            _format_decimal(row['used_score']),
+            _format_decimal(row['best_score']),
+            _format_decimal(row['delta']),
+            row['suggestion'] or '',
+            row['reason'],
+        ]
+        for row in rows
+    ]
+    return _build_csv_response(filename=filename, headers=headers, rows=csv_rows)
