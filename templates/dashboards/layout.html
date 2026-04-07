@@ -35,7 +35,7 @@
                 <button class="btn btn-primary" type="submit">Aplicar filtros</button>
             </div>
             <details class="advanced-filters filter-group-full" {% if service_type_id or churn_reason_id or retention_action_id or final_outcome_id or assistant_name or period != 'day' %}open{% endif %}>
-                <summary>Filtros avançados</summary>
+                <summary>Filtros avançados (opcional)</summary>
                 <div class="advanced-filters-grid">
             <div class="filter-group">
                 <label class="filter-label" for="service_type_id">Serviço</label>
@@ -126,7 +126,7 @@
             aria-expanded="false"
             aria-controls="dashboard-menu-nav"
         >
-            Abrir seções do dashboard
+            Menu de abas
         </button>
         <nav class="dashboard-menu" id="dashboard-menu-nav" data-dashboard-menu>
             {% if request.user|user_is_assistant and request.user|linked_agent_id %}

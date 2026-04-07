@@ -113,10 +113,24 @@
     color: var(--color-muted);
     font-weight: 700;
     padding: 0.52rem 0.15rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
 }
 
 .advanced-filters > summary::-webkit-details-marker {
     display: none;
+}
+
+.advanced-filters > summary::after {
+    content: '+';
+    font-size: 1rem;
+    line-height: 1;
+    color: #5f6d7d;
+}
+
+.advanced-filters[open] > summary::after {
+    content: '-';
 }
 
 .advanced-filters-grid {
@@ -146,6 +160,20 @@
     color: #233143;
     font-weight: 700;
     cursor: pointer;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.45rem 0.72rem;
+}
+
+.dashboard-menu-toggle::after {
+    content: '+';
+    font-size: 1rem;
+    line-height: 1;
+    color: #5f6d7d;
+}
+
+.dashboard-menu-toggle.is-open::after {
+    content: '-';
 }
 
 .dashboard-menu-link {

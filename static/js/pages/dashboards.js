@@ -37,8 +37,8 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         menu.classList.remove('is-open');
+        menuToggle.classList.remove('is-open');
         menuToggle.setAttribute('aria-expanded', 'false');
-        menuToggle.textContent = 'Abrir seções do dashboard';
     };
 
     const openDashboardMenu = () => {
@@ -46,8 +46,8 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         menu.classList.add('is-open');
+        menuToggle.classList.add('is-open');
         menuToggle.setAttribute('aria-expanded', 'true');
-        menuToggle.textContent = 'Fechar seções do dashboard';
     };
 
     if (menuToggle && menu) {
