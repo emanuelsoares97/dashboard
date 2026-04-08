@@ -1,6 +1,7 @@
 from django.urls import reverse
 
 from apps.dashboards import selectors
+from apps.dashboards.services.insight_recommendations import enrich_insight
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -48,6 +49,7 @@ def _build_insight(*, type_, title, value, description, available=True, warning=
         'type': type_,
         'title': title,
         'value': value,
+        'summary': description,
         'description': description,
         'available': available,
         'warning': warning,
@@ -109,26 +111,26 @@ def generate_insights(filters):
 
     if total_calls == 0:
         return [
-            _build_insight(
+            enrich_insight(_build_insight(
                 type_='info',
                 title='Insight indisponivel',
                 value='Sem dados',
                 description='Nao foi possivel gerar este insight com os dados atuais.',
                 available=False,
                 reason_unavailable='Sem dados para os filtros selecionados.',
-            )
+            ))
         ]
 
     if total_calls < INSIGHTS_MIN_TOTAL_CALLS:
         return [
-            _build_insight(
+            enrich_insight(_build_insight(
                 type_='warning',
                 title='Insight indisponivel',
                 value='Amostra reduzida',
                 description='Nao foi possivel gerar este insight com os dados atuais.',
                 available=False,
                 reason_unavailable='Volume total abaixo do minimo para conclusoes fiaveis.',
-            )
+            ))
         ]
 
     insights = []
@@ -216,11 +218,14 @@ def generate_insights(filters):
     top_action = selectors.select_top_retention_action_by_volume(filtered_qs)
     if top_action and eligible_actions:
         top_action_warning = len(eligible_actions) < 2
+        top_action_label = top_action.get('retention_action__label') or 'Sem acao'
+        if top_action_label.strip().lower() == 'pendente':
+            top_action_label = 'Sem acao'
         insights.append(
             _build_insight(
                 type_='info',
                 title='Acao mais utilizada',
-                value=top_action.get('retention_action__label') or 'Sem acao',
+                value=top_action_label,
                 description=f"Aplicada em {top_action['total_used']} chamadas",
                 warning=top_action_warning,
                 reason_unavailable='Leitura com cautela por baixa concorrencia entre acoes.' if top_action_warning else None,
@@ -361,4 +366,4 @@ def generate_insights(filters):
             )
         )
 
-    return insights
+    return [enrich_insight(insight) for insight in insights]

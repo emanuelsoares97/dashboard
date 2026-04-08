@@ -192,7 +192,27 @@ def insights(request):
         filters=filters,
         dashboard_payload=payload,
     )
-    context['insights'] = generate_insights(filters)
+
+    insight_mode = request.GET.get('insight_mode', 'all').strip().lower()
+    if insight_mode not in {'all', 'attention'}:
+        insight_mode = 'all'
+
+    all_insights = generate_insights(filters)
+    attention_insights = [
+        insight
+        for insight in all_insights
+        if insight.get('suggested_actions') or insight.get('audit_recommendation')
+    ]
+
+    insights_data = all_insights
+    if insight_mode == 'attention':
+        insights_data = attention_insights
+
+    context['insights'] = insights_data
+    context['insight_mode'] = insight_mode
+    context['insight_total_count'] = len(all_insights)
+    context['insight_attention_count'] = len(attention_insights)
+    context['insight_visible_count'] = len(insights_data)
     return render(request, 'dashboards/insights.html', context)
 
 

@@ -1,8 +1,106 @@
 {% extends 'dashboards/layout.html' %}
 {% load static %}
 
+{% block extra_css %}
+{{ block.super }}
+<style>
+    .insight-toolbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .insight-mode-switch {
+        display: inline-flex;
+        gap: 0.4rem;
+        flex-wrap: wrap;
+    }
+
+    .insight-mode-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid #d7e1ee;
+        border-radius: 999px;
+        padding: 0.35rem 0.75rem;
+        text-decoration: none;
+        color: #233143;
+        background: #ffffff;
+        font-weight: 600;
+        font-size: 0.85rem;
+    }
+
+    .insight-mode-btn.is-active {
+        border-color: #bfd4ed;
+        background: #dce8f8;
+        color: #0f4c81;
+    }
+
+    .insight-counter {
+        margin: 0;
+        color: var(--color-muted);
+        font-size: 0.86rem;
+        font-weight: 600;
+    }
+
+    .insight-context-block {
+        margin-top: 0.55rem;
+        padding-top: 0.55rem;
+        border-top: 1px dashed #d9e2ef;
+    }
+
+    .insight-context-title {
+        margin: 0 0 0.25rem 0;
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #2f4d6a;
+        font-weight: 700;
+    }
+
+    .insight-list {
+        margin: 0;
+        padding-left: 1.1rem;
+        color: var(--color-text);
+    }
+
+    .insight-list li {
+        margin: 0.2rem 0;
+        font-size: 0.9rem;
+    }
+</style>
+{% endblock %}
+
 {% block dashboard_content %}
 <div class="dashboard-page">
+    <section class="card panel panel-full">
+        <div class="insight-toolbar">
+            <div>
+                <p class="panel-subtitle">Filtrar foco dos cards de insight.</p>
+                <p class="insight-counter">
+                    {{ insight_attention_count }} de {{ insight_total_count }} com atenção operacional
+                    {% if insight_mode == 'attention' %}(a mostrar: {{ insight_visible_count }}){% endif %}
+                </p>
+            </div>
+            <div class="insight-mode-switch">
+                <a
+                    class="insight-mode-btn {% if insight_mode == 'all' %}is-active{% endif %}"
+                    href="{% url 'dashboards:insights' %}?{{ dashboard_querystring }}&insight_mode=all"
+                >
+                    Todos
+                </a>
+                <a
+                    class="insight-mode-btn {% if insight_mode == 'attention' %}is-active{% endif %}"
+                    href="{% url 'dashboards:insights' %}?{{ dashboard_querystring }}&insight_mode=attention"
+                >
+                    Só atenção operacional
+                </a>
+            </div>
+        </div>
+    </section>
+
     <section class="insights-grid">
         {% for insight in insights %}
         <article class="insight-card insight-{{ insight.type }} card">
@@ -12,11 +110,36 @@
             {% else %}
             <strong class="insight-value">{{ insight.value }}</strong>
             {% endif %}
-            <p class="insight-description">{{ insight.description }}</p>
+            <p class="insight-description">{{ insight.summary|default:insight.description }}</p>
             {% if not insight.available and insight.reason_unavailable %}
             <p class="insight-description">{{ insight.reason_unavailable }}</p>
             {% elif insight.warning and insight.reason_unavailable %}
             <p class="insight-description">{{ insight.reason_unavailable }}</p>
+            {% endif %}
+
+            {% if insight.operational_interpretation %}
+            <div class="insight-context-block">
+                <p class="insight-context-title">Leitura operacional</p>
+                <p class="insight-description">{{ insight.operational_interpretation }}</p>
+            </div>
+            {% endif %}
+
+            {% if insight.suggested_actions %}
+            <div class="insight-context-block">
+                <p class="insight-context-title">Ações sugeridas</p>
+                <ul class="insight-list">
+                    {% for action in insight.suggested_actions %}
+                    <li>{{ action }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            {% if insight.audit_recommendation %}
+            <div class="insight-context-block">
+                <p class="insight-context-title">Auditoria recomendada</p>
+                <p class="insight-description">{{ insight.audit_recommendation }}</p>
+            </div>
             {% endif %}
         </article>
         {% empty %}
@@ -26,6 +149,24 @@
             <p class="insight-description">Não existem dados suficientes para gerar insights no período selecionado.</p>
         </article>
         {% endfor %}
+    </section>
+
+    <section class="analytics-grid analytics-grid-compact">
+        <article class="card panel panel-full">
+            <div class="panel-header">
+                <div>
+                    <h3 class="card-title">Chamadas a rever</h3>
+                    <p class="panel-subtitle">Priorização de auditoria manual baseada nos insights do período.</p>
+                </div>
+            </div>
+            <ul class="insight-list">
+                {% for insight in insights %}
+                    {% if insight.audit_recommendation %}
+                    <li><strong>{{ insight.title }}:</strong> {{ insight.audit_recommendation }}</li>
+                    {% endif %}
+                {% endfor %}
+            </ul>
+        </article>
     </section>
 </div>
 {% endblock %}
