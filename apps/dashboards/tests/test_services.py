@@ -146,12 +146,19 @@ def test_generate_insights_includes_expected_cards(interaction_factory, base_dim
     )
 
     titles = {item['title'] for item in insights}
-    assert 'Pior motivo de corte' in titles
-    assert 'Melhor acao de retencao' in titles
+    assert 'Maior motivo de corte' in titles
+    assert 'Motivo com menor taxa de retencao' in titles
+    assert 'Motivo com maior taxa de retencao' in titles
     assert 'Servico com maior nao retencao' in titles
+    assert 'Subcategoria com maior nao retencao' in titles
+    assert 'Resolucao mais utilizada' in titles
+    assert 'Forma de retencao mais frequente nos casos retidos' in titles
+    assert 'Taxa de call drop' in titles
     assert 'Assistente acima da media' in titles
     assert 'Assistente abaixo da media' in titles
     assert 'Total de inconsistencias' in titles
+    assert 'Motivos criticos sem retencao' in titles
+    assert 'Motivo mais frequente no servico com maior nao retencao' in titles
 
 
 def test_generate_insights_ignores_assistant_below_average_calls(base_dimensions, interaction_factory):
@@ -206,7 +213,7 @@ def test_generate_insights_worst_reason_uses_only_reasons_above_average_calls(ba
     )
 
     by_title = {item['title']: item['value'] for item in insights}
-    assert by_title['Pior motivo de corte'] == 'Preco'
+    assert by_title['Motivo com menor taxa de retencao'] == 'Preco'
 
 
 def test_generate_insights_includes_operational_volume_and_quality_cards(base_dimensions, interaction_factory):
@@ -237,11 +244,11 @@ def test_generate_insights_includes_operational_volume_and_quality_cards(base_di
 
     by_title = {item['title']: item for item in insights}
 
-    assert by_title['Motivo com maior volume']['value'] == 'Preco'
-    assert 'chamadas no periodo analisado' in by_title['Motivo com maior volume']['description']
+    assert by_title['Maior motivo de corte']['value'] == 'Preco'
+    assert 'chamadas no periodo analisado' in by_title['Maior motivo de corte']['description']
 
-    assert by_title['Acao mais utilizada']['value'] in {'Oferta', 'Pendente'}
-    assert 'Aplicada em' in by_title['Acao mais utilizada']['description']
+    assert by_title['Resolucao mais utilizada']['value'] in {'Oferta', 'Pendente'}
+    assert 'chamadas no periodo analisado' in by_title['Resolucao mais utilizada']['description']
 
     assert by_title['Assistente com mais inconsistencias']['value'] == 'Bruno'
     assert 'inconsistencias (' in by_title['Assistente com mais inconsistencias']['description']
@@ -350,7 +357,7 @@ def test_build_frontend_payload_marks_charts_without_data(interaction_factory):
     assert chart_states['temporal_chart']['has_data'] is False
 
 
-def test_generate_insights_skips_residual_action_as_best(base_dimensions, interaction_factory):
+def test_generate_insights_picks_most_used_resolution(base_dimensions, interaction_factory):
     weak_action = base_dimensions['pending_action']
 
     interaction_factory(call_id_external='act-main-1', retention_action=base_dimensions['action'])
@@ -368,8 +375,8 @@ def test_generate_insights_skips_residual_action_as_best(base_dimensions, intera
     )
 
     by_title = {item['title']: item for item in insights}
-    assert by_title['Melhor acao de retencao']['available'] is True
-    assert by_title['Melhor acao de retencao']['value'] == 'Oferta'
+    assert by_title['Resolucao mais utilizada']['available'] is True
+    assert by_title['Resolucao mais utilizada']['value'] == 'Oferta'
 
 
 def test_generate_insights_marks_worst_reason_unavailable_when_irrelevant_volume(base_dimensions, interaction_factory):
@@ -390,11 +397,10 @@ def test_generate_insights_marks_worst_reason_unavailable_when_irrelevant_volume
     )
 
     by_title = {item['title']: item for item in insights}
-    assert by_title['Pior motivo de corte']['available'] is True
-    assert by_title['Pior motivo de corte']['warning'] is True
+    assert by_title['Motivo com menor taxa de retencao']['available'] is False
 
 
-def test_generate_insights_marks_service_unavailable_without_comparison(base_dimensions, interaction_factory):
+def test_generate_insights_marks_service_insight_available_with_single_service(base_dimensions, interaction_factory):
     interaction_factory(call_id_external='srv-1', service_type=base_dimensions['service'])
     interaction_factory(call_id_external='srv-2', service_type=base_dimensions['service'])
     interaction_factory(call_id_external='srv-3', service_type=base_dimensions['service'])
@@ -410,7 +416,8 @@ def test_generate_insights_marks_service_unavailable_without_comparison(base_dim
     )
 
     by_title = {item['title']: item for item in insights}
-    assert by_title['Servico com maior nao retencao']['available'] is False
+    assert by_title['Servico com maior nao retencao']['available'] is True
+    assert by_title['Servico com maior nao retencao']['value'] == 'Fibra'
 
 
 def test_comparison_today_uses_yesterday_range(interaction_factory, base_dimensions):
@@ -1402,6 +1409,59 @@ def test_trend_tone_inconsistency_rate_up_is_negative():
     delta = _compute_delta(15.0, 10.0, metric_name='inconsistency_rate')
     assert delta['direction'] == 'up'
     assert delta['trend_tone'] == 'down'
+
+
+def test_retention_action_table_excludes_outcome_domain_labels(interaction_factory, base_dimensions):
+    """build_retention_action_table nao deve incluir acoes cujo label coincide com um OutcomeFinal.
+
+    Cenario: alguns registos foram importados com 'Nao Retido' como retention_action
+    (valor de outcome incorrectamente colocado na coluna de acao). Esses registos
+    devem ser excluidos da tabela de acoes de retencao.
+    """
+    from apps.inbound.models import RetentionAction
+
+    # Cria uma RetentionAction com label igual ao de um OutcomeFinal existente nos base_dimensions.
+    bad_action = RetentionAction.objects.create(code='nao_retido_action', label='Nao Retido')
+
+    interaction_factory(call_id_external='ra-good-1', retention_action=base_dimensions['action'])
+    interaction_factory(call_id_external='ra-good-2', retention_action=base_dimensions['action'])
+    interaction_factory(call_id_external='ra-bad-1', retention_action=bad_action)
+    interaction_factory(call_id_external='ra-bad-2', retention_action=bad_action)
+
+    queryset = Interaction.objects.all()
+    rows = build_retention_action_table(queryset)
+    action_labels = {row['retention_action'] for row in rows}
+
+    assert 'Oferta' in action_labels
+    assert 'Nao Retido' not in action_labels
+
+
+def test_generate_insights_marks_action_unavailable_when_only_outcome_labels_exist(
+    interaction_factory, base_dimensions
+):
+    """Os cards de acao de retencao foram removidos e nao devem voltar a aparecer."""
+    from apps.inbound.models import RetentionAction
+
+    bad_action = RetentionAction.objects.create(code='nao_retido_insight', label='Nao Retido')
+
+    interaction_factory(call_id_external='ins-bad-1', retention_action=bad_action)
+    interaction_factory(call_id_external='ins-bad-2', retention_action=bad_action)
+    interaction_factory(call_id_external='ins-bad-3', retention_action=bad_action)
+    interaction_factory(call_id_external='ins-bad-4', retention_action=bad_action)
+    interaction_factory(call_id_external='ins-bad-5', retention_action=bad_action)
+
+    insights = generate_insights(
+        {
+            'assistant_name': '',
+            'start_date': date(2026, 1, 1),
+            'end_date': date(2026, 1, 31),
+        }
+    )
+
+    titles = {item['title'] for item in insights}
+    assert 'Melhor acao de retencao' not in titles
+    assert 'Acao mais utilizada' not in titles
+
 
 
 def test_trend_tone_inconsistency_rate_down_is_positive():

@@ -32,17 +32,23 @@ def _resolve_table_limit() -> int | None:
     return parsed_limit
 
 
+def _is_single_day(filters: dict) -> bool:
+    start = filters.get('start_date')
+    end = filters.get('end_date')
+    return bool(start and end and start == end)
+
+
 def build_typing_analysis_payload(filters: dict) -> dict:
     """Executa a validação de tipificações para todas as interações e devolve os resultados estruturados."""
     qs = get_typing_queryset(filters)
-    return build_typing_analysis_payload_from_queryset(qs)
+    limit = None if _is_single_day(filters) else _resolve_table_limit()
+    return build_typing_analysis_payload_from_queryset(qs, limit=limit)
 
 
-def build_typing_analysis_payload_from_queryset(queryset) -> dict:
+def build_typing_analysis_payload_from_queryset(queryset, *, limit=_DEFAULT_TABLE_LIMIT) -> dict:
     """Executa a validação de tipificações para o queryset recebido."""
     qs = queryset.select_related('agent', 'churn_reason').order_by('-occurred_on')
-    table_limit = _resolve_table_limit()
-    interactions = list(qs[:table_limit]) if table_limit else list(qs)
+    interactions = list(qs[:limit]) if limit else list(qs)
 
     definitions = load_tipification_definitions()
 
@@ -120,8 +126,8 @@ def build_typing_analysis_payload_from_queryset(queryset) -> dict:
         'table': rows,
         'segment_table': segment_table,
         'definitions_loaded': len(definitions),
-        'table_limit': table_limit,
-        'is_limited': bool(table_limit and len(interactions) == table_limit),
+        'table_limit': limit,
+        'is_limited': bool(limit and len(interactions) == limit),
     }
 
 

@@ -1,10 +1,4 @@
-from apps.dashboards.services.label_normalization import build_normalized_set
-from apps.dashboards.services.label_normalization import is_label_in
 from apps.dashboards.services.label_normalization import normalize_label
-
-
-INSIGHT_NO_ACTION_LABELS = {'sem acao', 'sem ação', 'sem acao registada', 'pendente'}
-INSIGHT_NORMALIZED_NO_ACTION_LABELS = build_normalized_set(INSIGHT_NO_ACTION_LABELS)
 
 
 def _base_enrichment(insight: dict) -> dict:
@@ -54,16 +48,15 @@ def enrich_insight(insight: dict) -> dict:
         enriched['audit_recommendation'] = 'Priorizar chamadas do servico com maior nao retencao, sobretudo quando terminou em nao retido.'
         return enriched
 
-    if title == 'Acao mais utilizada' and is_label_in(value, INSIGHT_NORMALIZED_NO_ACTION_LABELS):
-        enriched['operational_interpretation'] = 'Elevado volume de chamadas sem acao de retencao registada.'
+    if title == 'Uso de Motivo Nao Indicado':
+        enriched['operational_interpretation'] = 'Existe excesso de chamadas com motivo generico e baixa utilidade analitica.'
         enriched['suggested_actions'] = [
-            'Validar se sem acao esta a ser usado corretamente.',
-            'Confirmar se existiam ofertas aplicaveis.',
-            'Auditar amostra de chamadas sem acao registada.',
-            'Rever se faltou diagnostico do motivo de corte.',
+            'Auditar amostra de chamadas com motivo nao indicado.',
+            'Reforcar o preenchimento correto de third_category na operacao.',
+            'Verificar se a causa raiz e processo, sistema ou formacao.',
             'Validar qualidade do registo operacional.',
         ]
-        enriched['audit_recommendation'] = 'Priorizar chamadas com acao sem acao para verificar se era devido encetar tentativa de retencao.'
+        enriched['audit_recommendation'] = 'Priorizar chamadas com motivo nao indicado para recuperar a tipificacao correta.'
         return enriched
 
     if title == 'Total de inconsistencias':
@@ -77,7 +70,7 @@ def enrich_insight(insight: dict) -> dict:
         enriched['audit_recommendation'] = 'Priorizar chamadas marcadas como inconsistentes e cruzar com os respetivos registos de resultado.'
         return enriched
 
-    if title == 'Pior motivo de corte':
+    if title == 'Motivo com menor taxa de retencao':
         enriched['operational_interpretation'] = 'Motivo com pior desempenho de retencao no periodo.'
         enriched['suggested_actions'] = [
             'Auditar chamadas desse motivo de corte.',
@@ -85,7 +78,17 @@ def enrich_insight(insight: dict) -> dict:
             'Confirmar se existem ofertas competitivas para este contexto.',
             'Rever se a objecao esta a ser bem trabalhada.',
         ]
-        enriched['audit_recommendation'] = 'Priorizar chamadas do pior motivo de corte para confirmar diagnostico, proposta e tentativa de fecho.'
+        enriched['audit_recommendation'] = 'Priorizar chamadas do motivo com menor retencao para confirmar diagnostico e proposta.'
+        return enriched
+
+    if title == 'Motivos criticos sem retencao':
+        enriched['operational_interpretation'] = 'Existem motivos recorrentes com 0% de retencao e risco elevado de perda.'
+        enriched['suggested_actions'] = [
+            'Priorizar auditoria imediata dos motivos listados.',
+            'Definir argumentario especifico por motivo critico.',
+            'Reforcar formacao de contorno para os cenarios mais frequentes.',
+        ]
+        enriched['audit_recommendation'] = 'Priorizar chamadas dos motivos criticos sem retencao para plano de acao corretivo.'
         return enriched
 
     if title == 'Assistente com mais inconsistencias':

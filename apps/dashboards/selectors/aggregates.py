@@ -1,5 +1,17 @@
 from django.db.models import Avg, Count, Q
 
+from apps.inbound.models import OutcomeFinal
+
+
+def _exclude_outcome_labels(queryset):
+    """Exclui interacoes cujo retention_action__label coincide com um label de OutcomeFinal.
+
+    Garante que acoes de retencao contaminadas com valores de outcome (ex: 'Nao Retido',
+    'Retido') nao afetam metricas nem insights de acoes de retencao.
+    """
+    outcome_labels = OutcomeFinal.objects.values_list('label', flat=True)
+    return queryset.exclude(retention_action__label__in=outcome_labels)
+
 
 def select_kpis_base(queryset):
     """Agrupa os totais principais para os KPIs gerais."""
@@ -35,9 +47,10 @@ def select_top_churn_reason_by_volume(queryset):
 
 
 def select_by_retention_action(queryset):
-    """Agrega resultados por acao de retencao."""
+    """Agrega resultados por acao de retencao, excluindo labels do dominio de outcome."""
     return (
-        queryset.values('retention_action_id', 'retention_action__label')
+        _exclude_outcome_labels(queryset)
+        .values('retention_action_id', 'retention_action__label')
         .annotate(
             total_used=Count('id'),
             total_retained=Count('id', filter=Q(final_outcome__code='retido', is_call_drop=False)),
@@ -48,9 +61,10 @@ def select_by_retention_action(queryset):
 
 
 def select_top_retention_action_by_volume(queryset):
-    """Devolve a acao de retencao mais utilizada."""
+    """Devolve a acao de retencao mais utilizada, excluindo labels do dominio de outcome."""
     return (
-        queryset.values('retention_action__label')
+        _exclude_outcome_labels(queryset)
+        .values('retention_action__label')
         .annotate(total_used=Count('id'))
         .order_by('-total_used', 'retention_action__label')
         .first()

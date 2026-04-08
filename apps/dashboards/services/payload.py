@@ -75,7 +75,7 @@ def _build_table_states(*, churn_reason_table, retention_action_table, service_t
 def build_assistant_detail(queryset, assistant_id, granularity='day'):
     """Gera analise detalhada para um assistente especifico."""
     assistant_qs = queryset.filter(agent_id=assistant_id)
-    assistant_typing_analysis = build_typing_analysis_payload_from_queryset(assistant_qs)
+    assistant_typing_analysis = build_typing_analysis_payload_from_queryset(assistant_qs, limit=None)
 
     churn_rows = []
     assistant_total_calls = assistant_qs.count()

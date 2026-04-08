@@ -83,18 +83,61 @@ def test_typing_analysis_accepts_explicit_day_filter(client, interaction_factory
 @override_settings(DASHBOARD_TYPING_TABLE_LIMIT=2)
 def test_typing_analysis_respects_configurable_limit(interaction_factory):
     day = dj_timezone.localdate() - timedelta(days=1)
+    older_day = dj_timezone.localdate() - timedelta(days=3)
     day_start = datetime.combine(day, datetime.min.time(), tzinfo=timezone.utc).replace(hour=8)
+    older_start = datetime.combine(older_day, datetime.min.time(), tzinfo=timezone.utc).replace(hour=8)
 
-    for idx in range(3):
+    for idx in range(2):
         interaction_factory(
-            call_id_external=f'typing-limit-{idx}',
+            call_id_external=f'typing-limit-new-{idx}',
             start_at=day_start + timedelta(minutes=idx),
             end_at=day_start + timedelta(minutes=idx + 1),
             category='retencao',
             subcategory='proposta',
             observations='observacao longa para validacao de limite',
         )
+    interaction_factory(
+        call_id_external='typing-limit-old',
+        start_at=older_start,
+        end_at=older_start + timedelta(minutes=1),
+        category='retencao',
+        subcategory='proposta',
+        observations='observacao de dia antigo',
+    )
 
+    # Periodo alargado (multi-dia): limite deve ser aplicado
+    payload = build_typing_analysis_payload(
+        {
+            'assistant_name': '',
+            'start_date': older_day,
+            'end_date': day,
+            'service_type_id': None,
+            'churn_reason_id': None,
+        }
+    )
+
+    assert payload['table_limit'] == 2
+    assert len(payload['table']) == 2
+    assert payload['is_limited'] is True
+
+
+@pytest.mark.django_db
+@override_settings(DASHBOARD_TYPING_TABLE_LIMIT=2)
+def test_typing_analysis_single_day_ignores_limit(interaction_factory):
+    day = dj_timezone.localdate() - timedelta(days=1)
+    day_start = datetime.combine(day, datetime.min.time(), tzinfo=timezone.utc).replace(hour=8)
+
+    for idx in range(3):
+        interaction_factory(
+            call_id_external=f'typing-single-{idx}',
+            start_at=day_start + timedelta(minutes=idx),
+            end_at=day_start + timedelta(minutes=idx + 1),
+            category='retencao',
+            subcategory='proposta',
+            observations='observacao de dia unico',
+        )
+
+    # Dia unico: limite nao deve ser aplicado
     payload = build_typing_analysis_payload(
         {
             'assistant_name': '',
@@ -105,6 +148,6 @@ def test_typing_analysis_respects_configurable_limit(interaction_factory):
         }
     )
 
-    assert payload['table_limit'] == 2
-    assert len(payload['table']) == 2
-    assert payload['is_limited'] is True
+    assert payload['table_limit'] is None
+    assert len(payload['table']) == 3
+    assert payload['is_limited'] is False
