@@ -550,7 +550,8 @@
     font-weight: 700;
 }
 
-.typing-filter-group select {
+.typing-filter-group select,
+.typing-filter-group input {
     width: 100%;
     min-height: 2.45rem;
     border: 1px solid #d7e1ee;
@@ -558,6 +559,12 @@
     background: #ffffff;
     color: #233143;
     padding: 0.5rem 0.6rem;
+}
+
+.typing-filter-group select:focus,
+.typing-filter-group input:focus {
+    outline: 2px solid #c8dcf4;
+    border-color: #9bbde1;
 }
 
 .typing-filter-actions {

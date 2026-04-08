@@ -2,7 +2,9 @@
 
 import pytest
 
-from apps.dashboards.typing_analysis.normalizer import normalize_text, extract_keywords
+from apps.dashboards.typing_analysis.normalizer import extract_keywords
+from apps.dashboards.typing_analysis.normalizer import normalize_text
+from apps.dashboards.typing_analysis.normalizer import repair_text_encoding
 from apps.dashboards.typing_analysis.loader import TypificationDefinition
 from apps.dashboards.typing_analysis.scorer import (
     score_typification,
@@ -77,6 +79,22 @@ class TestNormalizer:
         assert 'de' not in kws
         assert 'cancelamento' in kws
         assert 'servico' in kws
+
+    def test_repairs_common_mojibake_examples(self):
+        raw = 'RetenÃ§Ã£o de serviÃ§os nÃ£o essenciais em cartÃµes e informaÃ§Ã£o mÃ³vel'
+        repaired = repair_text_encoding(raw)
+
+        assert 'Retenção' in repaired
+        assert 'serviços' in repaired
+        assert 'não' in repaired
+        assert 'cartões' in repaired
+        assert 'informação' in repaired
+        assert 'móvel' in repaired
+
+    def test_normalize_text_handles_mojibake_and_accents(self):
+        raw = 'RetenÃ§Ã£o de serviÃ§os nÃ£o essenciais em cartÃµes; atualização e operação.'
+
+        assert normalize_text(raw) == 'retencao de servicos nao essenciais em cartoes atualizacao e operacao'
 
 
 # ── Pontuação ────────────────────────────────────────────────────────────────

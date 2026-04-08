@@ -230,13 +230,19 @@ def previous_day(request):
 
     filters = _resolve_filters(request, force_assistant_name='')
     today = timezone.localdate()
-    previous = today - timedelta(days=1)
+    has_explicit_range = bool(
+        request.GET.get('start_date', '').strip() or request.GET.get('end_date', '').strip()
+    )
+    if has_explicit_range:
+        selected_day = filters.get('end_date') or filters.get('start_date') or (today - timedelta(days=1))
+    else:
+        selected_day = today - timedelta(days=1)
 
     filters['date_preset'] = 'custom'
-    filters['start_date'] = previous
-    filters['end_date'] = previous
-    filters['start_date_raw'] = previous.isoformat()
-    filters['end_date_raw'] = previous.isoformat()
+    filters['start_date'] = selected_day
+    filters['end_date'] = selected_day
+    filters['start_date_raw'] = selected_day.isoformat()
+    filters['end_date_raw'] = selected_day.isoformat()
 
     payload = _build_dashboard_payload_from_filters(filters)
 
@@ -246,7 +252,11 @@ def previous_day(request):
         filters=filters,
         dashboard_payload=payload,
     )
-    context['previous_day'] = build_previous_day_payload(filters, reference_date=today)
+    context['previous_day'] = build_previous_day_payload(
+        filters,
+        reference_date=today,
+        target_day=selected_day,
+    )
     return render(request, 'dashboards/previous_day.html', context)
 
 
@@ -255,14 +265,25 @@ def previous_day_export(request):
     """Exporta relatório do dia anterior para Excel."""
     filters = _resolve_filters(request, force_assistant_name='')
     today = timezone.localdate()
+    has_explicit_range = bool(
+        request.GET.get('start_date', '').strip() or request.GET.get('end_date', '').strip()
+    )
+    if has_explicit_range:
+        selected_day = filters.get('end_date') or filters.get('start_date') or (today - timedelta(days=1))
+    else:
+        selected_day = today - timedelta(days=1)
     
     filters['date_preset'] = 'custom'
-    filters['start_date'] = today - timedelta(days=1)
+    filters['start_date'] = selected_day
     filters['end_date'] = filters['start_date']
     filters['start_date_raw'] = filters['start_date'].isoformat()
     filters['end_date_raw'] = filters['end_date'].isoformat()
     
-    payload = build_previous_day_payload(filters, reference_date=today)
+    payload = build_previous_day_payload(
+        filters,
+        reference_date=today,
+        target_day=selected_day,
+    )
     return export_previous_day_excel(payload, filters)
 
 

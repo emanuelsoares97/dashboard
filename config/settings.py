@@ -157,3 +157,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 LOGIN_URL = 'core:login'
 LOGIN_REDIRECT_URL = 'dashboards:overview'
 LOGOUT_REDIRECT_URL = 'core:login'
+
+# Dashboard typing analysis: max rows loaded for on-screen validation table.
+# Set <= 0 to disable limit (not recommended for very large datasets).
+DASHBOARD_TYPING_TABLE_LIMIT = int(os.getenv('DASHBOARD_TYPING_TABLE_LIMIT', '500'))

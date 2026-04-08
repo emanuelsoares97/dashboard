@@ -1,5 +1,6 @@
 import pytest
 from django.urls import reverse
+from datetime import date
 
 
 @pytest.fixture
@@ -29,3 +30,18 @@ def test_previous_day_view_forbids_assistant(assistant_client):
     response = assistant_client.get(reverse('dashboards:previous_day'))
 
     assert response.status_code == 403
+
+
+@pytest.mark.django_db
+def test_previous_day_view_accepts_explicit_day_filter(client):
+    response = client.get(
+        reverse('dashboards:previous_day'),
+        {
+            'date_preset': 'custom',
+            'start_date': '2026-04-05',
+            'end_date': '2026-04-05',
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.context['previous_day']['day'] == date(2026, 4, 5)

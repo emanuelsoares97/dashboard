@@ -258,15 +258,20 @@ def _build_audit_calls(queryset, *, assistant_rows, low_retention_tipifications)
     return calls[:15]
 
 
-def build_previous_day_payload(filters: dict, *, reference_date: date | None = None) -> dict:
+def build_previous_day_payload(
+    filters: dict,
+    *,
+    reference_date: date | None = None,
+    target_day: date | None = None,
+) -> dict:
     """Constroi dados da aba Dia anterior com foco operacional."""
-    previous_day = _resolve_previous_day(reference_date)
+    selected_day = target_day or _resolve_previous_day(reference_date)
 
     base_qs = selectors.get_inbound_queryset()
     day_qs = selectors.apply_filters(
         base_qs,
-        start_date=previous_day,
-        end_date=previous_day,
+        start_date=selected_day,
+        end_date=selected_day,
         service_type_id=filters.get('service_type_id'),
         churn_reason_id=filters.get('churn_reason_id'),
         retention_action_id=filters.get('retention_action_id'),
@@ -300,8 +305,8 @@ def build_previous_day_payload(filters: dict, *, reference_date: date | None = N
     insights = generate_insights(
         {
             'assistant_name': '',
-            'start_date': previous_day,
-            'end_date': previous_day,
+            'start_date': selected_day,
+            'end_date': selected_day,
             'service_type_id': filters.get('service_type_id'),
             'churn_reason_id': filters.get('churn_reason_id'),
             'retention_action_id': filters.get('retention_action_id'),
@@ -316,7 +321,7 @@ def build_previous_day_payload(filters: dict, *, reference_date: date | None = N
     )
 
     return {
-        'day': previous_day,
+        'day': selected_day,
         'kpis': {
             **kpis,
             'no_action_pct': _pct(no_action_calls, total_calls),

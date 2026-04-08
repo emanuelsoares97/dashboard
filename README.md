@@ -199,6 +199,25 @@ O projeto usa `DATABASE_URL` como configuracao principal de base de dados.
 Copy-Item .env.example .env
 ```
 
+### Configuracao de performance: Analise de Tipificacoes
+
+Para melhorar tempo de carregamento da pagina `Analise de Tipificacoes`, o sistema aplica dois comportamentos:
+
+- Por defeito, quando nao e informado intervalo de datas, a pagina carrega apenas o dia anterior.
+- A tabela usa um limite maximo de registos configuravel por ambiente.
+
+Variavel:
+
+```env
+DASHBOARD_TYPING_TABLE_LIMIT=500
+```
+
+Notas:
+
+- `500` = carrega no maximo 500 interacoes na tabela.
+- `0` (ou valor negativo) = sem limite de registos.
+- Para periodos longos e muito volume, manter limite ajuda a pagina a abrir mais rapido.
+
 ### 2. Definir a connection string
 
 Exemplo:

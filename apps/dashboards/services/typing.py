@@ -1,6 +1,9 @@
 from collections import defaultdict
 
+from django.conf import settings
+
 from apps.dashboards.selectors.typing import get_typing_queryset
+from apps.dashboards.typing_analysis.normalizer import repair_text_encoding
 from apps.dashboards.typing_analysis.loader import load_tipification_definitions
 from apps.dashboards.typing_analysis.validator import (
     STATUS_BLANK_TYPIFICATION,
@@ -14,7 +17,19 @@ from apps.dashboards.typing_analysis.validator import (
     validate,
 )
 
-_TABLE_LIMIT = 500
+_DEFAULT_TABLE_LIMIT = 500
+
+
+def _resolve_table_limit() -> int | None:
+    raw_limit = getattr(settings, 'DASHBOARD_TYPING_TABLE_LIMIT', _DEFAULT_TABLE_LIMIT)
+    try:
+        parsed_limit = int(raw_limit)
+    except (TypeError, ValueError):
+        return _DEFAULT_TABLE_LIMIT
+
+    if parsed_limit <= 0:
+        return None
+    return parsed_limit
 
 
 def build_typing_analysis_payload(filters: dict) -> dict:
@@ -26,7 +41,8 @@ def build_typing_analysis_payload(filters: dict) -> dict:
 def build_typing_analysis_payload_from_queryset(queryset) -> dict:
     """Executa a validação de tipificações para o queryset recebido."""
     qs = queryset.select_related('agent', 'churn_reason').order_by('-occurred_on')
-    interactions = list(qs[:_TABLE_LIMIT])
+    table_limit = _resolve_table_limit()
+    interactions = list(qs[:table_limit]) if table_limit else list(qs)
 
     definitions = load_tipification_definitions()
 
@@ -43,6 +59,7 @@ def build_typing_analysis_payload_from_queryset(queryset) -> dict:
         sub = interaction.subcategory or ''
         third = interaction.churn_reason.label if interaction.churn_reason_id else ''
         obs = interaction.observations or ''
+        obs_display = repair_text_encoding(obs)
         agent_name = interaction.agent.name
 
         result = validate(obs, cat, sub, third, definitions=definitions)
@@ -65,7 +82,7 @@ def build_typing_analysis_payload_from_queryset(queryset) -> dict:
             'category': cat,
             'subcategory': sub,
             'third_category': third,
-            'observations': obs,
+            'observations': obs_display,
             'status': result.status,
             'status_label': result.status_label,
             'status_css': result.status_css,
@@ -103,7 +120,8 @@ def build_typing_analysis_payload_from_queryset(queryset) -> dict:
         'table': rows,
         'segment_table': segment_table,
         'definitions_loaded': len(definitions),
-        'is_limited': len(interactions) == _TABLE_LIMIT,
+        'table_limit': table_limit,
+        'is_limited': bool(table_limit and len(interactions) == table_limit),
     }
 
 

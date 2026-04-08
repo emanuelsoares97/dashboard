@@ -11,8 +11,10 @@ from apps.dashboards.typing_analysis.validator import (
 )
 from apps.dashboards import exporters
 
+from datetime import timedelta
+
 from django.shortcuts import render
-from django.utils.dateparse import parse_date
+from django.utils import timezone
 
 from .helpers import _build_common_context, _build_filter_options, _resolve_filters
 
@@ -66,10 +68,28 @@ def _filter_typing_rows(rows, *, typing_status: str, selected_ids: set[int] | No
     return filtered
 
 
+def _apply_typing_day_filter_defaults(request, filters: dict) -> None:
+    has_explicit_range = bool(
+        request.GET.get('start_date', '').strip() or request.GET.get('end_date', '').strip()
+    )
+
+    if has_explicit_range:
+        return
+
+    selected_day = timezone.localdate() - timedelta(days=1)
+
+    filters['date_preset'] = 'custom'
+    filters['start_date'] = selected_day
+    filters['end_date'] = selected_day
+    filters['start_date_raw'] = selected_day.isoformat()
+    filters['end_date_raw'] = selected_day.isoformat()
+
+
 @require_dashboard_access
 def typing_analysis(request):
     """Renderiza a página de análise de tipificações."""
     filters = _resolve_filters(request, force_assistant_name='')
+    _apply_typing_day_filter_defaults(request, filters)
     # Suporte a filtro de assistente sem forçar valor vazio
     assistant_name = request.GET.get('assistant_name', '').strip()
     if assistant_name:
@@ -99,15 +119,10 @@ def typing_analysis(request):
 def typing_analysis_excel(request):
     """Exporta a tabela de análise de tipificações para Excel."""
     filters = _resolve_filters(request, force_assistant_name='')
+    _apply_typing_day_filter_defaults(request, filters)
     assistant_name = request.GET.get('assistant_name', '').strip()
     if assistant_name:
         filters['assistant_name'] = assistant_name
-
-    day_raw = request.GET.get('day', '').strip()
-    day_filter = parse_date(day_raw) if day_raw else None
-    if day_filter:
-        filters['start_date'] = day_filter
-        filters['end_date'] = day_filter
 
     payload = build_typing_analysis_payload(filters)
     typing_status = _resolve_typing_status_filter(request)
@@ -118,4 +133,4 @@ def typing_analysis_excel(request):
         selected_ids=selected_ids,
     )
 
-    return exporters.export_typing_analysis_excel(filtered_rows, filters, day_filter=day_filter)
+    return exporters.export_typing_analysis_excel(filtered_rows, filters, day_filter=filters.get('start_date'))

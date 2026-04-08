@@ -35,7 +35,7 @@
                     <h3 class="card-title">Análise de Tipificações</h3>
                     <p class="panel-subtitle">
                         Validação automática do alinhamento entre a observação registada e a tipificação usada.
-                        {% if typing.is_limited %}Limitado às últimas {{ typing.table|length }} interações.{% endif %}
+                        {% if typing.is_limited %}Limitado às últimas {{ typing.table|length }} interações (limite configurável).{% endif %}
                         {% if typing.definitions_loaded == 0 %}<strong class="text-warning">Ficheiro de referência não carregado.</strong>{% endif %}
                     </p>
                 </div>
@@ -74,7 +74,7 @@
                 </div>
                 <div class="typing-filter-actions">
                     <button type="submit" class="btn btn-primary">Aplicar</button>
-                    <a class="btn btn-secondary" href="{% url 'dashboards:typing_analysis' %}?period={{ filters.period }}&date_preset={{ filters.date_preset }}&start_date={{ filters.start_date_raw }}&end_date={{ filters.end_date_raw }}">Limpar</a>
+                    <a class="btn btn-secondary" href="{% url 'dashboards:typing_analysis' %}">Limpar</a>
                 </div>
             </form>
 
@@ -136,7 +136,10 @@
                             <td>{{ row.third_category|default:"—" }}</td>
                             <td class="cell-observations">
                                 {% if row.observations %}
-                                    <span class="obs-text" title="{{ row.observations }}">{{ row.observations|truncatechars:80 }}</span>
+                                    <details class="obs-details">
+                                        <summary class="obs-summary">{{ row.observations|truncatechars:80 }}</summary>
+                                        <div class="obs-full">{{ row.observations }}</div>
+                                    </details>
                                 {% else %}
                                     <span class="text-muted">—</span>
                                 {% endif %}
@@ -208,6 +211,25 @@
         </article>
     </section>
     {% endif %}
+
+    <style>
+        .obs-details {
+            max-width: 420px;
+        }
+
+        .obs-summary {
+            cursor: pointer;
+            color: #1f4f99;
+            text-decoration: underline;
+            text-underline-offset: 2px;
+        }
+
+        .obs-full {
+            margin-top: 8px;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+    </style>
 
 </div>
 {% endblock %}
