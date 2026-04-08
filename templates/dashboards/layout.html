@@ -134,6 +134,7 @@
             {% else %}
             <a class="dashboard-menu-link {% if active_section == 'overview' %}is-active{% endif %}" href="{% url 'dashboards:overview' %}?{{ dashboard_querystring }}">Visão Geral</a>
             <a class="dashboard-menu-link {% if active_section == 'daily_rates' %}is-active{% endif %}" href="{% url 'dashboards:daily_rates' %}?{{ dashboard_querystring }}">Taxas Diárias</a>
+            <a class="dashboard-menu-link {% if active_section == 'previous_day' %}is-active{% endif %}" href="{% url 'dashboards:previous_day' %}?{{ dashboard_querystring_without_assistant }}">Dia anterior</a>
             <a class="dashboard-menu-link {% if active_section == 'monthly_rates' %}is-active{% endif %}" href="{% url 'dashboards:monthly_rates' %}?{{ dashboard_querystring }}">Taxas Mensais</a>
             <a class="dashboard-menu-link {% if active_section == 'churn' %}is-active{% endif %}" href="{% url 'dashboards:churn_reasons' %}?{{ dashboard_querystring }}">Motivos de Corte</a>
             <a class="dashboard-menu-link {% if active_section == 'assistants' %}is-active{% endif %}" href="{% url 'dashboards:assistants' %}?{{ dashboard_querystring }}">Assistentes</a>

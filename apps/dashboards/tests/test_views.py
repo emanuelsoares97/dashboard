@@ -151,7 +151,7 @@ def test_assistant_cannot_access_other_assistant_detail(assistant_client):
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize('route_name', ['dashboards:inconsistencies', 'dashboards:insights'])
+@pytest.mark.parametrize('route_name', ['dashboards:inconsistencies', 'dashboards:insights', 'dashboards:previous_day'])
 def test_sensitive_pages_forbid_assistants(assistant_client, route_name):
     test_client, _, linked_agent = assistant_client
     response = test_client.get(reverse(route_name))
@@ -161,7 +161,7 @@ def test_sensitive_pages_forbid_assistants(assistant_client, route_name):
 
 @pytest.mark.django_db
 @pytest.mark.parametrize('client_fixture_name', ['client', 'coordination_client'])
-@pytest.mark.parametrize('route_name', ['dashboards:inconsistencies', 'dashboards:insights'])
+@pytest.mark.parametrize('route_name', ['dashboards:inconsistencies', 'dashboards:insights', 'dashboards:previous_day'])
 def test_sensitive_pages_allow_supervisors_and_coordination(request, client_fixture_name, route_name):
     test_client = request.getfixturevalue(client_fixture_name)
 
@@ -171,7 +171,7 @@ def test_sensitive_pages_allow_supervisors_and_coordination(request, client_fixt
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize('route_name', ['dashboards:inconsistencies', 'dashboards:insights'])
+@pytest.mark.parametrize('route_name', ['dashboards:inconsistencies', 'dashboards:insights', 'dashboards:previous_day'])
 def test_sensitive_pages_allow_superuser(superuser_client, route_name):
     response = superuser_client.get(reverse(route_name))
 
@@ -335,6 +335,7 @@ def test_legacy_team_redirect_keeps_querystring(client):
         ('dashboards:services', 'rows', 'services'),
         ('dashboards:inconsistencies', 'section', 'inconsistencies'),
         ('dashboards:insights', 'insights', 'insights'),
+        ('dashboards:previous_day', 'previous_day', 'previous_day'),
         ('dashboards:monthly_rates', 'rows', 'monthly_rates'),
     ],
 )

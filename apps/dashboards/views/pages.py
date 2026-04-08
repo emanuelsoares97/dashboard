@@ -1,10 +1,15 @@
+from datetime import timedelta
+
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils import timezone
 
 from apps.dashboards.services import build_daily_rates_summary
 from apps.dashboards.services import build_monthly_rates_summary
 from apps.dashboards.services import generate_insights
+from apps.dashboards.services.previous_day import build_previous_day_payload
+from apps.dashboards.services.previous_day_export import export_previous_day_excel
 from apps.inbound.models import Agent
 
 from apps.dashboards.permissions import get_linked_agent
@@ -214,6 +219,51 @@ def insights(request):
     context['insight_attention_count'] = len(attention_insights)
     context['insight_visible_count'] = len(insights_data)
     return render(request, 'dashboards/insights.html', context)
+
+
+@require_sensitive_analytics
+def previous_day(request):
+    """Renderiza pagina operacional de leitura do dia anterior."""
+    assistant_redirect = _redirect_assistant_to_own_detail_if_needed(request)
+    if assistant_redirect:
+        return assistant_redirect
+
+    filters = _resolve_filters(request, force_assistant_name='')
+    today = timezone.localdate()
+    previous = today - timedelta(days=1)
+
+    filters['date_preset'] = 'custom'
+    filters['start_date'] = previous
+    filters['end_date'] = previous
+    filters['start_date_raw'] = previous.isoformat()
+    filters['end_date_raw'] = previous.isoformat()
+
+    payload = _build_dashboard_payload_from_filters(filters)
+
+    context = _build_common_context(
+        page_title='Dia anterior',
+        active_section='previous_day',
+        filters=filters,
+        dashboard_payload=payload,
+    )
+    context['previous_day'] = build_previous_day_payload(filters, reference_date=today)
+    return render(request, 'dashboards/previous_day.html', context)
+
+
+@require_sensitive_analytics
+def previous_day_export(request):
+    """Exporta relatório do dia anterior para Excel."""
+    filters = _resolve_filters(request, force_assistant_name='')
+    today = timezone.localdate()
+    
+    filters['date_preset'] = 'custom'
+    filters['start_date'] = today - timedelta(days=1)
+    filters['end_date'] = filters['start_date']
+    filters['start_date_raw'] = filters['start_date'].isoformat()
+    filters['end_date_raw'] = filters['end_date'].isoformat()
+    
+    payload = build_previous_day_payload(filters, reference_date=today)
+    return export_previous_day_excel(payload, filters)
 
 
 @require_dashboard_access

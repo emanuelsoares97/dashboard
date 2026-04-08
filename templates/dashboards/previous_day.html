@@ -1,0 +1,201 @@
+{% extends 'dashboards/layout.html' %}
+
+{% block dashboard_content %}
+<div class="dashboard-page">
+    <section class="card panel panel-full">
+        <div class="panel-header">
+            <div>
+                <h3 class="card-title">Dia anterior ({{ previous_day.day }})</h3>
+                <p class="panel-subtitle">Leitura rápida operacional para supervisão e auditoria.</p>
+            </div>
+            <div class="panel-actions">
+                <a class="btn btn-secondary" href="{% url 'dashboards:previous_day_export' %}?{{ dashboard_querystring }}">Exportar Excel</a>
+            </div>
+        </div>
+    </section>
+
+    <section class="kpi-grid">
+        <article class="kpi-card card">
+            <span class="kpi-label">Total de chamadas</span>
+            <strong class="kpi-value">{{ previous_day.kpis.total_calls }}</strong>
+        </article>
+        <article class="kpi-card kpi-card-good card">
+            <span class="kpi-label">Taxa de retenção</span>
+            <strong class="kpi-value">{{ previous_day.kpis.retention_rate }}%</strong>
+        </article>
+        <article class="kpi-card kpi-card-danger card">
+            <span class="kpi-label">Taxa de não retenção</span>
+            <strong class="kpi-value">{{ previous_day.kpis.non_retention_rate }}%</strong>
+        </article>
+        <article class="kpi-card kpi-card-warning card">
+            <span class="kpi-label">% chamadas sem ação</span>
+            <strong class="kpi-value">{{ previous_day.kpis.no_action_pct }}%</strong>
+        </article>
+        <article class="kpi-card kpi-card-warning card">
+            <span class="kpi-label">% inconsistências</span>
+            <strong class="kpi-value">{{ previous_day.kpis.inconsistency_rate }}%</strong>
+        </article>
+    </section>
+
+    <section class="analytics-grid analytics-grid-middle">
+        <article class="card panel">
+            <div class="panel-header"><div><h3 class="card-title">Top 3 assistentes</h3></div></div>
+            <div class="table-wrap table-wrap-compact">
+                <table class="table table-sortable table-analytic">
+                    <thead><tr><th>Assistente</th><th>Chamadas</th><th>Retenção</th></tr></thead>
+                    <tbody>
+                        {% for row in previous_day.assistants.top %}
+                        <tr>
+                            <td>{{ row.assistant_name }}</td>
+                            <td>{{ row.total_calls }}</td>
+                            <td>{{ row.retention_rate }}%</td>
+                        </tr>
+                        {% empty %}<tr><td class="table-empty" colspan="3">Sem dados no dia anterior.</td></tr>{% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </article>
+
+        <article class="card panel">
+            <div class="panel-header"><div><h3 class="card-title">Bottom 3 assistentes</h3></div></div>
+            <div class="table-wrap table-wrap-compact">
+                <table class="table table-sortable table-analytic">
+                    <thead><tr><th>Assistente</th><th>Chamadas</th><th>Retenção</th></tr></thead>
+                    <tbody>
+                        {% for row in previous_day.assistants.bottom %}
+                        <tr>
+                            <td>{{ row.assistant_name }}</td>
+                            <td>{{ row.total_calls }}</td>
+                            <td>{{ row.retention_rate }}%</td>
+                        </tr>
+                        {% empty %}<tr><td class="table-empty" colspan="3">Sem dados no dia anterior.</td></tr>{% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </article>
+    </section>
+
+    <section class="analytics-grid analytics-grid-middle">
+        <article class="card panel">
+            <div class="panel-header"><div><h3 class="card-title">Tipificação com maior sucesso</h3></div></div>
+            {% if previous_day.tipification.best %}
+            <p class="dashboard-subtitle"><strong>{{ previous_day.tipification.best.tipification_label }}</strong></p>
+            <p class="panel-subtitle">Retenção: {{ previous_day.tipification.best.retention_rate }}% em {{ previous_day.tipification.best.total_calls }} chamadas.</p>
+            {% else %}
+            <p class="panel-subtitle">Sem tipificações no dia anterior.</p>
+            {% endif %}
+        </article>
+
+        <article class="card panel">
+            <div class="panel-header"><div><h3 class="card-title">Tipificação com menor sucesso</h3></div></div>
+            {% if previous_day.tipification.worst %}
+            <p class="dashboard-subtitle"><strong>{{ previous_day.tipification.worst.tipification_label }}</strong></p>
+            <p class="panel-subtitle">Retenção: {{ previous_day.tipification.worst.retention_rate }}% em {{ previous_day.tipification.worst.total_calls }} chamadas.</p>
+            {% else %}
+            <p class="panel-subtitle">Sem tipificações no dia anterior.</p>
+            {% endif %}
+        </article>
+    </section>
+
+    <section class="analytics-grid analytics-grid-middle">
+        <article class="card panel">
+            <div class="panel-header"><div><h3 class="card-title">Ações de retenção</h3></div></div>
+            <div class="table-wrap table-wrap-compact">
+                <table class="table table-analytic">
+                    <tbody>
+                        <tr>
+                            <th>Ação mais utilizada</th>
+                            <td>{% if previous_day.actions.most_used %}{{ previous_day.actions.most_used.retention_action }}{% else %}—{% endif %}</td>
+                        </tr>
+                        <tr>
+                            <th>Ação com maior sucesso</th>
+                            <td>{% if previous_day.actions.highest_success %}{{ previous_day.actions.highest_success.retention_action }} ({{ previous_day.actions.highest_success.success_rate }}%){% else %}—{% endif %}</td>
+                        </tr>
+                        <tr>
+                            <th>Ação com menor sucesso</th>
+                            <td>{% if previous_day.actions.lowest_success %}{{ previous_day.actions.lowest_success.retention_action }} ({{ previous_day.actions.lowest_success.success_rate }}%){% else %}—{% endif %}</td>
+                        </tr>
+                        <tr>
+                            <th>% sem ação</th>
+                            <td>{{ previous_day.actions.no_action_pct }}%</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </article>
+    </section>
+
+    <section class="analytics-grid analytics-grid-compact">
+        <article class="card panel panel-full">
+            <div class="panel-header">
+                <div>
+                    <h3 class="card-title">Insights automáticos</h3>
+                    <p class="panel-subtitle">Leitura operacional e ações sugeridas com base no dia anterior.</p>
+                </div>
+            </div>
+            <div class="insights-grid">
+                {% for insight in previous_day.insights %}
+                <article class="insight-card insight-{{ insight.type }} card">
+                    <span class="insight-title">{{ insight.title }}</span>
+                    <strong class="insight-value">{{ insight.value }}</strong>
+                    <p class="insight-description">{{ insight.summary|default:insight.description }}</p>
+                    {% if insight.operational_interpretation %}<p class="insight-description"><strong>Leitura operacional:</strong> {{ insight.operational_interpretation }}</p>{% endif %}
+                    {% if insight.suggested_actions %}
+                    <ul class="insight-list">
+                        {% for action in insight.suggested_actions %}<li>{{ action }}</li>{% endfor %}
+                    </ul>
+                    {% endif %}
+                </article>
+                {% empty %}
+                <article class="insight-card insight-info card">
+                    <span class="insight-title">Sem insights</span>
+                    <strong class="insight-value">N/A</strong>
+                    <p class="insight-description">Sem dados suficientes no dia anterior.</p>
+                </article>
+                {% endfor %}
+            </div>
+        </article>
+    </section>
+
+    <section class="analytics-grid analytics-grid-compact">
+        <article class="card panel panel-full">
+            <div class="panel-header">
+                <div>
+                    <h3 class="card-title">Chamadas prioritárias para auditoria</h3>
+                    <p class="panel-subtitle">Prioridade por assistente abaixo da média, sem ação, tipificação fraca e inconsistências.</p>
+                </div>
+            </div>
+            <div class="table-wrap table-wrap-compact">
+                <table class="table table-sortable table-analytic">
+                    <thead>
+                        <tr>
+                            <th>Chamada</th>
+                            <th>Assistente</th>
+                            <th>Data</th>
+                            <th>Motivo</th>
+                            <th>Ação</th>
+                            <th>Resultado</th>
+                            <th>Prioridade</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in previous_day.audit_calls %}
+                        <tr>
+                            <td>{{ row.call_id_external }}</td>
+                            <td>{{ row.assistant_name }}</td>
+                            <td>{{ row.occurred_on }}</td>
+                            <td>{{ row.churn_reason }}</td>
+                            <td>{{ row.retention_action }}</td>
+                            <td>{{ row.final_outcome }}</td>
+                            <td>{{ row.priority_reasons|join:', ' }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td class="table-empty" colspan="7">Sem chamadas prioritárias para auditoria no dia anterior.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </article>
+    </section>
+</div>
+{% endblock %}
