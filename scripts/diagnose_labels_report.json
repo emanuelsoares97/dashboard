@@ -1,0 +1,354 @@
+{
+  "excel": {
+    "source": "C:\\Users\\tutas\\Documents\\Projetos GitHUB\\dashboard\\tip ret (2).xlsx",
+    "total_rows": 819,
+    "outcome_labels": [
+      [
+        "Não retido",
+        573
+      ],
+      [
+        "Retido",
+        234
+      ],
+      [
+        "Call drop",
+        12
+      ]
+    ],
+    "outcome_labels_normalized": [
+      [
+        "nao retido",
+        573
+      ],
+      [
+        "retido",
+        234
+      ],
+      [
+        "call drop",
+        12
+      ]
+    ],
+    "retention_action_labels": [
+      [
+        "Nao Retido",
+        573
+      ],
+      [
+        "Retido Migracao Pre Pago",
+        102
+      ],
+      [
+        "Retido Outros",
+        59
+      ],
+      [
+        "Pendente",
+        21
+      ],
+      [
+        "Retido Questoes Tecnicas Resolvidas",
+        16
+      ],
+      [
+        "Chamada Caiu",
+        12
+      ],
+      [
+        "Retido Explicacao Servicos",
+        10
+      ],
+      [
+        "Retido Alteracao de Titular",
+        7
+      ],
+      [
+        "Retido Argumentario Preco",
+        6
+      ],
+      [
+        "Retido Atrasos Resolvidos pelo BKO",
+        5
+      ],
+      [
+        "Anulacao do pedido de corte",
+        3
+      ],
+      [
+        "Retido Explicacao Fatura",
+        2
+      ],
+      [
+        "Retido Upgrade ou Downgrade",
+        1
+      ],
+      [
+        "Retido FaturaÂ Corrigida",
+        1
+      ],
+      [
+        "Retido Migracao NOWO",
+        1
+      ]
+    ],
+    "retention_action_labels_normalized": [
+      [
+        "nao retido",
+        573
+      ],
+      [
+        "retido migracao pre pago",
+        102
+      ],
+      [
+        "retido outros",
+        59
+      ],
+      [
+        "pendente",
+        21
+      ],
+      [
+        "retido questoes tecnicas resolvidas",
+        16
+      ],
+      [
+        "chamada caiu",
+        12
+      ],
+      [
+        "retido explicacao servicos",
+        10
+      ],
+      [
+        "retido alteracao de titular",
+        7
+      ],
+      [
+        "retido argumentario preco",
+        6
+      ],
+      [
+        "retido atrasos resolvidos pelo bko",
+        5
+      ],
+      [
+        "anulacao do pedido de corte",
+        3
+      ],
+      [
+        "retido explicacao fatura",
+        2
+      ],
+      [
+        "retido upgrade ou downgrade",
+        1
+      ],
+      [
+        "retido faturaa corrigida",
+        1
+      ],
+      [
+        "retido migracao nowo",
+        1
+      ]
+    ]
+  },
+  "database": {
+    "source": "database",
+    "total_rows": 2820,
+    "outcome_labels": [
+      [
+        "Nao Retido",
+        1733
+      ],
+      [
+        "Retido",
+        954
+      ],
+      [
+        "Call Drop",
+        133
+      ]
+    ],
+    "outcome_labels_normalized": [
+      [
+        "nao retido",
+        1733
+      ],
+      [
+        "retido",
+        954
+      ],
+      [
+        "call drop",
+        133
+      ]
+    ],
+    "retention_action_labels": [
+      [
+        "Nao Retido",
+        573
+      ],
+      [
+        "Pendente",
+        360
+      ],
+      [
+        "Sem acao",
+        357
+      ],
+      [
+        "Upgrade",
+        347
+      ],
+      [
+        "Fidelizacao",
+        328
+      ],
+      [
+        "Oferta adicional",
+        323
+      ],
+      [
+        "Desconto",
+        306
+      ],
+      [
+        "Retido Migracao Pre Pago",
+        103
+      ],
+      [
+        "Retido Outros",
+        59
+      ],
+      [
+        "Retido Questoes Tecnicas Resolvidas",
+        16
+      ],
+      [
+        "Chamada Caiu",
+        12
+      ],
+      [
+        "Retido Explicacao Servicos",
+        10
+      ],
+      [
+        "Retido Alteracao de Titular",
+        7
+      ],
+      [
+        "Retido Argumentario Preco",
+        6
+      ],
+      [
+        "Retido Atrasos Resolvidos pelo BKO",
+        5
+      ],
+      [
+        "Anulacao do pedido de corte",
+        3
+      ],
+      [
+        "Retido Explicacao Fatura",
+        2
+      ],
+      [
+        "Retido Upgrade ou Downgrade",
+        1
+      ],
+      [
+        "Retido Migracao NOWO",
+        1
+      ],
+      [
+        "Retido FaturaÂ Corrigida",
+        1
+      ]
+    ],
+    "retention_action_labels_normalized": [
+      [
+        "nao retido",
+        573
+      ],
+      [
+        "pendente",
+        360
+      ],
+      [
+        "sem acao",
+        357
+      ],
+      [
+        "upgrade",
+        347
+      ],
+      [
+        "fidelizacao",
+        328
+      ],
+      [
+        "oferta adicional",
+        323
+      ],
+      [
+        "desconto",
+        306
+      ],
+      [
+        "retido migracao pre pago",
+        103
+      ],
+      [
+        "retido outros",
+        59
+      ],
+      [
+        "retido questoes tecnicas resolvidas",
+        16
+      ],
+      [
+        "chamada caiu",
+        12
+      ],
+      [
+        "retido explicacao servicos",
+        10
+      ],
+      [
+        "retido alteracao de titular",
+        7
+      ],
+      [
+        "retido argumentario preco",
+        6
+      ],
+      [
+        "retido atrasos resolvidos pelo bko",
+        5
+      ],
+      [
+        "anulacao do pedido de corte",
+        3
+      ],
+      [
+        "retido explicacao fatura",
+        2
+      ],
+      [
+        "retido upgrade ou downgrade",
+        1
+      ],
+      [
+        "retido migracao nowo",
+        1
+      ],
+      [
+        "retido faturaa corrigida",
+        1
+      ]
+    ]
+  }
+}

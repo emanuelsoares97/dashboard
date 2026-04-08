@@ -1,3 +1,12 @@
+from apps.dashboards.services.label_normalization import build_normalized_set
+from apps.dashboards.services.label_normalization import is_label_in
+from apps.dashboards.services.label_normalization import normalize_label
+
+
+INSIGHT_NO_ACTION_LABELS = {'sem acao', 'sem ação', 'sem acao registada', 'pendente'}
+INSIGHT_NORMALIZED_NO_ACTION_LABELS = build_normalized_set(INSIGHT_NO_ACTION_LABELS)
+
+
 def _base_enrichment(insight: dict) -> dict:
     """Garante campos operacionais padrao para todos os insights."""
     enriched = {
@@ -19,7 +28,7 @@ def enrich_insight(insight: dict) -> dict:
         return enriched
 
     title = enriched.get('title', '')
-    value = (enriched.get('value') or '').strip().lower()
+    value = normalize_label(enriched.get('value') or '')
 
     if title == 'Assistente abaixo da media':
         enriched['operational_interpretation'] = 'Desempenho abaixo da media do periodo e com potencial impacto na retencao.'
@@ -45,7 +54,7 @@ def enrich_insight(insight: dict) -> dict:
         enriched['audit_recommendation'] = 'Priorizar chamadas do servico com maior nao retencao, sobretudo quando terminou em nao retido.'
         return enriched
 
-    if title == 'Acao mais utilizada' and value in {'sem acao', 'pendente'}:
+    if title == 'Acao mais utilizada' and is_label_in(value, INSIGHT_NORMALIZED_NO_ACTION_LABELS):
         enriched['operational_interpretation'] = 'Elevado volume de chamadas sem acao de retencao registada.'
         enriched['suggested_actions'] = [
             'Validar se sem acao esta a ser usado corretamente.',

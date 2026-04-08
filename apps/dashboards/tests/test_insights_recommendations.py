@@ -56,7 +56,9 @@ def test_generate_insights_enriches_negative_cards_with_operational_guidance(bas
 
 @pytest.mark.django_db
 def test_generate_insights_sem_acao_includes_specific_operational_recommendations(base_dimensions, interaction_factory):
-    action_sem_acao = base_dimensions['pending_action']
+    from apps.inbound.models import RetentionAction
+
+    action_sem_acao = RetentionAction.objects.create(code='sem-acao', label='Sem acao', is_pending=False)
 
     for idx in range(5):
         interaction_factory(
@@ -77,3 +79,50 @@ def test_generate_insights_sem_acao_includes_specific_operational_recommendation
     assert target['operational_interpretation']
     assert target['suggested_actions']
     assert target['audit_recommendation']
+
+
+@pytest.mark.django_db
+def test_generate_insights_sem_acao_with_accent_normalizes_value(base_dimensions, interaction_factory):
+    from apps.inbound.models import RetentionAction
+
+    action_sem_acao = RetentionAction.objects.create(code='sem-acao-acc', label='Sem ação', is_pending=False)
+
+    for idx in range(5):
+        interaction_factory(
+            call_id_external=f'sem-acao-acc-{idx}',
+            retention_action=action_sem_acao,
+        )
+
+    insights = generate_insights(
+        {
+            'assistant_name': '',
+            'start_date': date(2026, 1, 1),
+            'end_date': date(2026, 1, 31),
+        }
+    )
+
+    target = next(item for item in insights if item['title'] == 'Acao mais utilizada')
+    assert target['value'] == 'Sem acao'
+    assert target['operational_interpretation']
+
+
+@pytest.mark.django_db
+def test_generate_insights_pendente_keeps_original_label(base_dimensions, interaction_factory):
+    action_pendente = base_dimensions['pending_action']
+
+    for idx in range(5):
+        interaction_factory(
+            call_id_external=f'pendente-{idx}',
+            retention_action=action_pendente,
+        )
+
+    insights = generate_insights(
+        {
+            'assistant_name': '',
+            'start_date': date(2026, 1, 1),
+            'end_date': date(2026, 1, 31),
+        }
+    )
+
+    target = next(item for item in insights if item['title'] == 'Acao mais utilizada')
+    assert target['value'] == action_pendente.label

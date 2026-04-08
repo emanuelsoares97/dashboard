@@ -237,26 +237,28 @@ def _build_auditoria_sheet(workbook: Workbook, payload: dict):
     ws = workbook.create_sheet('Auditoria')
 
     headers = [
+        'Score',
         'ID Chamada',
         'Assistente',
         'Data',
         'Motivo corte',
         'Acao retencao',
         'Resultado final',
-        'Razoes priorizacao',
+        'Motivos de auditoria',
     ]
     ws.append(headers)
     _setup_worksheet_styles(ws)
 
     for call in payload['audit_calls']:
-        ws.append([
+                ws.append([
+                    int(call['audit_priority_score']),
             call['call_id_external'],
             call['assistant_name'],
             call['occurred_on'].strftime('%Y-%m-%d') if call['occurred_on'] else '',
             call['churn_reason'],
             call['retention_action'],
             call['final_outcome'],
-            ' | '.join(call['priority_reasons']),
+            ' | '.join(call['audit_reasons']),
         ])
 
 

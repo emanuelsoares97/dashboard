@@ -1,0 +1,168 @@
+{
+  "file": "C:\\Users\\tutas\\Documents\\Projetos GitHUB\\dashboard\\tip ret (2).xlsx",
+  "total_rows": 819,
+  "valid_rows": 819,
+  "invalid_rows_count": 0,
+  "invalid_rows_sample": [],
+  "final_outcome_counts_top20": [
+    [
+      "Não retido",
+      573
+    ],
+    [
+      "Retido",
+      234
+    ],
+    [
+      "Call drop",
+      12
+    ]
+  ],
+  "retention_action_counts_top20": [
+    [
+      "Nao Retido",
+      573
+    ],
+    [
+      "Retido Migracao Pre Pago",
+      102
+    ],
+    [
+      "Retido Outros",
+      59
+    ],
+    [
+      "Pendente",
+      21
+    ],
+    [
+      "Retido Questoes Tecnicas Resolvidas",
+      16
+    ],
+    [
+      "Chamada Caiu",
+      12
+    ],
+    [
+      "Retido Explicacao Servicos",
+      10
+    ],
+    [
+      "Retido Alteracao de Titular",
+      7
+    ],
+    [
+      "Retido Argumentario Preco",
+      6
+    ],
+    [
+      "Retido Atrasos Resolvidos pelo BKO",
+      5
+    ],
+    [
+      "Anulacao do pedido de corte",
+      3
+    ],
+    [
+      "Retido Explicacao Fatura",
+      2
+    ],
+    [
+      "Retido Upgrade ou Downgrade",
+      1
+    ],
+    [
+      "Retido FaturaÂ Corrigida",
+      1
+    ],
+    [
+      "Retido Migracao NOWO",
+      1
+    ]
+  ],
+  "churn_reason_counts_top20": [
+    [
+      "Dif financeiras",
+      113
+    ],
+    [
+      "Motivo Nao Indicado",
+      100
+    ],
+    [
+      "Ausencia Prolongada",
+      79
+    ],
+    [
+      "Problema Tecnico Movel",
+      59
+    ],
+    [
+      "Retencao Movel",
+      52
+    ],
+    [
+      "Concorrencia",
+      48
+    ],
+    [
+      "Nova Morada Com DIGI",
+      47
+    ],
+    [
+      "Falta de Cobertura Movel",
+      38
+    ],
+    [
+      "Problema Tecnico Fibra",
+      33
+    ],
+    [
+      "Nova morada Sem Cobertura",
+      32
+    ],
+    [
+      "Funcionalidades Movel",
+      23
+    ],
+    [
+      "Migracao para Pre Pago",
+      22
+    ],
+    [
+      "Incompatibilidade Equipamento",
+      19
+    ],
+    [
+      "Retencao Fibra",
+      16
+    ],
+    [
+      "Funcionalidades da TV",
+      14
+    ],
+    [
+      "Nova Morada Concorrencia",
+      11
+    ],
+    [
+      "Encerramento do Negocio",
+      11
+    ],
+    [
+      "Conteudos da TV",
+      10
+    ],
+    [
+      "Problema Faturacao",
+      10
+    ],
+    [
+      "Falecimento do Titular",
+      10
+    ]
+  ],
+  "sem_acao_count": 0,
+  "pendente_count": 21,
+  "nao_retido_count": 0
+}

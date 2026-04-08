@@ -3,6 +3,8 @@ from datetime import date, timedelta
 from django.utils import timezone
 
 from apps.dashboards import selectors
+from apps.dashboards.services.label_normalization import build_normalized_set
+from apps.dashboards.services.label_normalization import is_label_in
 from apps.dashboards.services.insights import generate_insights
 from apps.dashboards.services.tables import (
     build_assistant_ranking_table,
@@ -11,6 +13,39 @@ from apps.dashboards.services.tables import (
     calculate_general_kpis,
 )
 from apps.quality.models import DataQualityFlag
+
+
+NON_RETAINED_LABELS = {'nao retido'}
+NO_ACTION_LABELS = {'sem acao', 'sem ação', 'sem acao registada'}
+HIGH_AUDIT_THIRD_CATEGORIES = {
+    'concorrencia',
+    'concorrência',
+    'problema faturacao',
+    'problema faturação',
+    'problema tecnico fibra',
+    'problema técnico fibra',
+    'problema tecnico movel',
+    'problema técnico movel',
+    'conteudos da tv',
+    'conteúdos da tv',
+    'canais premium',
+}
+
+NORMALIZED_NON_RETAINED_LABELS = build_normalized_set(NON_RETAINED_LABELS)
+NORMALIZED_NO_ACTION_LABELS = build_normalized_set(NO_ACTION_LABELS)
+NORMALIZED_HIGH_AUDIT_THIRD_CATEGORIES = build_normalized_set(HIGH_AUDIT_THIRD_CATEGORIES)
+
+
+def _is_no_action_label(label: str | None) -> bool:
+    return is_label_in(label, NORMALIZED_NO_ACTION_LABELS)
+
+
+def _is_not_retained_outcome(label: str | None) -> bool:
+    return is_label_in(label, NORMALIZED_NON_RETAINED_LABELS)
+
+
+def _is_high_audit_third_category(label: str | None) -> bool:
+    return is_label_in(label, NORMALIZED_HIGH_AUDIT_THIRD_CATEGORIES)
 
 
 def _pct(numerator: int, denominator: int) -> float:
@@ -94,7 +129,7 @@ def _build_actions_summary(action_rows, *, total_calls: int):
     lowest_success = min(rows_with_usage, key=lambda item: (item['success_rate'], -item['total_used']))
 
     no_action_row = next(
-        (row for row in action_rows if row['retention_action'].strip().lower() in {'sem acao', 'pendente'}),
+        (row for row in action_rows if _is_no_action_label(row['retention_action'])),
         None,
     )
     no_action_calls = no_action_row['total_used'] if no_action_row else 0
@@ -107,7 +142,65 @@ def _build_actions_summary(action_rows, *, total_calls: int):
     }
 
 
+def _calculate_audit_priority_score(interaction, *, below_avg_assistant_ids, low_retention_tipifications) -> tuple[int, list[str]]:
+    """
+    Calcula score de prioridade (0-100) e lista de motivos para auditoria.
+    
+    Pesos principais:
+    - Cliente nao retido: 25
+    - Sem acao de retencao registada: 30
+    - Third category com alto potencial de retencao: 20
+    - Assistente abaixo da media: 15
+    - Inconsistencia: 10
+    - Alta taxa de nao retencao no servico/tipificacao: 10
+    """
+    score = 0
+    reasons = []
+    
+    # Base: cliente nao retido
+    score += 25
+    reasons.append('Cliente nao foi retido')
+
+    # Sem acao de retencao
+    action_label = interaction.retention_action.label if interaction.retention_action_id else 'Sem acao'
+    if _is_no_action_label(action_label):
+        score += 30
+        reasons.append('Sem acao de retencao registada')
+
+    third_category_label = interaction.churn_reason.label if interaction.churn_reason_id else ''
+    if _is_high_audit_third_category(third_category_label):
+        score += 20
+        reasons.append('Tipificacao com potencial de retencao')
+    
+    # Assistente abaixo da média (peso: 25)
+    if interaction.agent_id in below_avg_assistant_ids:
+        score += 15
+        reasons.append('Assistente abaixo da media')
+    
+    # Inconsistência (peso: 20)
+    has_inconsistency = any(
+        flag.flag_type == DataQualityFlag.FlagType.TIPIFICATION_INCONSISTENCY
+        for flag in interaction.quality_flags.all()
+    )
+    if has_inconsistency:
+        score += 10
+        reasons.append('Inconsistencia de registo')
+    
+    # Baixa retencao do servico/tipificacao
+    tipification_label = f"{interaction.churn_reason.label if interaction.churn_reason_id else 'Sem motivo'} | {action_label}"
+    if tipification_label in low_retention_tipifications:
+        score += 10
+        reasons.append('Alta taxa de nao retencao neste servico')
+    
+    return min(score, 100), reasons
+
+
 def _build_audit_calls(queryset, *, assistant_rows, low_retention_tipifications):
+    """
+    Constrói lista de chamadas para auditoria, priorizadas por score.
+    
+    Retorna top 15 chamadas ordenadas por score descrescente.
+    """
     if not queryset.exists():
         return []
 
@@ -129,45 +222,40 @@ def _build_audit_calls(queryset, *, assistant_rows, low_retention_tipifications)
     )
 
     for interaction in interactions:
-        reasons = []
-
-        if interaction.agent_id in below_avg_assistant_ids:
-            reasons.append('Assistente abaixo da media')
-
-        action_label = interaction.retention_action.label if interaction.retention_action_id else 'Sem acao'
-        if interaction.retention_action_id and interaction.retention_action.is_pending:
-            reasons.append('Chamada sem acao registada')
-
-        tipification_label = f"{interaction.churn_reason.label if interaction.churn_reason_id else 'Sem motivo'} | {action_label}"
-        if tipification_label in low_retention_tipifications:
-            reasons.append('Tipificacao com baixa retencao')
-
-        has_inconsistency = any(
-            flag.flag_type == DataQualityFlag.FlagType.TIPIFICATION_INCONSISTENCY
-            for flag in interaction.quality_flags.all()
-        )
-        if has_inconsistency:
-            reasons.append('Inconsistencia de registo')
-
-        if not reasons:
+        if not _is_not_retained_outcome(interaction.final_outcome.label):
             continue
 
+        priority_score, audit_reasons = _calculate_audit_priority_score(
+            interaction,
+            below_avg_assistant_ids=below_avg_assistant_ids,
+            low_retention_tipifications=low_retention_tipifications,
+        )
+        
+        if not audit_reasons:
+            continue
+
+        action_label = interaction.retention_action.label if interaction.retention_action_id else 'Sem acao'
+        
         calls.append(
             {
                 'interaction_id': interaction.id,
                 'call_id_external': interaction.call_id_external or f'#{interaction.id}',
                 'assistant_name': interaction.agent.name,
                 'occurred_on': interaction.occurred_on,
+                'observations': interaction.observations,
+                'category': interaction.category,
+                'subcategory': interaction.subcategory,
+                'third_category': interaction.churn_reason.label if interaction.churn_reason_id else '',
                 'churn_reason': interaction.churn_reason.label if interaction.churn_reason_id else 'Sem motivo',
                 'retention_action': action_label,
                 'final_outcome': interaction.final_outcome.label,
-                'priority_reasons': reasons,
-                'priority_score': len(reasons),
+                'audit_priority_score': priority_score,
+                'audit_reasons': audit_reasons,
             }
         )
 
-    calls.sort(key=lambda item: (-item['priority_score'], item['assistant_name'], str(item['call_id_external'])))
-    return calls[:25]
+    calls.sort(key=lambda item: (-item['audit_priority_score'], item['assistant_name'], str(item['call_id_external'])))
+    return calls[:15]
 
 
 def build_previous_day_payload(filters: dict, *, reference_date: date | None = None) -> dict:
@@ -187,8 +275,6 @@ def build_previous_day_payload(filters: dict, *, reference_date: date | None = N
 
     kpis = calculate_general_kpis(day_qs)
     total_calls = kpis['total_calls']
-
-    no_action_calls = day_qs.filter(retention_action__is_pending=True).count()
     inconsistency_section = build_inconsistency_section(day_qs)
 
     assistant_rows = [row for row in build_assistant_ranking_table(day_qs) if row['total_calls'] > 0]
@@ -204,6 +290,11 @@ def build_previous_day_payload(filters: dict, *, reference_date: date | None = N
     tipification = _build_tipification_summary(day_qs)
 
     actions_rows = build_retention_action_table(day_qs)
+    no_action_calls = sum(
+        row['total_used']
+        for row in actions_rows
+        if _is_no_action_label(row['retention_action'])
+    )
     actions_summary = _build_actions_summary(actions_rows, total_calls=total_calls)
 
     insights = generate_insights(

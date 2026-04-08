@@ -1,6 +1,8 @@
 from django.urls import reverse
 
 from apps.dashboards import selectors
+from apps.dashboards.services.label_normalization import build_normalized_set
+from apps.dashboards.services.label_normalization import is_label_in
 from apps.dashboards.services.insight_recommendations import enrich_insight
 
 # ---------------------------------------------------------------------------
@@ -16,6 +18,11 @@ INSIGHTS_MIN_SERVICE_CALLS = 2
 INSIGHTS_MIN_SERVICE_SHARE = 0.15
 INSIGHTS_MIN_ASSISTANT_CALLS = 3
 INSIGHTS_MIN_INCONSISTENCY_CALLS = 5
+
+INSIGHTS_ATTENTION_ACTION_LABELS = {'sem acao', 'sem ação', 'sem acao registada', 'pendente'}
+INSIGHTS_NORMALIZED_ATTENTION_ACTION_LABELS = build_normalized_set(INSIGHTS_ATTENTION_ACTION_LABELS)
+INSIGHTS_CANONICAL_NO_ACTION_LABELS = {'sem acao', 'sem ação', 'sem acao registada'}
+INSIGHTS_NORMALIZED_CANONICAL_NO_ACTION_LABELS = build_normalized_set(INSIGHTS_CANONICAL_NO_ACTION_LABELS)
 
 # ---------------------------------------------------------------------------
 # Private utility helpers (self-contained copies; will consolidate to
@@ -41,6 +48,23 @@ def _fmt_pct(value):
 
 def _assistant_detail_url(assistant_id):
     return reverse('dashboards:assistant_detail', args=[assistant_id])
+
+
+def _is_attention_action(label):
+    """
+    Identifica acoes que exigem atencao operacional no contexto de insights.
+
+    Nota semantica:
+    - "sem acao" representa ausencia de acao de retencao.
+    - "pendente" representa estado valido que merece acompanhamento.
+    - Em insights, ambos entram como sinais de atencao, mas nao significam o mesmo.
+    """
+    return is_label_in(label, INSIGHTS_NORMALIZED_ATTENTION_ACTION_LABELS)
+
+
+def _is_canonical_no_action(label):
+    """Identifica labels que devem ser exibidos como 'Sem acao'."""
+    return is_label_in(label, INSIGHTS_NORMALIZED_CANONICAL_NO_ACTION_LABELS)
 
 
 def _build_insight(*, type_, title, value, description, available=True, warning=False, reason_unavailable=None, url=None):
@@ -219,7 +243,7 @@ def generate_insights(filters):
     if top_action and eligible_actions:
         top_action_warning = len(eligible_actions) < 2
         top_action_label = top_action.get('retention_action__label') or 'Sem acao'
-        if top_action_label.strip().lower() == 'pendente':
+        if _is_canonical_no_action(top_action_label):
             top_action_label = 'Sem acao'
         insights.append(
             _build_insight(

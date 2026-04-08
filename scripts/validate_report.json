@@ -1,0 +1,36 @@
+{
+  "summary": {
+    "total_rows": 819,
+    "imported_rows": 1,
+    "failed_rows": 0,
+    "duplicate_rows": 818,
+    "duplicate_in_file_rows": 0,
+    "duplicate_previous_rows": 818,
+    "inconsistencies": 0
+  },
+  "batch_status": "success",
+  "total_rows": 819,
+  "success_rows": 1,
+  "failed_rows": 0,
+  "duplicate_rows": 818,
+  "flagged_rows": 0,
+  "error_log_head": "",
+  "imported_interactions": 1,
+  "date_range": [
+    "2026-03-23",
+    "2026-03-23"
+  ],
+  "previous_day_total_calls": 170,
+  "previous_day_audit_calls": 15,
+  "top_audit_call": "230114",
+  "top_audit_score": 70,
+  "top_audit_reasons": [
+    "Cliente nao foi retido",
+    "Tipificacao com potencial de retencao",
+    "Assistente abaixo da media",
+    "Alta taxa de nao retencao neste servico"
+  ],
+  "retention_action_labels_sample": [
+    "Retido Migracao Pre Pago"
+  ]
+}

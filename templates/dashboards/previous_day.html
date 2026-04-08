@@ -7,6 +7,12 @@
             <div>
                 <h3 class="card-title">Dia anterior ({{ previous_day.day }})</h3>
                 <p class="panel-subtitle">Leitura rápida operacional para supervisão e auditoria.</p>
+                <div class="audit-help" style="margin-top: 8px; font-size: 0.9em; color: #4b5563;">
+                    <strong>Como o score de auditoria e calculado:</strong>
+                    cliente nao retido (+25), sem acao de retencao (+30), tipificacao com potencial de retencao (+20), assistente abaixo da media (+15), inconsistência (+10), alta nao retencao no servico (+10).<br>
+                    <strong>Faixas:</strong> critico (&gt;=60), alto (40-59), medio (&lt;40).<br>
+                    <strong>Nota:</strong> "Pendente" nao e tratado como erro; a prioridade e contextual.
+                </div>
             </div>
             <div class="panel-actions">
                 <a class="btn btn-secondary" href="{% url 'dashboards:previous_day_export' %}?{{ dashboard_querystring }}">Exportar Excel</a>
@@ -162,40 +168,91 @@
             <div class="panel-header">
                 <div>
                     <h3 class="card-title">Chamadas prioritárias para auditoria</h3>
-                    <p class="panel-subtitle">Prioridade por assistente abaixo da média, sem ação, tipificação fraca e inconsistências.</p>
+                    <p class="panel-subtitle">Top 15 ordenadas por score de prioridade. Critérios: sem ação, assistente abaixo da média, inconsistências, serviço com baixa retenção.</p>
                 </div>
             </div>
             <div class="table-wrap table-wrap-compact">
                 <table class="table table-sortable table-analytic">
                     <thead>
                         <tr>
-                            <th>Chamada</th>
-                            <th>Assistente</th>
-                            <th>Data</th>
-                            <th>Motivo</th>
-                            <th>Ação</th>
-                            <th>Resultado</th>
-                            <th>Prioridade</th>
+                            <th style="width: 8%;">Score</th>
+                            <th style="width: 10%;">Chamada</th>
+                            <th style="width: 12%;">Assistente</th>
+                            <th style="width: 10%;">Data</th>
+                            <th style="width: 15%;">Motivo</th>
+                            <th style="width: 12%;">Ação</th>
+                            <th style="width: 12%;">Resultado</th>
+                            <th style="width: 25%;">Motivos de auditoria</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for row in previous_day.audit_calls %}
-                        <tr>
-                            <td>{{ row.call_id_external }}</td>
-                            <td>{{ row.assistant_name }}</td>
-                            <td>{{ row.occurred_on }}</td>
-                            <td>{{ row.churn_reason }}</td>
-                            <td>{{ row.retention_action }}</td>
-                            <td>{{ row.final_outcome }}</td>
-                            <td>{{ row.priority_reasons|join:', ' }}</td>
+                        {% for call in previous_day.audit_calls %}
+                        <tr class="{% if call.audit_priority_score >= 60 %}audit-critical{% elif call.audit_priority_score >= 40 %}audit-high{% else %}audit-medium{% endif %}">
+                            <td>
+                                <span class="audit-score-badge" title="{{ call.audit_priority_score }}/100">
+                                    {{ call.audit_priority_score }}
+                                </span>
+                            </td>
+                            <td>{{ call.call_id_external }}</td>
+                            <td>{{ call.assistant_name }}</td>
+                            <td>{{ call.occurred_on|date:'d/m/Y' }}</td>
+                            <td>{{ call.churn_reason }}</td>
+                            <td>{{ call.retention_action }}</td>
+                            <td>{{ call.final_outcome }}</td>
+                            <td>
+                                <ul style="margin: 0; padding-left: 20px; font-size: 0.9em;">
+                                    {% for reason in call.audit_reasons %}
+                                    <li>{{ reason }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </td>
                         </tr>
                         {% empty %}
-                        <tr><td class="table-empty" colspan="7">Sem chamadas prioritárias para auditoria no dia anterior.</td></tr>
+                        <tr><td class="table-empty" colspan="8">Sem chamadas prioritárias para auditoria no dia anterior.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
         </article>
     </section>
+
+    <style>
+        .audit-score-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 0.9em;
+            min-width: 40px;
+            text-align: center;
+        }
+        
+        tr.audit-critical .audit-score-badge {
+            background-color: #dc2626;
+            color: white;
+        }
+        
+        tr.audit-critical {
+            background-color: #fee2e2;
+        }
+        
+        tr.audit-high .audit-score-badge {
+            background-color: #f97316;
+            color: white;
+        }
+        
+        tr.audit-high {
+            background-color: #fed7aa;
+        }
+        
+        tr.audit-medium .audit-score-badge {
+            background-color: #eab308;
+            color: #000;
+        }
+        
+        tr.audit-medium {
+            background-color: #fef08a;
+        }
+    </style>
 </div>
 {% endblock %}

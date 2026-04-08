@@ -210,6 +210,17 @@ class TestPreviousDayExport:
         assert ws['A1'].value == 'ID Chamada'
         assert ws['B1'].value == 'Assistente'
         assert ws['C1'].value == 'Data'
+        assert ws['A1'].value == 'Score'
+        assert ws['B1'].value == 'ID Chamada'
+        assert ws['C1'].value == 'Assistente'
+        assert ws['D1'].value == 'Data'
+        assert ws['H1'].value == 'Motivos de auditoria'
+    # Verificar headers (Score foi adicionado como coluna A)
+    assert ws['A1'].value == 'Score'
+    assert ws['B1'].value == 'ID Chamada'
+    assert ws['C1'].value == 'Assistente'
+    assert ws['D1'].value == 'Data'
+    assert ws['H1'].value == 'Motivos de auditoria'
 
     def test_insights_sheet_has_headers(self):
         """Testa que a sheet Insights tem headers."""

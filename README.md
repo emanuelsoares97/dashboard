@@ -23,6 +23,39 @@ O sistema foi desenhado para apoiar analise de retenções a partir de ficheiros
 - `Call Drop` e tratado como outcome proprio.
 - Inconsistencias de tipificacao sao monitorizadas quando a combinacao de campos viola as regras de qualidade definidas.
 
+### Priorizacao de auditoria (aba Dia anterior)
+
+Na aba `Dia anterior`, a lista de chamadas para auditoria e priorizada por um score explicavel chamado `audit_priority_score` (intervalo de 0 a 100).
+
+Formula aplicada (soma de pesos):
+
+- Cliente nao retido: `+25`
+- Sem acao de retencao registada: `+30`
+- Tipificacao (third_category) com potencial de retencao: `+20`
+- Assistente abaixo da media do dia: `+15`
+- Inconsistencia de tipificacao: `+10`
+- Alta taxa de nao retencao no servico/tipificacao: `+10`
+
+Regras de interpretacao:
+
+- Score final e truncado para maximo de `100`.
+- Cada chamada exposta para auditoria inclui `audit_reasons` com os motivos que contribuiram para o score.
+- A lista e ordenada por `audit_priority_score DESC`.
+- O dashboard mostra apenas o `top 15` de chamadas mais criticas.
+- Base de analise: apenas chamadas com resultado `Nao Retido` entram no ranking de auditoria.
+
+Definicoes operacionais (importante):
+
+- `Sem acao` = valor da dimensao `retention_action` (acao de retencao), nao e uma tipificacao de motivo.
+- `Nao tipificado` = ausencia/erro de tipificacao de motivo (`third_category` / `churn_reason`), conceito diferente de `Sem acao`.
+- Uma chamada pode estar `Sem acao` e ainda assim estar tipificada; tambem pode estar tipificada e nao estar `Sem acao`.
+
+Leitura operacional sugerida:
+
+- `>= 60`: critico (intervencao imediata)
+- `40-59`: alto (revisao prioritaria)
+- `< 40`: medio (monitorizacao)
+
 ## Controlo de acesso
 
 O projeto usa autenticacao Django com controlo de acesso por grupos.
@@ -250,6 +283,7 @@ O repositório inclui o ficheiro `render.yaml` para criar o Web Service automati
 - `/dashboards/insights/`
 - `/dashboards/monthly-rates/`
 - `/dashboards/daily-rates/`
+- `/dashboards/previous-day/`
 
 Nota: para utilizadores do grupo `Assistentes`, o fluxo normal de navegacao privilegia a pagina individual do proprio assistente em vez das paginas globais.
 
@@ -258,6 +292,10 @@ Nota: para utilizadores do grupo `Assistentes`, o fluxo normal de navegacao priv
 - `/dashboards/services/export.csv`
 - `/dashboards/assistants/export.csv`
 - `/dashboards/inconsistencies/export.csv`
+
+### Exports Excel
+
+- `/dashboards/previous-day/export.xlsx`
 - `/dashboards/monthly-rates/export.csv`
 - `/dashboards/daily-rates/export.csv`
 
