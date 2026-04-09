@@ -202,3 +202,33 @@ def test_pipeline_keeps_only_newest_by_client_month(db):
     assert summary['imported_rows'] == 1
     assert summary['duplicate_rows'] == 1
     assert summary['duplicate_in_file_rows'] == 1
+
+
+def test_pipeline_handles_mixed_naive_and_aware_datetimes_in_monthly_dedup(db):
+    previous = ImportBatch.objects.create(original_filename='aware.csv')
+    current = ImportBatch.objects.create(original_filename='naive.csv')
+
+    aware_row = {
+        'external_call_id': 'tz-1',
+        'agent_name': 'Ana',
+        'start_date': '2026-01-15T10:00:00Z',
+        'end_date': '2026-01-15T10:10:00Z',
+        'retention_action': 'Retido',
+        'category': 'CC RET Outbound',
+    }
+    naive_row = {
+        'external_call_id': 'tz-1',
+        'agent_name': 'Ana',
+        'start_date': '2026-01-14 10:00:00',
+        'end_date': '2026-01-14 10:05:00',
+        'retention_action': 'Retido',
+        'category': 'CC RET Outbound',
+    }
+
+    _run_import(previous, [aware_row])
+    summary = _run_import(current, [naive_row])
+
+    assert summary['failed_rows'] == 0
+    assert summary['imported_rows'] == 0
+    assert summary['duplicate_rows'] == 1
+    assert summary['duplicate_previous_rows'] == 1

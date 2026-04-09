@@ -2,6 +2,8 @@ import hashlib
 from typing import Any
 
 import pandas as pd
+from django.conf import settings
+from django.utils import timezone
 from django.utils.text import slugify
 
 from apps.imports_app.types import ImportRowData
@@ -85,7 +87,12 @@ def parse_datetime(value: Any):
         return None
 
     try:
-        return pd.to_datetime(value).to_pydatetime()
+        parsed = pd.to_datetime(value).to_pydatetime()
+        if settings.USE_TZ and timezone.is_naive(parsed):
+            return timezone.make_aware(parsed, timezone.get_current_timezone())
+        if not settings.USE_TZ and timezone.is_aware(parsed):
+            return timezone.make_naive(parsed, timezone.get_current_timezone())
+        return parsed
     except (TypeError, ValueError):
         return None
 

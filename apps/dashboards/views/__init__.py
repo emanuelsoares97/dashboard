@@ -19,6 +19,8 @@ from .pages import insights
 from .pages import inconsistencies
 from .pages import monthly_rates
 from .pages import overview
+from .pages import overview_fixed
+from .pages import overview_mobile
 from .pages import previous_day
 from .pages import previous_day_export
 from .pages import retention_actions

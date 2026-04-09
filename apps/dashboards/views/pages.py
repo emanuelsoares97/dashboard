@@ -19,7 +19,29 @@ from apps.dashboards.permissions import require_sensitive_analytics
 
 from .helpers import _build_common_context
 from .helpers import _build_dashboard_payload_from_filters
+from .helpers import _annotate_mobile_adjusted_metrics
+from .helpers import FIXED_SUBCATEGORY_FILTERS
+from .helpers import MOBILE_SUBCATEGORY_FILTERS
 from .helpers import _resolve_filters
+
+
+OVERVIEW_SEGMENTS = {
+    'overview': {
+        'page_title': 'Visao Geral',
+        'subcategory_exact_values': None,
+        'overview_tab': 'general',
+    },
+    'overview_mobile': {
+        'page_title': 'Visao Geral | Movel',
+        'subcategory_exact_values': MOBILE_SUBCATEGORY_FILTERS,
+        'overview_tab': 'mobile',
+    },
+    'overview_fixed': {
+        'page_title': 'Visao Geral | Fixo',
+        'subcategory_exact_values': FIXED_SUBCATEGORY_FILTERS,
+        'overview_tab': 'fixed',
+    },
+}
 
 
 def _redirect_assistant_to_own_detail_if_needed(request):
@@ -36,19 +58,42 @@ def _redirect_assistant_to_own_detail_if_needed(request):
 @require_dashboard_access
 def overview(request):
     """Renderiza a pagina principal com KPIs, graficos e resumo executivo."""
+    return _render_overview_segment(request, active_section='overview')
+
+
+@require_dashboard_access
+def overview_mobile(request):
+    """Renderiza a visao principal filtrada para a subcategoria Movel."""
+    return _render_overview_segment(request, active_section='overview_mobile')
+
+
+@require_dashboard_access
+def overview_fixed(request):
+    """Renderiza a visao principal filtrada para a subcategoria Fixo."""
+    return _render_overview_segment(request, active_section='overview_fixed')
+
+
+def _render_overview_segment(request, *, active_section):
+    """Centraliza a renderizacao das abas Geral, Movel e Fixo."""
     assistant_redirect = _redirect_assistant_to_own_detail_if_needed(request)
     if assistant_redirect:
         return assistant_redirect
 
+    segment_config = OVERVIEW_SEGMENTS[active_section]
     filters = _resolve_filters(request, force_assistant_name='')
+    filters['subcategory_exact_values'] = segment_config['subcategory_exact_values']
     payload = _build_dashboard_payload_from_filters(filters)
+    if segment_config['overview_tab'] == 'mobile':
+        payload = _annotate_mobile_adjusted_metrics(payload)
 
     context = _build_common_context(
-        page_title='Visao Geral',
-        active_section='overview',
+        page_title=segment_config['page_title'],
+        active_section=active_section,
         filters=filters,
         dashboard_payload=payload,
     )
+    context['overview_tab'] = segment_config['overview_tab']
+    context['is_mobile_overview'] = segment_config['overview_tab'] == 'mobile'
     return render(request, 'dashboards/overview.html', context)
 
 

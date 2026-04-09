@@ -14,6 +14,15 @@
     <form class="form" method="post" enctype="multipart/form-data">
         {% csrf_token %}
         {{ form.as_p }}
+        <div class="import-progress" data-import-progress hidden>
+            <div class="import-progress-header">
+                <span data-import-progress-label>A preparar leitura do ficheiro...</span>
+                <strong data-import-progress-value>0%</strong>
+            </div>
+            <div class="import-progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                <div class="import-progress-bar" data-import-progress-bar></div>
+            </div>
+        </div>
         <button class="btn btn-primary" type="submit">Importar</button>
     </form>
 </section>

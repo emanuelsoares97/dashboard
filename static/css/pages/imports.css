@@ -65,6 +65,36 @@
     font-weight: 600;
 }
 
+.import-progress {
+    margin: 0.9rem 0 0.7rem;
+    display: grid;
+    gap: 0.45rem;
+}
+
+.import-progress-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.8rem;
+    font-size: 0.92rem;
+}
+
+.import-progress-track {
+    width: 100%;
+    height: 10px;
+    border-radius: 999px;
+    background: #e9edf5;
+    border: 1px solid var(--color-border);
+    overflow: hidden;
+}
+
+.import-progress-bar {
+    width: 0;
+    height: 100%;
+    background: linear-gradient(90deg, #2f72ff 0%, #2ea1ff 100%);
+    transition: width 120ms linear;
+}
+
 @media (max-width: 980px) {
     .ops-kpi-grid,
     .ops-sample-grid {

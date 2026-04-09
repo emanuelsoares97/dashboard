@@ -14,6 +14,8 @@ from apps.dashboards.views import (
     monthly_rates_csv,
     monthly_rates,
     overview,
+    overview_fixed,
+    overview_mobile,
     previous_day,
     previous_day_export,
     retention_actions,
@@ -29,6 +31,8 @@ app_name = 'dashboards'
 urlpatterns = [
     path('', overview, name='index'),
     path('overview/', overview, name='overview'),
+    path('overview/mobile/', overview_mobile, name='overview_mobile'),
+    path('overview/fixed/', overview_fixed, name='overview_fixed'),
     path('churn-reasons/', churn_reasons, name='churn_reasons'),
     path('retention-actions/', retention_actions, name='retention_actions'),
     path('services/', services, name='services'),

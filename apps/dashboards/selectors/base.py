@@ -1,3 +1,6 @@
+from django.db.models.functions import Lower
+from django.db.models.functions import Trim
+
 from apps.inbound.models import Interaction
 
 
@@ -17,6 +20,7 @@ def apply_filters(
     churn_reason_id=None,
     retention_action_id=None,
     final_outcome_id=None,
+    subcategory_exact_values=None,
 ):
     """Aplica filtros opcionais comuns a todas as analises."""
     if assistant_id:
@@ -35,6 +39,16 @@ def apply_filters(
         queryset = queryset.filter(retention_action_id=retention_action_id)
     if final_outcome_id:
         queryset = queryset.filter(final_outcome_id=final_outcome_id)
+    if subcategory_exact_values:
+        normalized_values = {
+            str(value).strip().lower()
+            for value in subcategory_exact_values
+            if str(value).strip()
+        }
+        if normalized_values:
+            queryset = queryset.annotate(_subcategory_normalized=Lower(Trim('subcategory'))).filter(
+                _subcategory_normalized__in=normalized_values
+            )
     return queryset
 
 

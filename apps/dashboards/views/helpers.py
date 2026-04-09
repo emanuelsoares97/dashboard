@@ -7,6 +7,26 @@ from apps.dashboards import selectors
 from apps.dashboards.services import build_dashboard_payload
 
 
+MOBILE_SUBCATEGORY_FILTERS = (
+    'CC RET Movel',
+    'CC RET Cancelamento Movel',
+)
+
+FIXED_SUBCATEGORY_FILTERS = (
+    'CC RET Cancelamento Fibra e Movel',
+    'CC RET Fibra',
+    'CC RET TV Fibra e Movel',
+    'CC RET TV',
+    'CC RET Cancelamento Fibra',
+    'CC RET TV Fixo Fibra e Movel',
+    'CC RET Fibra e Movel',
+    'CC RET TV e Fixo',
+    'CC RET Fixo',
+)
+
+MOBILE_ADJUSTED_EXCLUDED_ACTION = 'retido migracao pre pago'
+
+
 def _resolve_date_range(start_date_raw, end_date_raw, preset):
     """Resolve intervalo de datas por preset ou por selecao manual."""
     from django.utils import timezone
@@ -85,6 +105,7 @@ def _build_filter_options(filters):
         assistant_name=filters['assistant_name'],
         start_date=filters['start_date'],
         end_date=filters['end_date'],
+        subcategory_exact_values=filters.get('subcategory_exact_values'),
     )
     return selectors.select_global_filter_options(base_qs)
 
@@ -104,7 +125,40 @@ def _build_dashboard_payload_from_filters(filters, *, assistant_id=None, use_fil
         churn_reason_id=filters['churn_reason_id'],
         retention_action_id=filters['retention_action_id'],
         final_outcome_id=filters['final_outcome_id'],
+        subcategory_exact_values=filters.get('subcategory_exact_values'),
     )
+
+
+def _annotate_mobile_adjusted_metrics(payload):
+    """Calcula taxa ajustada sem contabilizar Retido Migracao Pre Pago como retido."""
+    rows = []
+    total_used = 0
+    total_adjusted_retained = 0
+
+    for row in payload.get('retention_action_table', []):
+        used = row.get('total_used', 0) or 0
+        retained = row.get('total_retained', 0) or 0
+        action_label = str(row.get('retention_action', '')).strip().lower()
+        is_excluded = action_label == MOBILE_ADJUSTED_EXCLUDED_ACTION
+
+        adjusted_retained = 0 if is_excluded else retained
+        adjusted_rate = round((adjusted_retained / used) * 100, 2) if used else 0.0
+
+        total_used += used
+        total_adjusted_retained += adjusted_retained
+
+        rows.append(
+            {
+                **row,
+                'adjusted_total_retained': adjusted_retained,
+                'adjusted_success_rate': adjusted_rate,
+            }
+        )
+
+    adjusted_global_rate = round((total_adjusted_retained / total_used) * 100, 2) if total_used else 0.0
+    payload['retention_action_table'] = rows
+    payload.setdefault('general_kpis', {})['retention_rate_adjusted_mobile'] = adjusted_global_rate
+    return payload
 
 
 def _build_common_context(*, page_title, active_section, filters, dashboard_payload):

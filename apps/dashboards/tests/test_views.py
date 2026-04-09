@@ -52,6 +52,8 @@ def superuser_client(django_user_model):
     'route_name',
     [
         'dashboards:overview',
+        'dashboards:overview_mobile',
+        'dashboards:overview_fixed',
         'dashboards:services',
         'dashboards:assistants',
         'dashboards:monthly_rates',
@@ -78,6 +80,8 @@ def test_dashboard_forbids_authenticated_user_without_dashboard_group(ungrouped_
     'route_name',
     [
         'dashboards:overview',
+        'dashboards:overview_mobile',
+        'dashboards:overview_fixed',
         'dashboards:churn_reasons',
         'dashboards:retention_actions',
         'dashboards:services',
@@ -99,6 +103,8 @@ def test_base_pages_allow_all_dashboard_groups(request, client_fixture_name, rou
     'route_name',
     [
         'dashboards:overview',
+        'dashboards:overview_mobile',
+        'dashboards:overview_fixed',
         'dashboards:churn_reasons',
         'dashboards:retention_actions',
         'dashboards:services',

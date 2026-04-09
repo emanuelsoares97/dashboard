@@ -3,6 +3,28 @@
 
 {% block dashboard_content %}
 <div class="dashboard-page">
+    <section class="card panel comparison-context-panel">
+        <div class="comparison-context-grid">
+            <div>
+                <span class="kpi-label">Segmento</span>
+                <strong>
+                    {% if overview_tab == 'mobile' %}
+                        Móvel
+                    {% elif overview_tab == 'fixed' %}
+                        Fixo
+                    {% else %}
+                        Geral
+                    {% endif %}
+                </strong>
+            </div>
+            <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;justify-content:flex-end;">
+                <a class="btn {% if overview_tab == 'general' %}btn-primary{% else %}btn-secondary{% endif %}" href="{% url 'dashboards:overview' %}?{{ dashboard_querystring }}">Geral</a>
+                <a class="btn {% if overview_tab == 'mobile' %}btn-primary{% else %}btn-secondary{% endif %}" href="{% url 'dashboards:overview_mobile' %}?{{ dashboard_querystring }}">Móvel</a>
+                <a class="btn {% if overview_tab == 'fixed' %}btn-primary{% else %}btn-secondary{% endif %}" href="{% url 'dashboards:overview_fixed' %}?{{ dashboard_querystring }}">Fixo</a>
+            </div>
+        </div>
+    </section>
+
     {% if dashboard.comparison_context.enabled %}
     <section class="card panel comparison-context-panel">
         <div class="comparison-context-grid">
@@ -32,6 +54,11 @@
         <article class="kpi-card kpi-card-success card">
             <span class="kpi-label">Taxa retenção</span>
             <strong class="kpi-value">{{ dashboard.general_kpis.retention_rate|floatformat:2 }}%</strong>
+            {% if is_mobile_overview %}
+            <span class="kpi-comparison">
+                Sem pré-pago: {{ dashboard.general_kpis.retention_rate_adjusted_mobile|floatformat:2 }}%
+            </span>
+            {% endif %}
             {% if dashboard.comparison_kpis.retention_rate %}
             <span class="kpi-comparison">
                 vs anterior: {{ dashboard.comparison_kpis.retention_rate.previous|floatformat:2 }}%
@@ -129,11 +156,32 @@
             <div class="panel-header"><div><h3 class="card-title">Medidas para reter</h3></div></div>
             <div class="table-wrap table-wrap-compact">
                 <table class="table table-sortable table-analytic table-compact">
+                    {% if is_mobile_overview %}
+                    <thead><tr><th>Resolução</th><th>Volume total</th><th>Qtd. Retidos</th><th>Qtd. Não Retidos</th><th>Taxa retenção (%)</th><th>Taxa sem Pré-Pago (%)</th></tr></thead>
+                    {% else %}
                     <thead><tr><th>Resolução</th><th>Qtde</th><th>%</th></tr></thead>
+                    {% endif %}
                     <tbody>
                         {% for row in dashboard.retention_action_table %}
+                        {% if is_mobile_overview %}
+                        <tr>
+                            <td>{{ row.retention_action }}</td>
+                            <td>{{ row.total_used }}</td>
+                            <td>{{ row.total_retained }}</td>
+                            <td>{{ row.total_non_retained }}</td>
+                            <td>{{ row.success_rate|floatformat:2 }}</td>
+                            <td>{{ row.adjusted_success_rate|floatformat:2 }}</td>
+                        </tr>
+                        {% else %}
                         <tr><td>{{ row.retention_action }}</td><td>{{ row.total_used }}</td><td>{{ row.pct_total|floatformat:2 }}</td></tr>
-                        {% empty %}<tr><td class="table-empty" colspan="3">Sem dados para o período atual.</td></tr>{% endfor %}
+                        {% endif %}
+                        {% empty %}
+                        {% if is_mobile_overview %}
+                        <tr><td class="table-empty" colspan="6">Sem dados para o período atual.</td></tr>
+                        {% else %}
+                        <tr><td class="table-empty" colspan="3">Sem dados para o período atual.</td></tr>
+                        {% endif %}
+                        {% endfor %}
                     </tbody>
                 </table>
             </div>

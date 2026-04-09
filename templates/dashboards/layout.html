@@ -132,7 +132,9 @@
             {% if request.user|user_is_assistant and request.user|linked_agent_id %}
             <a class="dashboard-menu-link is-active" href="{% url 'dashboards:assistant_detail' request.user|linked_agent_id %}?{{ dashboard_querystring }}">Assistentes</a>
             {% else %}
-            <a class="dashboard-menu-link {% if active_section == 'overview' %}is-active{% endif %}" href="{% url 'dashboards:overview' %}?date_preset=current_month">Visão Geral</a>
+            <a class="dashboard-menu-link {% if active_section == 'overview' %}is-active{% endif %}" href="{% url 'dashboards:overview' %}?{{ dashboard_querystring }}">Geral</a>
+            <a class="dashboard-menu-link {% if active_section == 'overview_mobile' %}is-active{% endif %}" href="{% url 'dashboards:overview_mobile' %}?{{ dashboard_querystring }}">Móvel</a>
+            <a class="dashboard-menu-link {% if active_section == 'overview_fixed' %}is-active{% endif %}" href="{% url 'dashboards:overview_fixed' %}?{{ dashboard_querystring }}">Fixo</a>
             <a class="dashboard-menu-link {% if active_section == 'daily_rates' %}is-active{% endif %}" href="{% url 'dashboards:daily_rates' %}?{{ dashboard_querystring }}">Taxas Diárias</a>
             <a class="dashboard-menu-link {% if active_section == 'previous_day' %}is-active{% endif %}" href="{% url 'dashboards:previous_day' %}">Dia anterior</a>
             <a class="dashboard-menu-link {% if active_section == 'monthly_rates' %}is-active{% endif %}" href="{% url 'dashboards:monthly_rates' %}?{{ dashboard_querystring }}">Taxas Mensais</a>
