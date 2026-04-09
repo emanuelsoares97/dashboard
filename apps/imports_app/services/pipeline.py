@@ -2,6 +2,120 @@ from django.db import transaction
 
 from apps.imports_app.models import ImportBatch, ImportRowRaw
 from apps.imports_app.types import ImportSummary
+from apps.inbound.models import Interaction
+
+
+def _build_client_month_key(row_data):
+    external_call_id = (row_data.external_call_id or '').strip()
+    if not external_call_id or external_call_id == '1' or row_data.start_at is None:
+        return None
+    return external_call_id, row_data.start_at.year, row_data.start_at.month
+
+
+def _row_recency_sort_key(row_data):
+    if row_data.start_at is None:
+        return (0, 0)
+    return (1, row_data.start_at.timestamp())
+
+
+def _delete_ids_in_chunks(ids_to_delete: list[int], *, chunk_size: int = 1000) -> int:
+    deleted_total = 0
+    for index in range(0, len(ids_to_delete), chunk_size):
+        chunk = ids_to_delete[index:index + chunk_size]
+        existing_ids = list(Interaction.objects.filter(id__in=chunk).values_list('id', flat=True))
+        if existing_ids:
+            Interaction.objects.filter(id__in=existing_ids).delete()
+            deleted_total += len(existing_ids)
+    return deleted_total
+
+
+def _consolidate_existing_monthly_duplicates() -> int:
+    queryset = (
+        Interaction.objects.filter(direction=Interaction.Direction.INBOUND)
+        .exclude(call_id_external__isnull=True)
+        .exclude(call_id_external='')
+        .exclude(call_id_external='1')
+        .values('id', 'call_id_external', 'start_at')
+        .order_by('call_id_external', '-start_at', '-id')
+    )
+
+    seen_keys: set[tuple[str, int, int]] = set()
+    ids_to_delete: list[int] = []
+
+    for row in queryset.iterator(chunk_size=2000):
+        start_at = row['start_at']
+        if start_at is None:
+            continue
+
+        key = (row['call_id_external'], start_at.year, start_at.month)
+        if key in seen_keys:
+            ids_to_delete.append(row['id'])
+            continue
+        seen_keys.add(key)
+
+    if not ids_to_delete:
+        return 0
+    return _delete_ids_in_chunks(ids_to_delete)
+
+
+def _get_existing_latest_for_key(key: tuple[str, int, int]):
+    call_id_external, year, month = key
+    return (
+        Interaction.objects.filter(
+            direction=Interaction.Direction.INBOUND,
+            call_id_external=call_id_external,
+            start_at__year=year,
+            start_at__month=month,
+        )
+        .order_by('-start_at', '-id')
+        .first()
+    )
+
+
+def _delete_existing_rows_for_key(key: tuple[str, int, int]) -> int:
+    call_id_external, year, month = key
+    existing_ids = list(
+        Interaction.objects.filter(
+        direction=Interaction.Direction.INBOUND,
+        call_id_external=call_id_external,
+        start_at__year=year,
+        start_at__month=month,
+    ).values_list('id', flat=True)
+    )
+    if existing_ids:
+        Interaction.objects.filter(id__in=existing_ids).delete()
+    return len(existing_ids)
+
+
+def _select_rows_to_persist(mapped_rows, summary: ImportSummary, *, is_retention_category):
+    grouped_by_client_month: dict[tuple[str, int, int], list] = {}
+    selected_rows = []
+
+    for row_data in mapped_rows:
+        if not is_retention_category(row_data.category):
+            summary.skipped_non_retention_rows += 1
+            continue
+
+        key = _build_client_month_key(row_data)
+        if key is None:
+            selected_rows.append(row_data)
+            continue
+
+        grouped_by_client_month.setdefault(key, []).append(row_data)
+
+    for _key, group_rows in grouped_by_client_month.items():
+        if len(group_rows) == 1:
+            selected_rows.append(group_rows[0])
+            continue
+
+        sorted_rows = sorted(group_rows, key=_row_recency_sort_key, reverse=True)
+        selected_rows.append(sorted_rows[0])
+        dropped = len(sorted_rows) - 1
+        summary.duplicate_rows += dropped
+        summary.duplicate_in_file_rows += dropped
+
+    selected_rows.sort(key=lambda row: row.row_number)
+    return selected_rows
 
 
 def _create_duplicate_in_file_row(*, batch, row_data, row_hash, create_raw_row):
@@ -54,6 +168,7 @@ def _finalize_batch(*, batch, summary):
     batch.notes = (
         f'Linhas importadas: {summary.imported_rows} | '
         f'Fora de retencao ignoradas: {summary.skipped_non_retention_rows} | '
+        f'Consolidadas na base (cliente/mes): {summary.consolidated_existing_rows} | '
         f'Duplicadas ignoradas: {summary.duplicate_rows} | '
         f'Dup. mesmo ficheiro: {summary.duplicate_in_file_rows} | '
         f'Dup. import anterior: {summary.duplicate_previous_rows} | '
@@ -100,14 +215,37 @@ def run_import_excel(
         batch.total_rows = summary.total_rows
         batch.save(update_fields=['status', 'total_rows'])
 
-        for row_number, row_payload in iter_row_payloads(dataframe):
-            row_data = map_row(row_number, row_payload)
+        summary.consolidated_existing_rows = _consolidate_existing_monthly_duplicates()
 
-            if not is_retention_category(row_data.category):
-                summary.skipped_non_retention_rows += 1
-                continue
+        mapped_rows = []
+        for row_number, row_payload in iter_row_payloads(dataframe):
+            mapped_rows.append(map_row(row_number, row_payload))
+
+        rows_to_persist = _select_rows_to_persist(
+            mapped_rows,
+            summary,
+            is_retention_category=is_retention_category,
+        )
+
+        for row_data in rows_to_persist:
 
             row_hash = build_raw_hash(row_data.raw_payload)
+
+            client_month_key = _build_client_month_key(row_data)
+            if client_month_key:
+                existing_latest = _get_existing_latest_for_key(client_month_key)
+                if existing_latest is not None:
+                    if row_data.start_at is None or existing_latest.start_at >= row_data.start_at:
+                        _create_duplicate_previous_row(
+                            batch=batch,
+                            row_data=row_data,
+                            row_hash=row_hash,
+                            create_raw_row=create_raw_row,
+                        )
+                        summary.duplicate_rows += 1
+                        summary.duplicate_previous_rows += 1
+                        continue
+                    summary.consolidated_existing_rows += _delete_existing_rows_for_key(client_month_key)
 
             if row_hash in seen_hashes:
                 _create_duplicate_in_file_row(
@@ -155,7 +293,7 @@ def run_import_excel(
                 summary.inconsistencies += created_flags
                 seen_hashes.add(row_hash)
             except Exception as exc:
-                _handle_failed_row(batch=batch, raw_row=raw_row, row_number=row_number, exc=exc)
+                _handle_failed_row(batch=batch, raw_row=raw_row, row_number=row_data.row_number, exc=exc)
                 summary.failed_rows += 1
 
         _finalize_batch(batch=batch, summary=summary)

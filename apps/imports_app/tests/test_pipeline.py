@@ -61,6 +61,7 @@ def test_pipeline_imports_valid_and_fails_invalid_rows(db):
     assert summary['total_rows'] == 2
     assert summary['imported_rows'] == 1
     assert summary['skipped_non_retention_rows'] == 0
+    assert summary['consolidated_existing_rows'] == 0
     assert summary['failed_rows'] == 1
     assert summary['duplicate_rows'] == 0
     assert batch.success_rows == 1
@@ -109,12 +110,13 @@ def test_pipeline_summary_handles_mixed_rows(db):
 
     assert summary['imported_rows'] == 0
     assert summary['skipped_non_retention_rows'] == 0
+    assert summary['consolidated_existing_rows'] == 0
     assert summary['duplicate_rows'] == 2
-    assert summary['duplicate_previous_rows'] == 2
-    assert summary['duplicate_in_file_rows'] == 0
+    assert summary['duplicate_previous_rows'] == 1
+    assert summary['duplicate_in_file_rows'] == 1
     assert summary['failed_rows'] == 1
     assert current.duplicate_rows == 2
-    assert current.duplicate_previous_rows == 2
+    assert current.duplicate_previous_rows == 1
     assert current.failed_rows == 1
     assert current.status == ImportBatch.Status.PARTIAL
 
@@ -131,6 +133,7 @@ def test_pipeline_with_empty_file_sets_failed_and_no_writes(db):
     assert summary['total_rows'] == 0
     assert summary['imported_rows'] == 0
     assert summary['skipped_non_retention_rows'] == 0
+    assert summary['consolidated_existing_rows'] == 0
     assert summary['failed_rows'] == 0
     assert summary['duplicate_rows'] == 0
     assert batch.total_rows == 0
@@ -167,5 +170,35 @@ def test_pipeline_skips_non_retention_rows_before_persisting(db):
     assert summary['total_rows'] == 2
     assert summary['imported_rows'] == 1
     assert summary['skipped_non_retention_rows'] == 1
+    assert summary['consolidated_existing_rows'] == 0
     assert batch.success_rows == 1
     assert batch.status == ImportBatch.Status.SUCCESS
+
+
+def test_pipeline_keeps_only_newest_by_client_month(db):
+    batch = ImportBatch.objects.create(original_filename='monthly-dedup.csv')
+
+    rows = [
+        {
+            'external_call_id': 'd-1',
+            'agent_name': 'Ana',
+            'start_date': '2026-01-10T10:00:00Z',
+            'end_date': '2026-01-10T10:10:00Z',
+            'retention_action': 'Nao Retido',
+            'category': 'CC RET Outbound',
+        },
+        {
+            'external_call_id': 'd-1',
+            'agent_name': 'Ana',
+            'start_date': '2026-01-12T10:00:00Z',
+            'end_date': '2026-01-12T10:08:00Z',
+            'retention_action': 'Retido Migracao Pre Pago',
+            'category': 'CC RET Outbound',
+        },
+    ]
+
+    summary = _run_import(batch, rows)
+
+    assert summary['imported_rows'] == 1
+    assert summary['duplicate_rows'] == 1
+    assert summary['duplicate_in_file_rows'] == 1

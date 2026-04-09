@@ -47,6 +47,7 @@ class ImportExcelServiceTests(TestCase):
         batch.refresh_from_db()
         self.assertEqual(summary['imported_rows'], 1)
         self.assertEqual(summary['skipped_non_retention_rows'], 0)
+        self.assertEqual(summary['consolidated_existing_rows'], 0)
         self.assertEqual(summary['duplicate_rows'], 0)
         self.assertEqual(summary['failed_rows'], 0)
         self.assertEqual(Interaction.objects.filter(batch=batch).count(), 1)
@@ -80,6 +81,7 @@ class ImportExcelServiceTests(TestCase):
 
         self.assertEqual(summary['imported_rows'], 0)
         self.assertEqual(summary['skipped_non_retention_rows'], 0)
+        self.assertEqual(summary['consolidated_existing_rows'], 0)
         self.assertEqual(summary['duplicate_rows'], 1)
         self.assertEqual(summary['duplicate_previous_rows'], 1)
         self.assertEqual(second_batch.duplicate_previous_rows, 1)
@@ -114,6 +116,7 @@ class ImportExcelServiceTests(TestCase):
 
         self.assertEqual(summary['imported_rows'], 1)
         self.assertEqual(summary['skipped_non_retention_rows'], 0)
+        self.assertEqual(summary['consolidated_existing_rows'], 0)
         self.assertEqual(summary['duplicate_rows'], 1)
         self.assertEqual(summary['duplicate_in_file_rows'], 1)
         self.assertEqual(batch.duplicate_in_file_rows, 1)
@@ -211,6 +214,7 @@ class ImportExcelServiceTests(TestCase):
         batch.refresh_from_db()
         self.assertEqual(summary['imported_rows'], 1)
         self.assertEqual(summary['skipped_non_retention_rows'], 0)
+        self.assertEqual(summary['consolidated_existing_rows'], 0)
         self.assertEqual(summary['duplicate_rows'], 2)
         self.assertEqual(summary['duplicate_previous_rows'], 1)
         self.assertEqual(summary['duplicate_in_file_rows'], 1)
@@ -253,5 +257,43 @@ class ImportExcelServiceTests(TestCase):
         batch.refresh_from_db()
         self.assertEqual(summary['imported_rows'], 1)
         self.assertEqual(summary['skipped_non_retention_rows'], 1)
+        self.assertEqual(summary['consolidated_existing_rows'], 0)
         self.assertEqual(Interaction.objects.filter(batch=batch).count(), 1)
         self.assertIn('Fora de retencao ignoradas: 1', batch.notes)
+
+    def test_replaces_existing_older_row_same_client_month(self):
+        first_batch = self._make_batch('first-month.csv')
+        second_batch = self._make_batch('second-month.csv')
+
+        self._run_import(
+            first_batch,
+            [
+                {
+                    'external_call_id': 'replace-1',
+                    'agent_name': 'Ana',
+                    'start_date': '2026-01-01T10:00:00Z',
+                    'end_date': '2026-01-01T10:05:00Z',
+                    'retention_action': 'Nao Retido',
+                    'category': 'CC RET Outbound',
+                }
+            ],
+        )
+
+        summary = self._run_import(
+            second_batch,
+            [
+                {
+                    'external_call_id': 'replace-1',
+                    'agent_name': 'Ana',
+                    'start_date': '2026-01-20T10:00:00Z',
+                    'end_date': '2026-01-20T10:03:00Z',
+                    'retention_action': 'Retido Migracao Pre Pago',
+                    'category': 'CC RET Outbound',
+                }
+            ],
+        )
+
+        second_batch.refresh_from_db()
+        self.assertEqual(summary['imported_rows'], 1)
+        self.assertEqual(summary['consolidated_existing_rows'], 1)
+        self.assertIn('Consolidadas na base (cliente/mes): 1', second_batch.notes)
