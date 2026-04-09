@@ -1,4 +1,5 @@
 from apps.imports_app.types import ImportRowData, QualityFlagInput
+from apps.imports_app.parsers.row_mapper import is_retention_category
 from apps.quality.models import DataQualityFlag
 
 # Labels de outcome que nunca devem aparecer como retention_action.
@@ -14,6 +15,9 @@ _OUTCOME_DOMAIN_NORMALIZED: frozenset[str] = frozenset({
 
 def detect_inconsistencies(row_data: ImportRowData) -> list[QualityFlagInput]:
     flags: list[QualityFlagInput] = []
+
+    if not is_retention_category(row_data.category):
+        return flags
 
     if row_data.retention_action.lower() == 'pendente' and row_data.final_outcome.lower() == 'retido':
         flags.append(

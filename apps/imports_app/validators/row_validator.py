@@ -7,7 +7,7 @@ def validate_row(row_data: ImportRowData) -> RowValidationResult:
     if not row_data.agent_name:
         errors.append('name is required')
     if not row_data.final_outcome:
-        errors.append('Ret Resolution is required')
+        errors.append('ret_resolution could not be derived from resolution')
     if row_data.start_at is None:
         errors.append('startDate is invalid or missing')
     if row_data.end_at is None:

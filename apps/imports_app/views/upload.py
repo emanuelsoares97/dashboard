@@ -33,7 +33,7 @@ def _create_import_batch(*, excel_file, request):
 
 @require_imports_access
 def handle_upload_excel(request, *, import_excel_func):
-    """Recebe um ficheiro Excel manual, cria o lote e desencadeia a importacao."""
+    """Recebe um ficheiro manual, cria o lote e desencadeia a importacao."""
     form = ExcelUploadForm(request.POST or None, request.FILES or None)
 
     if request.method == 'POST' and form.is_valid():

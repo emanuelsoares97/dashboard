@@ -25,7 +25,7 @@ def _make_row_data(**overrides) -> ImportRowData:
         week='2026-W01',
         month='2026-01',
         exclude='',
-        category='',
+        category='Retencao',
         subcategory='',
         observations='',
     )
@@ -95,3 +95,15 @@ def test_regular_action_does_not_generate_outcome_domain_flag():
         assert 'outcome_value_in_retention_action' not in rule_codes, (
             f'Nao esperava flag para retention_action="{valid_action}"'
         )
+
+
+def test_non_retention_categories_skip_retention_inconsistency_rules():
+    row = _make_row_data(
+        category='CC Informativo',
+        retention_action='Nao Retido',
+        final_outcome='Resolvido fora de retencao',
+    )
+
+    flags = detect_inconsistencies(row)
+
+    assert flags == []

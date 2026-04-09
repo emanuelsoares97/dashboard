@@ -33,6 +33,7 @@ class ImportExcelServiceTests(TestCase):
                     'end_date': '2026-01-01T10:10:00Z',
                     'final_outcome': 'Retido',
                     'retention_action': 'Oferta',
+                    'category': 'Retencao',
                     'churn_reason': 'Preco',
                     'service_type': 'Fibra',
                     'day': '2026-01-01',
@@ -45,6 +46,7 @@ class ImportExcelServiceTests(TestCase):
 
         batch.refresh_from_db()
         self.assertEqual(summary['imported_rows'], 1)
+        self.assertEqual(summary['skipped_non_retention_rows'], 0)
         self.assertEqual(summary['duplicate_rows'], 0)
         self.assertEqual(summary['failed_rows'], 0)
         self.assertEqual(Interaction.objects.filter(batch=batch).count(), 1)
@@ -62,6 +64,7 @@ class ImportExcelServiceTests(TestCase):
                 'end_date': '2026-01-01T11:08:00Z',
                 'final_outcome': 'Retido',
                 'retention_action': 'Plano B',
+                'category': 'Retencao',
                 'churn_reason': 'Preco',
                 'service_type': 'Movel',
                 'day': '2026-01-01',
@@ -76,6 +79,7 @@ class ImportExcelServiceTests(TestCase):
         second_batch.refresh_from_db()
 
         self.assertEqual(summary['imported_rows'], 0)
+        self.assertEqual(summary['skipped_non_retention_rows'], 0)
         self.assertEqual(summary['duplicate_rows'], 1)
         self.assertEqual(summary['duplicate_previous_rows'], 1)
         self.assertEqual(second_batch.duplicate_previous_rows, 1)
@@ -96,6 +100,7 @@ class ImportExcelServiceTests(TestCase):
             'end_date': '2026-01-02T09:07:00Z',
             'final_outcome': 'Retido',
             'retention_action': 'Pendente',
+            'category': 'Retencao',
             'churn_reason': 'Preco',
             'service_type': 'TV',
             'day': '2026-01-02',
@@ -108,6 +113,7 @@ class ImportExcelServiceTests(TestCase):
         batch.refresh_from_db()
 
         self.assertEqual(summary['imported_rows'], 1)
+        self.assertEqual(summary['skipped_non_retention_rows'], 0)
         self.assertEqual(summary['duplicate_rows'], 1)
         self.assertEqual(summary['duplicate_in_file_rows'], 1)
         self.assertEqual(batch.duplicate_in_file_rows, 1)
@@ -124,6 +130,7 @@ class ImportExcelServiceTests(TestCase):
                     'end_date': '2026-01-03T09:09:00Z',
                     'final_outcome': 'Retido',
                     'retention_action': 'Oferta',
+                    'category': 'Retencao',
                     'churn_reason': 'Preco',
                     'service_type': 'Fibra',
                     'day': '2026-01-03',
@@ -145,6 +152,7 @@ class ImportExcelServiceTests(TestCase):
                     'end_date': '2026-01-04T10:06:00Z',
                     'final_outcome': 'Retido',
                     'retention_action': 'Oferta',
+                    'category': 'Retencao',
                     'churn_reason': 'Servico',
                     'service_type': 'Fibra',
                     'day': '2026-01-04',
@@ -159,6 +167,7 @@ class ImportExcelServiceTests(TestCase):
                     'end_date': '2026-01-03T09:09:00Z',
                     'final_outcome': 'Retido',
                     'retention_action': 'Oferta',
+                    'category': 'Retencao',
                     'churn_reason': 'Preco',
                     'service_type': 'Fibra',
                     'day': '2026-01-03',
@@ -173,6 +182,7 @@ class ImportExcelServiceTests(TestCase):
                     'end_date': '2026-01-04T10:06:00Z',
                     'final_outcome': 'Retido',
                     'retention_action': 'Oferta',
+                    'category': 'Retencao',
                     'churn_reason': 'Servico',
                     'service_type': 'Fibra',
                     'day': '2026-01-04',
@@ -187,6 +197,7 @@ class ImportExcelServiceTests(TestCase):
                     'end_date': '2026-01-04T11:05:00Z',
                     'final_outcome': 'Retido',
                     'retention_action': 'Oferta',
+                    'category': 'Retencao',
                     'churn_reason': 'Preco',
                     'service_type': 'TV',
                     'day': '2026-01-04',
@@ -199,6 +210,7 @@ class ImportExcelServiceTests(TestCase):
 
         batch.refresh_from_db()
         self.assertEqual(summary['imported_rows'], 1)
+        self.assertEqual(summary['skipped_non_retention_rows'], 0)
         self.assertEqual(summary['duplicate_rows'], 2)
         self.assertEqual(summary['duplicate_previous_rows'], 1)
         self.assertEqual(summary['duplicate_in_file_rows'], 1)
@@ -213,3 +225,33 @@ class ImportExcelServiceTests(TestCase):
             processing_status=ImportRowRaw.ProcessingStatus.FAILED_VALIDATION,
         )
         self.assertEqual(failed_rows.count(), 1)
+
+    def test_skips_non_retention_rows_and_does_not_create_interaction(self):
+        batch = self._make_batch('skip-non-retention.csv')
+        summary = self._run_import(
+            batch,
+            [
+                {
+                    'external_call_id': 'nr-1',
+                    'agent_name': 'Ana',
+                    'start_date': '2026-01-01T10:00:00Z',
+                    'end_date': '2026-01-01T10:10:00Z',
+                    'retention_action': 'Resolvido',
+                    'category': 'CC Informativo',
+                },
+                {
+                    'external_call_id': 'ret-1',
+                    'agent_name': 'Ana',
+                    'start_date': '2026-01-01T11:00:00Z',
+                    'end_date': '2026-01-01T11:05:00Z',
+                    'retention_action': 'Nao Retido',
+                    'category': 'CC RET Outbound',
+                },
+            ],
+        )
+
+        batch.refresh_from_db()
+        self.assertEqual(summary['imported_rows'], 1)
+        self.assertEqual(summary['skipped_non_retention_rows'], 1)
+        self.assertEqual(Interaction.objects.filter(batch=batch).count(), 1)
+        self.assertIn('Fora de retencao ignoradas: 1', batch.notes)

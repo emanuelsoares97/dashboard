@@ -40,7 +40,9 @@ def _finalize_batch(*, batch, summary):
     batch.duplicate_previous_rows = summary.duplicate_previous_rows
     batch.failed_rows = summary.failed_rows
     batch.flagged_rows = summary.inconsistencies
-    has_processed_rows = bool(summary.imported_rows or summary.duplicate_rows)
+    has_processed_rows = bool(
+        summary.imported_rows or summary.duplicate_rows or summary.skipped_non_retention_rows
+    )
     has_failures = bool(summary.failed_rows)
     batch.status = (
         ImportBatch.Status.PARTIAL
@@ -51,6 +53,7 @@ def _finalize_batch(*, batch, summary):
     )
     batch.notes = (
         f'Linhas importadas: {summary.imported_rows} | '
+        f'Fora de retencao ignoradas: {summary.skipped_non_retention_rows} | '
         f'Duplicadas ignoradas: {summary.duplicate_rows} | '
         f'Dup. mesmo ficheiro: {summary.duplicate_in_file_rows} | '
         f'Dup. import anterior: {summary.duplicate_previous_rows} | '
@@ -84,6 +87,7 @@ def run_import_excel(
     validate_row,
     detect_inconsistencies,
     persist_interaction,
+    is_retention_category,
 ):
     dataframe = read_excel_dataframe(file_path)
     validate_required_columns(dataframe.columns)
@@ -98,6 +102,11 @@ def run_import_excel(
 
         for row_number, row_payload in iter_row_payloads(dataframe):
             row_data = map_row(row_number, row_payload)
+
+            if not is_retention_category(row_data.category):
+                summary.skipped_non_retention_rows += 1
+                continue
+
             row_hash = build_raw_hash(row_data.raw_payload)
 
             if row_hash in seen_hashes:

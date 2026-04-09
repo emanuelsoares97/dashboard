@@ -30,6 +30,7 @@ def test_pipeline_imports_valid_and_fails_invalid_rows(db):
             'end_date': '2026-01-01T10:10:00Z',
             'final_outcome': 'Retido',
             'retention_action': 'Oferta',
+            'category': 'Retencao',
             'churn_reason': 'Preco',
             'service_type': 'Fibra',
             'day': '2026-01-01',
@@ -44,6 +45,7 @@ def test_pipeline_imports_valid_and_fails_invalid_rows(db):
             'end_date': '2026-01-01T11:05:00Z',
             'final_outcome': 'Retido',
             'retention_action': 'Oferta',
+            'category': 'Retencao',
             'churn_reason': 'Preco',
             'service_type': 'Fibra',
             'day': '2026-01-01',
@@ -58,6 +60,7 @@ def test_pipeline_imports_valid_and_fails_invalid_rows(db):
 
     assert summary['total_rows'] == 2
     assert summary['imported_rows'] == 1
+    assert summary['skipped_non_retention_rows'] == 0
     assert summary['failed_rows'] == 1
     assert summary['duplicate_rows'] == 0
     assert batch.success_rows == 1
@@ -76,6 +79,7 @@ def test_pipeline_summary_handles_mixed_rows(db):
         'end_date': '2026-01-02T10:10:00Z',
         'final_outcome': 'Retido',
         'retention_action': 'Oferta',
+        'category': 'Retencao',
         'churn_reason': 'Preco',
         'service_type': 'Fibra',
         'day': '2026-01-02',
@@ -90,6 +94,7 @@ def test_pipeline_summary_handles_mixed_rows(db):
         'end_date': '2026-01-02T12:02:00Z',
         'final_outcome': 'Retido',
         'retention_action': 'Oferta',
+        'category': 'Retencao',
         'churn_reason': 'Preco',
         'service_type': 'Fibra',
         'day': '2026-01-02',
@@ -103,6 +108,7 @@ def test_pipeline_summary_handles_mixed_rows(db):
     current.refresh_from_db()
 
     assert summary['imported_rows'] == 0
+    assert summary['skipped_non_retention_rows'] == 0
     assert summary['duplicate_rows'] == 2
     assert summary['duplicate_previous_rows'] == 2
     assert summary['duplicate_in_file_rows'] == 0
@@ -124,9 +130,42 @@ def test_pipeline_with_empty_file_sets_failed_and_no_writes(db):
 
     assert summary['total_rows'] == 0
     assert summary['imported_rows'] == 0
+    assert summary['skipped_non_retention_rows'] == 0
     assert summary['failed_rows'] == 0
     assert summary['duplicate_rows'] == 0
     assert batch.total_rows == 0
     assert batch.success_rows == 0
     assert batch.failed_rows == 0
     assert batch.status == ImportBatch.Status.FAILED
+
+
+def test_pipeline_skips_non_retention_rows_before_persisting(db):
+    batch = ImportBatch.objects.create(original_filename='non-retention.csv')
+
+    rows = [
+        {
+            'external_call_id': 'skip-1',
+            'agent_name': 'Ana',
+            'start_date': '2026-01-01T10:00:00Z',
+            'end_date': '2026-01-01T10:10:00Z',
+            'retention_action': 'Resolvido',
+            'category': 'CC Informativo',
+        },
+        {
+            'external_call_id': 'keep-1',
+            'agent_name': 'Ana',
+            'start_date': '2026-01-01T11:00:00Z',
+            'end_date': '2026-01-01T11:05:00Z',
+            'retention_action': 'Nao Retido',
+            'category': 'CC RET Outbound',
+        },
+    ]
+
+    summary = _run_import(batch, rows)
+    batch.refresh_from_db()
+
+    assert summary['total_rows'] == 2
+    assert summary['imported_rows'] == 1
+    assert summary['skipped_non_retention_rows'] == 1
+    assert batch.success_rows == 1
+    assert batch.status == ImportBatch.Status.SUCCESS

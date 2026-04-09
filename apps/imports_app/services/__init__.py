@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from apps.imports_app.parsers.excel_reader import iter_row_payloads, read_excel_dataframe
-from apps.imports_app.parsers.row_mapper import build_raw_hash, map_row
+from apps.imports_app.parsers.row_mapper import build_raw_hash, is_retention_category, map_row
 from apps.imports_app.persistence.import_writer import create_raw_row, persist_interaction
 from apps.imports_app.rules.inconsistencies import detect_inconsistencies
 from apps.imports_app.validators.file_validator import validate_required_columns
@@ -26,4 +26,5 @@ def import_excel(file_path: Path, batch) -> dict:
         validate_row=validate_row,
         detect_inconsistencies=detect_inconsistencies,
         persist_interaction=persist_interaction,
+        is_retention_category=is_retention_category,
     )

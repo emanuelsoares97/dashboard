@@ -35,13 +35,17 @@ def test_validate_required_columns_raises_with_missing_and_hint():
 
     message = str(exc.value)
     assert 'end_date' in message
-    assert 'final_outcome' in message
+    assert 'outcome_source' in message
     assert "Esperado: 'enddate'" in message
-    assert "Esperado: 'Ret Resolution'" in message
+    assert "Esperado: 'Ret Resolution' ou, no CSV novo, 'resolution'" in message
 
 
 def test_validate_required_columns_accepts_valid_schema():
     validate_required_columns(['agent_name', 'start_date', 'end_date', 'final_outcome'])
+
+
+def test_validate_required_columns_accepts_new_csv_schema_without_ret_resolution():
+    validate_required_columns(['agent_name', 'start_date', 'end_date', 'retention_action'])
 
 
 def test_validate_row_detects_invalid_dates_and_missing_outcome():
@@ -52,7 +56,7 @@ def test_validate_row_detects_invalid_dates_and_missing_outcome():
     assert not result.is_valid
     assert 'startDate is invalid or missing' in result.errors
     assert 'enddate is invalid or missing' in result.errors
-    assert 'Ret Resolution is required' in result.errors
+    assert 'ret_resolution could not be derived from resolution' in result.errors
 
 
 def test_validate_row_detects_end_before_start():

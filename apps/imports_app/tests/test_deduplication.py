@@ -21,6 +21,7 @@ def _base_row(call_id='c1'):
         'end_date': '2026-01-01T10:10:00Z',
         'final_outcome': 'Retido',
         'retention_action': 'Oferta',
+        'category': 'Retencao',
         'churn_reason': 'Preco',
         'service_type': 'Fibra',
         'day': '2026-01-01',
