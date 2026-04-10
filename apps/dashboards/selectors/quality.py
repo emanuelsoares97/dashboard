@@ -1,10 +1,17 @@
 from django.db.models import Count
 
+from apps.inbound.models import Interaction
 from apps.quality.models import DataQualityFlag
+
+
+def _supports_quality_flags(queryset) -> bool:
+    return getattr(queryset, 'model', None) is Interaction
 
 
 def select_inconsistency_count_by_agent(queryset):
     """Conta inconsistencias por assistente para cruzar com o ranking."""
+    if not _supports_quality_flags(queryset):
+        return {}
     base = DataQualityFlag.objects.filter(
         interaction__in=queryset,
         flag_type=DataQualityFlag.FlagType.TIPIFICATION_INCONSISTENCY,
@@ -17,6 +24,8 @@ def select_inconsistency_count_by_agent(queryset):
 
 def select_inconsistency_by_assistant(queryset):
     """Devolve contagem de inconsistencias por assistente para leitura operacional."""
+    if not _supports_quality_flags(queryset):
+        return []
     return (
         DataQualityFlag.objects.filter(
             interaction__in=queryset,
@@ -30,6 +39,8 @@ def select_inconsistency_by_assistant(queryset):
 
 def select_inconsistency_table(queryset):
     """Lista detalhe das inconsistencias para auditoria de tipificacao."""
+    if not _supports_quality_flags(queryset):
+        return []
     return (
         DataQualityFlag.objects.filter(
             interaction__in=queryset,

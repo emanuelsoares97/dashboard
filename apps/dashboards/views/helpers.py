@@ -82,7 +82,6 @@ def _resolve_filters(request, *, force_assistant_name=None):
     end_date_raw = request.GET.get('end_date', '').strip()
     service_type_id_raw = request.GET.get('service_type_id', '').strip()
     churn_reason_id_raw = request.GET.get('churn_reason_id', '').strip()
-    retention_action_id_raw = request.GET.get('retention_action_id', '').strip()
     final_outcome_id_raw = request.GET.get('final_outcome_id', '').strip()
     start_date, end_date = _resolve_date_range(start_date_raw, end_date_raw, date_preset)
     return {
@@ -95,20 +94,21 @@ def _resolve_filters(request, *, force_assistant_name=None):
         'end_date': end_date,
         'service_type_id_raw': service_type_id_raw,
         'churn_reason_id_raw': churn_reason_id_raw,
-        'retention_action_id_raw': retention_action_id_raw,
         'final_outcome_id_raw': final_outcome_id_raw,
         'service_type_id': _parse_optional_int(service_type_id_raw),
         'churn_reason_id': _parse_optional_int(churn_reason_id_raw),
-        'retention_action_id': _parse_optional_int(retention_action_id_raw),
+        'retention_action_id': None,
         'final_outcome_id': _parse_optional_int(final_outcome_id_raw),
         'subcategory_exact_values': None,
         'subcategory_exclude_values': DEFAULT_EXCLUDED_SUBCATEGORY_FILTERS,
+        'queryset_source': 'inbound',
     }
 
 
 def _build_filter_options(filters):
     """Calcula opcoes reais dos filtros globais para o periodo selecionado."""
-    base_qs = selectors.get_inbound_queryset()
+    source = filters.get('queryset_source', 'inbound')
+    base_qs = selectors.get_outbound_queryset() if source == 'outbound' else selectors.get_inbound_queryset()
     base_qs = selectors.apply_filters(
         base_qs,
         assistant_name=filters['assistant_name'],
@@ -125,6 +125,9 @@ def _build_dashboard_payload_from_filters(filters, *, assistant_id=None, use_fil
     """Construcao unica do payload para manter as views finas e coerentes."""
     resolved_start_date = filters['start_date'] if use_filter_dates else None
     resolved_end_date = filters['end_date'] if use_filter_dates else None
+    source = filters.get('queryset_source', 'inbound')
+    base_queryset = selectors.get_outbound_queryset() if source == 'outbound' else selectors.get_inbound_queryset()
+    previous_queryset_factory = selectors.get_outbound_queryset if source == 'outbound' else selectors.get_inbound_queryset
     return build_dashboard_payload(
         granularity=filters['period'],
         date_preset=filters['date_preset'],
@@ -134,11 +137,13 @@ def _build_dashboard_payload_from_filters(filters, *, assistant_id=None, use_fil
         end_date=resolved_end_date,
         service_type_id=filters['service_type_id'],
         churn_reason_id=filters['churn_reason_id'],
-        retention_action_id=filters['retention_action_id'],
+        retention_action_id=None,
         final_outcome_id=filters['final_outcome_id'],
         subcategory_exact_values=filters.get('subcategory_exact_values'),
         subcategory_exclude_values=filters.get('subcategory_exclude_values'),
         churn_reason_exclude_labels=filters.get('churn_reason_exclude_labels'),
+        base_queryset=base_queryset,
+        previous_queryset_factory=previous_queryset_factory,
     )
 
 
@@ -200,7 +205,6 @@ def _build_common_context(*, page_title, active_section, filters, dashboard_payl
             'end_date': filters['end_date_raw'],
             'service_type_id': filters['service_type_id_raw'],
             'churn_reason_id': filters['churn_reason_id_raw'],
-            'retention_action_id': filters['retention_action_id_raw'],
             'final_outcome_id': filters['final_outcome_id_raw'],
         }
     )
@@ -213,7 +217,6 @@ def _build_common_context(*, page_title, active_section, filters, dashboard_payl
             'end_date': filters['end_date_raw'],
             'service_type_id': filters['service_type_id_raw'],
             'churn_reason_id': filters['churn_reason_id_raw'],
-            'retention_action_id': filters['retention_action_id_raw'],
             'final_outcome_id': filters['final_outcome_id_raw'],
         }
     )
@@ -231,7 +234,6 @@ def _build_common_context(*, page_title, active_section, filters, dashboard_payl
         'end_date': filters['end_date'].isoformat() if filters['end_date'] else '',
         'service_type_id': filters['service_type_id_raw'],
         'churn_reason_id': filters['churn_reason_id_raw'],
-        'retention_action_id': filters['retention_action_id_raw'],
         'final_outcome_id': filters['final_outcome_id_raw'],
         'filter_options': filter_options,
     }

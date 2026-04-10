@@ -1,13 +1,13 @@
-# Evolucao Incremental de Importacoes
+# Evolução Incremental de Importações
 
-## Fase 1: Operacao e Rastreabilidade
+## Fase 1: Operação e Rastreabilidade
 
 Objetivo: dar visibilidade operacional sem reescrever pipeline.
 
 Entregas:
-- historico paginado de lotes
+- histórico paginado de lotes
 - detalhe operacional por lote
-- contadores claros de importacao
+- contadores claros de importação
 - amostras de duplicadas e invalidas
 
 ## Fase 2: Clareza de Duplicados
@@ -23,22 +23,22 @@ Entregas:
 
 ## Fase 3: Testes Automatizados
 
-Objetivo: proteger pipeline contra regressao.
+Objetivo: proteger pipeline contra regressão.
 
 Cobertura:
 - parsing/mapping: estabilidade de hash
-- deduplicacao: intra-ficheiro e inter-import
-- persistencia: criacao de interactions e estados das raw rows
+- deduplicação: intra-ficheiro e inter-import
+- persistência: criação de interactions e estados das raw rows
 - resumo final: contadores e status do lote
 - views: upload, historico e detalhe
 
-### Exemplos Django ja implementados
+### Exemplos Django já implementados
 
 - `apps/imports_app/tests/test_import_service.py`
 - `apps/imports_app/tests/test_import_views.py`
 - `apps/imports_app/tests/test_row_mapper.py`
 
-### Exemplo rapido em pytest (opcional)
+### Exemplo rápido em pytest (opcional)
 
 ```python
 import pandas as pd
@@ -70,9 +70,14 @@ def test_import_ignores_duplicate_previous(mocker, db):
 	assert summary['duplicate_previous_rows'] == 1
 ```
 
-## Proximos passos recomendados
+## Próximos passos recomendados
 
-1. Adicionar filtro por status e periodo no historico.
+1. Adicionar filtro por status e período no histórico.
 2. Exportar detalhe do lote para CSV.
 3. Adicionar `pytest` com marcadores por camada (parser, service, view).
-4. Instrumentar tempos de importacao por lote para observabilidade.
+4. Instrumentar tempos de importação por lote para observabilidade.
+
+## Nota de terminologia
+
+- Nos contratos internos de importação e persistência, o campo técnico continua `retention_action` por compatibilidade.
+- Na UI e na documentação operacional, usar preferencialmente o termo `resolução`.

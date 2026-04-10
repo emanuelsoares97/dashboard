@@ -92,8 +92,8 @@ def test_build_previous_day_payload_prioritizes_audit_calls(base_dimensions, int
 
 
 @pytest.mark.django_db
-def test_audit_priority_score_weighs_sem_acao_heavily(base_dimensions, interaction_factory):
-    """Testa que 'sem acao' tem peso alto (40) no score."""
+def test_audit_priority_score_weighs_sem_resolucao_heavily(base_dimensions, interaction_factory):
+    """Testa que 'sem resolucao' tem peso alto no score."""
     reference_date = date(2026, 4, 8)
     previous_day_start = datetime(2026, 4, 7, 9, 0, tzinfo=timezone.utc)
 
@@ -112,7 +112,7 @@ def test_audit_priority_score_weighs_sem_acao_heavily(base_dimensions, interacti
     assert payload['audit_calls']
     call = payload['audit_calls'][0]
     assert call['audit_priority_score'] >= 55  # 25 (nao retido) + 30 (sem acao)
-    assert 'Sem acao de retencao registada' in call['audit_reasons']
+    assert 'Sem resolucao registada' in call['audit_reasons']
     assert 'Cliente nao foi retido' in call['audit_reasons']
 
 

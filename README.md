@@ -16,7 +16,7 @@ O sistema foi desenhado para apoiar analise de retenções a partir de ficheiros
 
 - Cada linha importada representa 1 chamada.
 - `Ret Resolution` representa o resultado final oficial.
-- `resolution` representa a acao detalhada de retencao.
+- `resolution` representa a resolucao operacional detalhada da chamada.
 - `third_category` representa o motivo de churn.
 - `service_type` representa o tipo de atendimento.
 - A duracao da chamada e calculada a partir da diferenca entre inicio e fim.
@@ -30,7 +30,7 @@ Na aba `Dia anterior`, a lista de chamadas para auditoria e priorizada por um sc
 Formula aplicada (soma de pesos):
 
 - Cliente nao retido: `+25`
-- Sem acao de retencao registada: `+30`
+- Sem resolucao registada: `+30`
 - Tipificacao (third_category) com potencial de retencao: `+20`
 - Assistente abaixo da media do dia: `+15`
 - Inconsistencia de tipificacao: `+10`
@@ -46,9 +46,9 @@ Regras de interpretacao:
 
 Definicoes operacionais (importante):
 
-- `Sem acao` = valor da dimensao `retention_action` (acao de retencao), nao e uma tipificacao de motivo.
-- `Nao tipificado` = ausencia/erro de tipificacao de motivo (`third_category` / `churn_reason`), conceito diferente de `Sem acao`.
-- Uma chamada pode estar `Sem acao` e ainda assim estar tipificada; tambem pode estar tipificada e nao estar `Sem acao`.
+- `Sem resolucao` = valor da dimensao `retention_action` (resolucao operacional), nao e uma tipificacao de motivo.
+- `Nao tipificado` = ausencia/erro de tipificacao de motivo (`third_category` / `churn_reason`), conceito diferente de `Sem resolucao`.
+- Uma chamada pode estar `Sem resolucao` e ainda assim estar tipificada; tambem pode estar tipificada e nao estar `Sem resolucao`.
 
 Leitura operacional sugerida:
 

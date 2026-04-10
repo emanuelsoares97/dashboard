@@ -56,7 +56,7 @@ def export_previous_day_excel(payload: dict, filters: dict = None) -> HttpRespon
     1. Resumo - KPIs principais
     2. Assistentes - Top e bottom assistentes
     3. Tipificações - Breakdown de tipificações
-    4. Ações - Resumo de ações
+    4. Acoes - Resumo de resolucoes
     5. Auditoria - Chamadas priorizadas
     6. Insights - Insights automáticos com ações sugeridas
     """
@@ -124,7 +124,7 @@ def _build_resumo_sheet(workbook: Workbook, payload: dict):
         ['Total de chamadas', int(kpis['total_calls'])],
         ['Taxa de retencao (%)', _format_decimal(kpis['retention_rate'])],
         ['Taxa nao retencao (%)', _format_decimal(kpis['non_retention_rate'])],
-        ['Percentagem sem acao (%)', _format_decimal(kpis['no_action_pct'])],
+        ['Percentagem sem resolucao (%)', _format_decimal(kpis['no_action_pct'])],
         ['Taxa de inconsistencias (%)', _format_decimal(kpis['inconsistency_rate'])],
     ]
 
@@ -191,10 +191,10 @@ def _build_tipificacoes_sheet(workbook: Workbook, payload: dict):
 
 
 def _build_acoes_sheet(workbook: Workbook, payload: dict, filters: dict = None):
-    """Sheet 4: Resumo de ações."""
+    """Sheet 4: Resumo de resolucoes."""
     ws = workbook.create_sheet('Acoes')
 
-    headers = ['Acao', 'Total', 'Taxa sucesso (%)']
+    headers = ['Resolucao', 'Total', 'Taxa sucesso (%)']
     ws.append(headers)
     _setup_worksheet_styles(ws)
 
@@ -223,7 +223,7 @@ def _build_acoes_sheet(workbook: Workbook, payload: dict, filters: dict = None):
         ])
 
     rows.append([
-        'Sem acao',
+        'Sem resolucao',
         int(round(actions['no_action_pct'] * payload['kpis']['total_calls'] / 100, 0)),
         _format_decimal(actions['no_action_pct']),
     ])
@@ -242,7 +242,6 @@ def _build_auditoria_sheet(workbook: Workbook, payload: dict):
         'Assistente',
         'Data',
         'Motivo corte',
-        'Acao retencao',
         'Resultado final',
         'Motivos de auditoria',
     ]
@@ -250,13 +249,12 @@ def _build_auditoria_sheet(workbook: Workbook, payload: dict):
     _setup_worksheet_styles(ws)
 
     for call in payload['audit_calls']:
-                ws.append([
-                    int(call['audit_priority_score']),
+        ws.append([
+            int(call['audit_priority_score']),
             call['call_id_external'],
             call['assistant_name'],
-            call['occurred_on'].strftime('%Y-%m-%d') if call['occurred_on'] else '',
+            call['start_at'].strftime('%Y-%m-%d %H:%M') if call.get('start_at') else '',
             call['churn_reason'],
-            call['retention_action'],
             call['final_outcome'],
             ' | '.join(call['audit_reasons']),
         ])

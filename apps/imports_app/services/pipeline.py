@@ -1,6 +1,6 @@
 from apps.imports_app.models import ImportBatch, ImportRowRaw
 from apps.imports_app.types import ImportSummary
-from apps.inbound.models import Interaction
+from apps.inbound.models import Interaction, OutboundInteraction
 
 
 PROGRESS_SAVE_EVERY_ROWS = 200
@@ -19,26 +19,34 @@ def _build_client_month_key(row_data):
     return external_call_id, row_data.start_at.year, row_data.start_at.month
 
 
+def _is_outbound_category_label(category: str) -> bool:
+    return (category or '').strip().lower() == OUTBOUND_CATEGORY_VALUE
+
+
+def _get_target_model_for_row(row_data):
+    return OutboundInteraction if _is_outbound_category_label(row_data.category) else Interaction
+
+
 def _row_recency_sort_key(row_data):
     if row_data.start_at is None:
         return (0, 0)
     return (1, row_data.start_at.timestamp())
 
 
-def _delete_ids_in_chunks(ids_to_delete: list[int], *, chunk_size: int = 1000) -> int:
+def _delete_ids_in_chunks(model_cls, ids_to_delete: list[int], *, chunk_size: int = 1000) -> int:
     deleted_total = 0
     for index in range(0, len(ids_to_delete), chunk_size):
         chunk = ids_to_delete[index:index + chunk_size]
-        existing_ids = list(Interaction.objects.filter(id__in=chunk).values_list('id', flat=True))
+        existing_ids = list(model_cls.objects.filter(id__in=chunk).values_list('id', flat=True))
         if existing_ids:
-            Interaction.objects.filter(id__in=existing_ids).delete()
+            model_cls.objects.filter(id__in=existing_ids).delete()
             deleted_total += len(existing_ids)
     return deleted_total
 
 
-def _consolidate_existing_monthly_duplicates() -> int:
+def _consolidate_existing_monthly_duplicates_for_model(model_cls) -> int:
     queryset = (
-        Interaction.objects.filter(direction=Interaction.Direction.INBOUND)
+        model_cls.objects.all()
         .exclude(call_id_external__isnull=True)
         .exclude(call_id_external='')
         .exclude(call_id_external='1')
@@ -62,35 +70,35 @@ def _consolidate_existing_monthly_duplicates() -> int:
 
     if not ids_to_delete:
         return 0
-    return _delete_ids_in_chunks(ids_to_delete)
+    return _delete_ids_in_chunks(model_cls, ids_to_delete)
 
 
-def _get_existing_latest_for_key(key: tuple[str, int, int]):
+def _consolidate_existing_monthly_duplicates() -> int:
+    inbound_deleted = _consolidate_existing_monthly_duplicates_for_model(Interaction)
+    outbound_deleted = _consolidate_existing_monthly_duplicates_for_model(OutboundInteraction)
+    return inbound_deleted + outbound_deleted
+
+
+def _get_existing_latest_for_key(key: tuple[str, int, int], model_cls):
     call_id_external, year, month = key
-    return (
-        Interaction.objects.filter(
-            direction=Interaction.Direction.INBOUND,
-            call_id_external=call_id_external,
-            start_at__year=year,
-            start_at__month=month,
-        )
-        .order_by('-start_at', '-id')
-        .first()
-    )
+    return model_cls.objects.filter(
+        call_id_external=call_id_external,
+        start_at__year=year,
+        start_at__month=month,
+    ).order_by('-start_at', '-id').first()
 
 
-def _delete_existing_rows_for_key(key: tuple[str, int, int]) -> int:
+def _delete_existing_rows_for_key(key: tuple[str, int, int], model_cls) -> int:
     call_id_external, year, month = key
     existing_ids = list(
-        Interaction.objects.filter(
-        direction=Interaction.Direction.INBOUND,
+        model_cls.objects.filter(
         call_id_external=call_id_external,
         start_at__year=year,
         start_at__month=month,
     ).values_list('id', flat=True)
     )
     if existing_ids:
-        Interaction.objects.filter(id__in=existing_ids).delete()
+        model_cls.objects.filter(id__in=existing_ids).delete()
     return len(existing_ids)
 
 
@@ -280,7 +288,8 @@ def run_import_excel(
 
         client_month_key = _build_client_month_key(row_data)
         if client_month_key:
-            existing_latest = _get_existing_latest_for_key(client_month_key)
+            target_model = _get_target_model_for_row(row_data)
+            existing_latest = _get_existing_latest_for_key(client_month_key, target_model)
             if existing_latest is not None:
                 if row_data.start_at is None or existing_latest.start_at >= row_data.start_at:
                     _create_duplicate_previous_row(
@@ -294,7 +303,7 @@ def run_import_excel(
                     if index % PROGRESS_SAVE_EVERY_ROWS == 0:
                         _save_processing_progress(batch=batch, summary=summary)
                     continue
-                summary.consolidated_existing_rows += _delete_existing_rows_for_key(client_month_key)
+                summary.consolidated_existing_rows += _delete_existing_rows_for_key(client_month_key, target_model)
 
         if row_hash in seen_hashes:
             _create_duplicate_in_file_row(
@@ -309,7 +318,10 @@ def run_import_excel(
                 _save_processing_progress(batch=batch, summary=summary)
             continue
 
-        if ImportRowRaw.objects.filter(raw_hash=row_hash, processed_interaction__isnull=False).exists():
+        if ImportRowRaw.objects.filter(raw_hash=row_hash).exclude(
+            processed_interaction__isnull=True,
+            processed_outbound_interaction__isnull=True,
+        ).exists():
             _create_duplicate_previous_row(
                 batch=batch,
                 row_data=row_data,

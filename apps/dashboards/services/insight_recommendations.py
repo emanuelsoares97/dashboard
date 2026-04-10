@@ -33,7 +33,7 @@ def enrich_insight(insight: dict) -> dict:
             'Rever se houve tentativa de retencao antes do fecho.',
             'Validar qualidade e completude dos registos.',
         ]
-        enriched['audit_recommendation'] = 'Priorizar chamadas do assistente abaixo da media, incluindo nao retidos e sem acao registada.'
+        enriched['audit_recommendation'] = 'Priorizar chamadas do assistente abaixo da media, incluindo nao retidos e sem resolucao registada.'
         return enriched
 
     if title == 'Servico com maior nao retencao':

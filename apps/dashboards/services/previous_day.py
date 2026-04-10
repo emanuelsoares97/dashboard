@@ -16,7 +16,7 @@ from apps.quality.models import DataQualityFlag
 
 
 NON_RETAINED_LABELS = {'nao retido'}
-NO_ACTION_LABELS = {'sem acao', 'sem ação', 'sem acao registada'}
+NO_ACTION_LABELS = {'sem acao', 'sem ação', 'sem acao registada', 'sem resolucao', 'sem resolução'}
 HIGH_AUDIT_THIRD_CATEGORIES = {
     'concorrencia',
     'concorrência',
@@ -71,7 +71,7 @@ def _build_tipification_summary(queryset):
         total_non_retained = max(total_calls - total_retained - total_call_drop, 0)
 
         churn_reason = row['churn_reason__label'] or 'Sem motivo'
-        retention_action = row['retention_action__label'] or 'Sem acao'
+        retention_action = row['retention_action__label'] or 'Sem resolucao'
 
         rows.append(
             {
@@ -148,7 +148,7 @@ def _calculate_audit_priority_score(interaction, *, below_avg_assistant_ids, low
     
     Pesos principais:
     - Cliente nao retido: 25
-    - Sem acao de retencao registada: 30
+    - Sem resolucao registada: 30
     - Third category com alto potencial de retencao: 20
     - Assistente abaixo da media: 15
     - Inconsistencia: 10
@@ -161,11 +161,11 @@ def _calculate_audit_priority_score(interaction, *, below_avg_assistant_ids, low
     score += 25
     reasons.append('Cliente nao foi retido')
 
-    # Sem acao de retencao
-    action_label = interaction.retention_action.label if interaction.retention_action_id else 'Sem acao'
+    # Sem resolucao registada
+    action_label = interaction.retention_action.label if interaction.retention_action_id else 'Sem resolucao'
     if _is_no_action_label(action_label):
         score += 30
-        reasons.append('Sem acao de retencao registada')
+        reasons.append('Sem resolucao registada')
 
     third_category_label = interaction.churn_reason.label if interaction.churn_reason_id else ''
     if _is_high_audit_third_category(third_category_label):
@@ -326,7 +326,7 @@ def build_previous_day_payload(
         'day': selected_day,
         'audit_score_description': [
             'Base de 25 pontos para chamadas com resultado final Nao Retido.',
-            'Soma 30 pontos quando nao existe acao de retencao registada.',
+            'Soma 30 pontos quando nao existe resolucao registada.',
             'Soma 20 pontos quando o motivo de corte tem potencial de retencao.',
             'Soma 15 pontos quando o assistente ficou abaixo da media do dia.',
             'Soma 10 pontos quando existe inconsistencia de registo.',

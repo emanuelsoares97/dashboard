@@ -1,6 +1,6 @@
 # Testes com Pytest e Coverage
 
-## Instalacao
+## Instalação
 
 ```powershell
 & "c:/Users/tutas/Documents/Projetos GitHUB/dashboard/.venv/Scripts/python.exe" -m pip install -r requirements-dev.txt
@@ -33,13 +33,13 @@ apps/
 
 ## Como medir coverage
 
-Relatorio no terminal por ficheiro:
+Relatório no terminal por ficheiro:
 
 ```powershell
 & "c:/Users/tutas/Documents/Projetos GitHUB/dashboard/.venv/Scripts/python.exe" -m pytest --cov --cov-config=.coveragerc --cov-report=term-missing
 ```
 
-Relatorio HTML:
+Relatório HTML:
 
 ```powershell
 & "c:/Users/tutas/Documents/Projetos GitHUB/dashboard/.venv/Scripts/python.exe" -m pytest --cov --cov-config=.coveragerc --cov-report=html
@@ -47,14 +47,14 @@ Relatorio HTML:
 
 Meta minima configurada: `fail_under = 85` em `.coveragerc`.
 
-## Estrategia pratica para chegar aos 85%
+## Estratégia prática para chegar aos 85%
 
 ### Fase 1 (maior retorno)
-- `imports_app/services.py`: pipeline, resumo, deduplicacao
-- `dashboards/services.py`: KPIs e metricas principais
+- `imports_app/services.py`: pipeline, resumo, deduplicação
+- `dashboards/services.py`: KPIs e métricas principais
 
 ### Fase 2
-- `dashboards/selectors.py`: filtros de data e assistente, agregacoes
+- `dashboards/selectors.py`: filtros de data e assistente, agregações
 - `inbound/models.py`: regras de `save` e `clean`
 
 ### Fase 3
@@ -62,15 +62,15 @@ Meta minima configurada: `fail_under = 85` em `.coveragerc`.
 - evitar testar detalhes de template
 
 ### Fase 4
-- edge cases de validacao e erros de importacao
-- cenarios com listas vazias, datas invalidas e sem resultados
+- edge cases de validação e erros de importação
+- cenários com listas vazias, datas inválidas e sem resultados
 
 ## Onde vale investir tempo
-- logica de negocio em services/selectors
-- regressao de resumo operacional dos lotes
-- regras de deduplicacao
+- lógica de negócio em services/selectors
+- regressão de resumo operacional dos lotes
+- regras de deduplicação
 
 ## Onde evitar overtesting
 - HTML/CSS
-- asserts de implementacao interna
+- asserts de implementação interna
 - mocks excessivos quando DB de teste resolve

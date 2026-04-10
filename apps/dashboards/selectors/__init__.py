@@ -10,6 +10,7 @@ from .assistants import select_assistant_churn_breakdown
 from .assistants import select_assistant_ranking_base
 from .base import apply_filters
 from .base import get_inbound_queryset
+from .base import get_outbound_queryset
 from .base import get_single_assistant_id
 from .base import select_global_filter_options
 from .quality import select_inconsistency_by_assistant

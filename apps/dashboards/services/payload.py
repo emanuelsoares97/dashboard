@@ -101,7 +101,7 @@ def build_assistant_detail(queryset, assistant_id, granularity='day'):
             {
                 'assistant_id': row['agent_id'],
                 'assistant_name': row['agent__name'] or 'Sem assistente',
-                'retention_action': row['retention_action__label'] or 'Sem acao',
+                'retention_action': row['retention_action__label'] or 'Sem resolucao',
                 'total_used': total_used,
                 'success_rate': _pct(retained, total_used),
                 'avg_duration_seconds': _round2(row['avg_duration_seconds']),
@@ -222,9 +222,12 @@ def build_dashboard_payload(
     subcategory_exact_values=None,
     subcategory_exclude_values=None,
     churn_reason_exclude_labels=None,
+    base_queryset=None,
+    previous_queryset_factory=None,
 ):
     """Constroi todo o payload do dashboard sem logica nas views."""
-    base_qs = selectors.get_inbound_queryset()
+    base_qs = base_queryset if base_queryset is not None else selectors.get_inbound_queryset()
+    previous_queryset_factory = previous_queryset_factory or selectors.get_inbound_queryset
     base_qs = selectors.apply_filters(
         base_qs,
         assistant_name=assistant_name,
@@ -306,6 +309,7 @@ def build_dashboard_payload(
             subcategory_exact_values=subcategory_exact_values,
             subcategory_exclude_values=subcategory_exclude_values,
             churn_reason_exclude_labels=churn_reason_exclude_labels,
+            previous_queryset_factory=previous_queryset_factory,
             current_kpis=general_kpis,
         )
     )
@@ -323,6 +327,7 @@ def build_dashboard_payload(
         subcategory_exact_values=subcategory_exact_values,
         subcategory_exclude_values=subcategory_exclude_values,
         churn_reason_exclude_labels=churn_reason_exclude_labels,
+        previous_queryset_factory=previous_queryset_factory,
     )
 
     payload['churn_reason_comparison_table'] = _build_churn_reason_comparison_table(
@@ -338,6 +343,7 @@ def build_dashboard_payload(
         subcategory_exact_values=subcategory_exact_values,
         subcategory_exclude_values=subcategory_exclude_values,
         churn_reason_exclude_labels=churn_reason_exclude_labels,
+        previous_queryset_factory=previous_queryset_factory,
     )
 
     payload['retention_action_comparison_table'] = _build_retention_action_comparison_table(
@@ -353,6 +359,7 @@ def build_dashboard_payload(
         subcategory_exact_values=subcategory_exact_values,
         subcategory_exclude_values=subcategory_exclude_values,
         churn_reason_exclude_labels=churn_reason_exclude_labels,
+        previous_queryset_factory=previous_queryset_factory,
     )
 
     payload['inconsistency_comparison_section'] = _build_inconsistency_comparison_section(
@@ -368,6 +375,7 @@ def build_dashboard_payload(
         subcategory_exact_values=subcategory_exact_values,
         subcategory_exclude_values=subcategory_exclude_values,
         churn_reason_exclude_labels=churn_reason_exclude_labels,
+        previous_queryset_factory=previous_queryset_factory,
     )
 
     payload['assistant_comparison_table'] = _build_assistant_comparison_table(
@@ -383,6 +391,7 @@ def build_dashboard_payload(
         subcategory_exact_values=subcategory_exact_values,
         subcategory_exclude_values=subcategory_exclude_values,
         churn_reason_exclude_labels=churn_reason_exclude_labels,
+        previous_queryset_factory=previous_queryset_factory,
     )
 
     resolved_assistant_id = assistant_id or selectors.get_single_assistant_id(base_qs, assistant_name)
@@ -405,6 +414,7 @@ def build_dashboard_payload(
             subcategory_exact_values=subcategory_exact_values,
             subcategory_exclude_values=subcategory_exclude_values,
             churn_reason_exclude_labels=churn_reason_exclude_labels,
+            previous_queryset_factory=previous_queryset_factory,
             granularity=granularity,
         )
 

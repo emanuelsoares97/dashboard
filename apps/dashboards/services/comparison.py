@@ -138,6 +138,7 @@ def _build_comparison_block(
     subcategory_exclude_values,
     churn_reason_exclude_labels,
     current_kpis,
+    previous_queryset_factory=None,
 ):
     """Constroi contexto e KPIs de comparacao com o periodo anterior."""
     from apps.dashboards.services import calculate_general_kpis  # noqa: PLC0415
@@ -160,7 +161,7 @@ def _build_comparison_block(
             'comparison_kpis': {},
         }
 
-    previous_qs = selectors.get_inbound_queryset()
+    previous_qs = (previous_queryset_factory or selectors.get_inbound_queryset)()
     previous_qs = selectors.apply_filters(
         previous_qs,
         assistant_name=assistant_name,
@@ -209,6 +210,7 @@ def _build_service_type_comparison_table(
     subcategory_exact_values,
     subcategory_exclude_values,
     churn_reason_exclude_labels,
+    previous_queryset_factory=None,
 ):
     """Enriquece a tabela atual de servicos com comparacao ao periodo anterior."""
     from apps.dashboards.services import build_service_type_table  # noqa: PLC0415
@@ -219,7 +221,7 @@ def _build_service_type_comparison_table(
     if not previous_start or not previous_end:
         return [dict(row) for row in current_rows]
 
-    previous_qs = selectors.get_inbound_queryset()
+    previous_qs = (previous_queryset_factory or selectors.get_inbound_queryset)()
     previous_qs = selectors.apply_filters(
         previous_qs,
         assistant_name=assistant_name,
@@ -286,6 +288,7 @@ def _build_churn_reason_comparison_table(
     subcategory_exact_values,
     subcategory_exclude_values,
     churn_reason_exclude_labels,
+    previous_queryset_factory=None,
 ):
     """Enriquece a tabela atual de motivos de corte com comparacao ao periodo anterior."""
     from apps.dashboards.services import build_churn_reason_table  # noqa: PLC0415
@@ -296,7 +299,7 @@ def _build_churn_reason_comparison_table(
     if not previous_start or not previous_end:
         return [dict(row) for row in current_rows]
 
-    previous_qs = selectors.get_inbound_queryset()
+    previous_qs = (previous_queryset_factory or selectors.get_inbound_queryset)()
     previous_qs = selectors.apply_filters(
         previous_qs,
         assistant_name=assistant_name,
@@ -370,6 +373,7 @@ def _build_retention_action_comparison_table(
     subcategory_exact_values,
     subcategory_exclude_values,
     churn_reason_exclude_labels,
+    previous_queryset_factory=None,
 ):
     """Enriquece a tabela atual de acoes de retencao com comparacao ao periodo anterior."""
     from apps.dashboards.services import build_retention_action_table  # noqa: PLC0415
@@ -380,7 +384,7 @@ def _build_retention_action_comparison_table(
     if not previous_start or not previous_end:
         return [dict(row) for row in current_rows]
 
-    previous_qs = selectors.get_inbound_queryset()
+    previous_qs = (previous_queryset_factory or selectors.get_inbound_queryset)()
     previous_qs = selectors.apply_filters(
         previous_qs,
         assistant_name=assistant_name,
@@ -449,6 +453,7 @@ def _build_assistant_comparison_table(
     subcategory_exact_values,
     subcategory_exclude_values,
     churn_reason_exclude_labels,
+    previous_queryset_factory=None,
 ):
     """Enriquece a tabela atual de assistentes com comparacao ao periodo anterior."""
     from apps.dashboards.services import build_assistant_ranking_table  # noqa: PLC0415
@@ -459,7 +464,7 @@ def _build_assistant_comparison_table(
     if not previous_start or not previous_end:
         return [dict(row) for row in current_rows]
 
-    previous_qs = selectors.get_inbound_queryset()
+    previous_qs = (previous_queryset_factory or selectors.get_inbound_queryset)()
     previous_qs = selectors.apply_filters(
         previous_qs,
         assistant_name=assistant_name,
@@ -536,6 +541,7 @@ def _build_inconsistency_comparison_section(
     subcategory_exact_values,
     subcategory_exclude_values,
     churn_reason_exclude_labels,
+    previous_queryset_factory=None,
 ):
     """Enriquece a secao de inconsistencias com comparacao ao periodo anterior."""
     from apps.dashboards.services import build_inconsistency_section  # noqa: PLC0415
@@ -543,7 +549,7 @@ def _build_inconsistency_comparison_section(
     if not previous_start or not previous_end:
         return current_section
 
-    previous_qs = selectors.get_inbound_queryset()
+    previous_qs = (previous_queryset_factory or selectors.get_inbound_queryset)()
     previous_qs = selectors.apply_filters(
         previous_qs,
         assistant_name=assistant_name,
@@ -632,6 +638,7 @@ def _build_assistant_detail_comparison(
     subcategory_exclude_values,
     churn_reason_exclude_labels,
     granularity,
+    previous_queryset_factory=None,
 ):
     """Enriquece o detalhe do assistente com comparacao ao periodo anterior."""
     from apps.dashboards.services import build_assistant_detail  # noqa: PLC0415
@@ -639,7 +646,7 @@ def _build_assistant_detail_comparison(
     if not previous_start or not previous_end:
         return current_detail
 
-    previous_qs = selectors.get_inbound_queryset()
+    previous_qs = (previous_queryset_factory or selectors.get_inbound_queryset)()
     previous_qs = selectors.apply_filters(
         previous_qs,
         assistant_id=assistant_id,

@@ -86,6 +86,7 @@ def outbound(request):
     filters['subcategory_exact_values'] = (OUTBOUND_SUBCATEGORY_FILTER,)
     filters['subcategory_exclude_values'] = ()
     filters['churn_reason_exclude_labels'] = OUTBOUND_EXCLUDED_CHURN_LABELS
+    filters['queryset_source'] = 'outbound'
     payload = _build_dashboard_payload_from_filters(filters)
 
     context = _build_common_context(
@@ -139,26 +140,6 @@ def churn_reasons(request):
     )
     context['rows'] = payload['churn_reason_comparison_table']
     return render(request, 'dashboards/churn_reasons.html', context)
-
-
-@require_dashboard_access
-def retention_actions(request):
-    """Renderiza pagina dedicada as acoes de retencao."""
-    assistant_redirect = _redirect_assistant_to_own_detail_if_needed(request)
-    if assistant_redirect:
-        return assistant_redirect
-
-    filters = _resolve_filters(request, force_assistant_name='')
-    payload = _build_dashboard_payload_from_filters(filters)
-
-    context = _build_common_context(
-        page_title='Estrategias de Retencao',
-        active_section='actions',
-        filters=filters,
-        dashboard_payload=payload,
-    )
-    context['rows'] = payload['retention_action_comparison_table']
-    return render(request, 'dashboards/retention_actions.html', context)
 
 
 @require_dashboard_access

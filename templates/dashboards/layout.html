@@ -34,7 +34,7 @@
             <div class="filter-actions">
                 <button class="btn btn-primary" type="submit">Aplicar filtros</button>
             </div>
-            <details class="advanced-filters filter-group-full" {% if service_type_id or churn_reason_id or retention_action_id or final_outcome_id or assistant_name or period != 'day' %}open{% endif %}>
+            <details class="advanced-filters filter-group-full" {% if service_type_id or churn_reason_id or final_outcome_id or assistant_name or period != 'day' %}open{% endif %}>
                 <summary>Filtros avançados (opcional)</summary>
                 <div class="advanced-filters-grid">
             <div class="filter-group">
@@ -52,15 +52,6 @@
                     <option value="">Todos</option>
                     {% for option in filter_options.churn_reasons %}
                     <option value="{{ option.id }}" {% if churn_reason_id == option.id|stringformat:'s' %}selected{% endif %}>{{ option.label }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="filter-group">
-                <label class="filter-label" for="retention_action_id">Ação de retenção</label>
-                <select id="retention_action_id" name="retention_action_id">
-                    <option value="">Todas</option>
-                    {% for option in filter_options.retention_actions %}
-                    <option value="{{ option.id }}" {% if retention_action_id == option.id|stringformat:'s' %}selected{% endif %}>{{ option.label }}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -150,13 +141,12 @@
                 </div>
             </details>
 
-            <details class="dashboard-menu-group" {% if active_section == 'assistants' or active_section == 'services' or active_section == 'churn' or active_section == 'actions' or active_section == 'outbound' %}open{% endif %}>
+            <details class="dashboard-menu-group" {% if active_section == 'assistants' or active_section == 'services' or active_section == 'churn' or active_section == 'outbound' %}open{% endif %}>
                 <summary class="dashboard-menu-group-title">Performance Operacional</summary>
                 <div class="dashboard-menu-group-links">
                     <a class="dashboard-menu-link {% if active_section == 'assistants' %}is-active{% endif %}" href="{% url 'dashboards:assistants' %}">Performance por Assistente</a>
                     <a class="dashboard-menu-link {% if active_section == 'services' %}is-active{% endif %}" href="{% url 'dashboards:services' %}">Performance por Serviço</a>
                     <a class="dashboard-menu-link {% if active_section == 'churn' %}is-active{% endif %}" href="{% url 'dashboards:churn_reasons' %}">Motivos de Cancelamento</a>
-                    <a class="dashboard-menu-link {% if active_section == 'actions' %}is-active{% endif %}" href="{% url 'dashboards:retention_actions' %}">Estratégias de Retenção</a>
                     <a class="dashboard-menu-link {% if active_section == 'outbound' %}is-active{% endif %}" href="{% url 'dashboards:outbound' %}">Outbound</a>
                 </div>
             </details>

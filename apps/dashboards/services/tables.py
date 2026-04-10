@@ -152,7 +152,7 @@ def build_churn_reason_table(queryset, sort='volume'):
 
 
 def build_retention_action_table(queryset):
-    """Gera tabela por acao de retencao e respetiva eficacia."""
+    """Gera tabela por resolucao e respetiva eficacia."""
     rows = []
     total_calls = queryset.count()
 
@@ -165,7 +165,7 @@ def build_retention_action_table(queryset):
         rows.append(
             {
                 'retention_action_id': row.get('retention_action_id'),
-                'retention_action': row['retention_action__label'] or 'Sem acao',
+                'retention_action': row['retention_action__label'] or 'Sem resolucao',
                 'total_used': used,
                 'pct_total': _pct(used, total_calls),
                 'total_retained': retained,
@@ -423,7 +423,7 @@ def build_tipification_tables(queryset, limit=10):
         total_non_retained = _totals_with_non_retained(row_total_calls, total_retained, total_call_drop)
 
         churn_reason = row['churn_reason__label'] or 'Sem motivo'
-        retention_action = row['retention_action__label'] or 'Sem acao'
+        retention_action = row['retention_action__label'] or 'Sem resolucao'
 
         rows.append(
             {
@@ -463,7 +463,7 @@ def build_inconsistency_section(queryset):
             {
                 'assistant_name': row['interaction__agent__name'] or 'Sem assistente',
                 'churn_reason': row['interaction__churn_reason__label'] or 'Sem motivo',
-                'retention_action': row['interaction__retention_action__label'] or 'Sem acao',
+                'retention_action': row['interaction__retention_action__label'] or 'Sem resolucao',
                 'final_outcome': row['interaction__final_outcome__label'] or 'Sem resultado',
                 'inconsistency_type': row['description'],
             }

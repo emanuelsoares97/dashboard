@@ -59,7 +59,7 @@
             <div class="panel-header"><div><h3 class="card-title">Inconsistências</h3></div></div>
             <div class="table-wrap table-wrap-compact">
                 <table class="table table-sortable table-analytic">
-                    <thead><tr><th>Motivo</th><th>Ação</th><th>Resultado</th><th>Tipo</th></tr></thead>
+                    <thead><tr><th>Motivo</th><th>Resolução</th><th>Resultado</th><th>Tipo</th></tr></thead>
                     <tbody>
                         {% for row in inconsistency_section.table %}
                         <tr><td>{{ row.churn_reason }}</td><td>{{ row.retention_action }}</td><td>{{ row.final_outcome }}</td><td>{{ row.inconsistency_type }}</td></tr>
@@ -85,10 +85,10 @@
             </div>
         </article>
         <article class="card panel">
-            <div class="panel-header"><div><h3 class="card-title">Ações mais usadas</h3></div></div>
+            <div class="panel-header"><div><h3 class="card-title">Resoluções mais usadas</h3></div></div>
             <div class="table-wrap table-wrap-compact">
                 <table class="table table-sortable table-analytic" data-highlight-column="3">
-                    <thead><tr><th>Ação</th><th>Total</th><th>% sucesso</th><th>Duração média</th></tr></thead>
+                    <thead><tr><th>Resolução</th><th>Total</th><th>% sucesso</th><th>Duração média</th></tr></thead>
                     <tbody>
                         {% for row in detail.retention_actions %}
                         <tr><td>{{ row.retention_action }}</td><td>{{ row.total_used }}</td><td>{{ row.success_rate|floatformat:2 }}</td><td>{{ row.avg_duration_seconds|floatformat:2 }}</td></tr>

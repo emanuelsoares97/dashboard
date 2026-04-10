@@ -6,12 +6,20 @@ from apps.inbound.models import (
     Agent,
     ChurnReason,
     Interaction,
+    OutboundInteraction,
     OutcomeFinal,
     RetentionAction,
     ServiceType,
     Team,
 )
 from apps.quality.models import DataQualityFlag
+
+
+OUTBOUND_CATEGORY_VALUE = 'cc ret outbound'
+
+
+def _is_outbound_category(category: str) -> bool:
+    return (category or '').strip().lower() == OUTBOUND_CATEGORY_VALUE
 
 
 def make_code(value: str, fallback: str) -> str:
@@ -94,31 +102,30 @@ def persist_interaction(
     raw_row: ImportRowRaw,
     row_data: ImportRowData,
     quality_flags: list[QualityFlagInput],
-) -> tuple[Interaction, int]:
+) -> tuple[Interaction | OutboundInteraction, int]:
     # A V1 nao recebe equipa no Excel; usamos uma equipa tecnica por defeito.
     team = get_team('Sem Equipa Definida')
     agent = get_agent(team, row_data.agent_name)
     outcome_label = 'Call Drop' if row_data.is_call_drop else row_data.final_outcome
     action_label = row_data.retention_action
 
-    interaction = Interaction.objects.create(
-        batch=batch,
-        direction=Interaction.Direction.INBOUND,
-        call_id_external=row_data.external_call_id,
-        team=team,
-        agent=agent,
-        start_at=row_data.start_at,
-        end_at=row_data.end_at,
-        occurred_on=row_data.start_at.date(),
-        final_outcome=get_outcome(outcome_label, row_data.is_call_drop),
-        retention_action=get_retention_action(action_label),
-        churn_reason=get_churn_reason(row_data.churn_reason),
-        service_type=get_service_type(row_data.service_type),
-        is_call_drop=row_data.is_call_drop,
-        category=row_data.category,
-        subcategory=row_data.subcategory,
-        observations=row_data.observations,
-        metadata={
+    common_payload = {
+        'batch': batch,
+        'call_id_external': row_data.external_call_id,
+        'team': team,
+        'agent': agent,
+        'start_at': row_data.start_at,
+        'end_at': row_data.end_at,
+        'occurred_on': row_data.start_at.date(),
+        'final_outcome': get_outcome(outcome_label, row_data.is_call_drop),
+        'retention_action': get_retention_action(action_label),
+        'churn_reason': get_churn_reason(row_data.churn_reason),
+        'service_type': get_service_type(row_data.service_type),
+        'is_call_drop': row_data.is_call_drop,
+        'category': row_data.category,
+        'subcategory': row_data.subcategory,
+        'observations': row_data.observations,
+        'metadata': {
             'source': 'manual_excel',
             'original_ret_resolution': row_data.final_outcome,
             'original_resolution': row_data.retention_action,
@@ -127,6 +134,18 @@ def persist_interaction(
             'month': row_data.month,
             'exclude': row_data.exclude,
         },
+    }
+
+    if _is_outbound_category(row_data.category):
+        outbound_interaction = OutboundInteraction.objects.create(**common_payload)
+        raw_row.processed_outbound_interaction = outbound_interaction
+        raw_row.save(update_fields=['processed_outbound_interaction'])
+        # Outbound quality flags nao sao persistidas na tabela de qualidade inbound.
+        return outbound_interaction, 0
+
+    interaction = Interaction.objects.create(
+        direction=Interaction.Direction.INBOUND,
+        **common_payload,
     )
 
     raw_row.processed_interaction = interaction

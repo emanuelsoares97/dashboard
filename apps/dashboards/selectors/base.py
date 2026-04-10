@@ -2,7 +2,7 @@ from django.db.models import Q
 from django.db.models.functions import Lower
 from django.db.models.functions import Trim
 
-from apps.inbound.models import Interaction
+from apps.inbound.models import Interaction, OutboundInteraction
 
 
 OUTBOUND_CATEGORY_VALUE = 'cc ret outbound'
@@ -11,6 +11,11 @@ OUTBOUND_CATEGORY_VALUE = 'cc ret outbound'
 def get_inbound_queryset():
     """Devolve o queryset base de interacoes inbound para analise."""
     return Interaction.objects.filter(direction=Interaction.Direction.INBOUND)
+
+
+def get_outbound_queryset():
+    """Devolve o queryset base de interacoes outbound em tabela dedicada."""
+    return OutboundInteraction.objects.all()
 
 
 def apply_filters(
@@ -62,10 +67,14 @@ def apply_filters(
             if outbound_requested and remaining_values:
                 queryset = queryset.filter(
                     Q(_category_normalized=OUTBOUND_CATEGORY_VALUE)
+                    | Q(_subcategory_normalized=OUTBOUND_CATEGORY_VALUE)
                     | Q(_subcategory_normalized__in=remaining_values)
                 )
             elif outbound_requested:
-                queryset = queryset.filter(_category_normalized=OUTBOUND_CATEGORY_VALUE)
+                queryset = queryset.filter(
+                    Q(_category_normalized=OUTBOUND_CATEGORY_VALUE)
+                    | Q(_subcategory_normalized=OUTBOUND_CATEGORY_VALUE)
+                )
             else:
                 queryset = queryset.filter(_subcategory_normalized__in=remaining_values)
     if subcategory_exclude_values:
@@ -83,7 +92,10 @@ def apply_filters(
             remaining_excluded = normalized_excluded_values - {OUTBOUND_CATEGORY_VALUE}
 
             if outbound_excluded:
-                queryset = queryset.exclude(_category_normalized=OUTBOUND_CATEGORY_VALUE)
+                queryset = queryset.exclude(
+                    Q(_category_normalized=OUTBOUND_CATEGORY_VALUE)
+                    | Q(_subcategory_normalized=OUTBOUND_CATEGORY_VALUE)
+                )
             if remaining_excluded:
                 queryset = queryset.exclude(_subcategory_normalized__in=remaining_excluded)
     if churn_reason_exclude_labels:

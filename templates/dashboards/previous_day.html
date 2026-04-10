@@ -9,7 +9,7 @@
                 <p class="panel-subtitle">Leitura rápida operacional para supervisão e auditoria.</p>
                 <div class="audit-help" style="margin-top: 8px; font-size: 0.9em; color: #4b5563;">
                     <strong>Como o score de auditoria e calculado:</strong>
-                    cliente nao retido (+25), sem acao de retencao (+30), tipificacao com potencial de retencao (+20), assistente abaixo da media (+15), inconsistência (+10), alta nao retencao no servico (+10).<br>
+                    cliente nao retido (+25), sem resolucao registada (+30), tipificacao com potencial de retencao (+20), assistente abaixo da media (+15), inconsistência (+10), alta nao retencao no servico (+10).<br>
                     <strong>Faixas:</strong> critico (&gt;=60), alto (40-59), medio (&lt;40).
                 </div>
             </div>
@@ -33,7 +33,7 @@
             <strong class="kpi-value">{{ previous_day.kpis.non_retention_rate }}%</strong>
         </article>
         <article class="kpi-card kpi-card-warning card">
-            <span class="kpi-label">% chamadas sem ação</span>
+            <span class="kpi-label">% chamadas sem resolução</span>
             <strong class="kpi-value">{{ previous_day.kpis.no_action_pct }}%</strong>
         </article>
         <article class="kpi-card kpi-card-warning card">
@@ -104,24 +104,24 @@
 
     <section class="analytics-grid analytics-grid-middle">
         <article class="card panel">
-            <div class="panel-header"><div><h3 class="card-title">Ações de retenção</h3></div></div>
+            <div class="panel-header"><div><h3 class="card-title">Resumo de resoluções</h3></div></div>
             <div class="table-wrap table-wrap-compact">
                 <table class="table table-analytic">
                     <tbody>
                         <tr>
-                            <th>Ação mais utilizada</th>
+                            <th>Resolução mais utilizada</th>
                             <td>{% if previous_day.actions.most_used %}{{ previous_day.actions.most_used.retention_action }}{% else %}—{% endif %}</td>
                         </tr>
                         <tr>
-                            <th>Ação com maior sucesso</th>
+                            <th>Resolução com maior sucesso</th>
                             <td>{% if previous_day.actions.highest_success %}{{ previous_day.actions.highest_success.retention_action }} ({{ previous_day.actions.highest_success.success_rate }}%){% else %}—{% endif %}</td>
                         </tr>
                         <tr>
-                            <th>Ação com menor sucesso</th>
+                            <th>Resolução com menor sucesso</th>
                             <td>{% if previous_day.actions.lowest_success %}{{ previous_day.actions.lowest_success.retention_action }} ({{ previous_day.actions.lowest_success.success_rate }}%){% else %}—{% endif %}</td>
                         </tr>
                         <tr>
-                            <th>% sem ação</th>
+                            <th>% sem resolução</th>
                             <td>{{ previous_day.actions.no_action_pct }}%</td>
                         </tr>
                     </tbody>
@@ -167,7 +167,7 @@
             <div class="panel-header">
                 <div>
                     <h3 class="card-title">Chamadas prioritárias para auditoria</h3>
-                    <p class="panel-subtitle">Top 15 ordenadas por score de prioridade. Critérios: cliente não retido, sem ação registada, assistente abaixo da média, inconsistências e tipificação com baixa retenção.</p>
+                    <p class="panel-subtitle">Top 15 ordenadas por score de prioridade. Critérios: cliente não retido, sem resolução registada, assistente abaixo da média, inconsistências e tipificação com baixa retenção.</p>
                     <p class="panel-subtitle">A data apresentada usa o startDate do ficheiro (dia e hora) para facilitar a localização exata da chamada.</p>
                     <p class="panel-subtitle">Como o score funciona: {% for item in previous_day.audit_score_description %}{{ item }}{% if not forloop.last %} {% endif %}{% endfor %}</p>
                 </div>

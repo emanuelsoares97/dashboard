@@ -31,7 +31,7 @@
             </div>
             <div class="table-wrap table-wrap-tall">
                 <table class="table table-sortable table-analytic">
-                    <thead><tr><th>Assistente</th><th>Motivo</th><th>Ação</th><th>Resultado final</th><th>Tipo</th></tr></thead>
+                    <thead><tr><th>Assistente</th><th>Motivo</th><th>Resolução</th><th>Resultado final</th><th>Tipo</th></tr></thead>
                     <tbody>
                         {% for row in section.table %}
                         <tr><td>{{ row.assistant_name }}</td><td>{{ row.churn_reason }}</td><td>{{ row.retention_action }}</td><td>{{ row.final_outcome }}</td><td>{{ row.inconsistency_type }}</td></tr>

@@ -6,7 +6,7 @@ from django.test import Client
 from django.urls import reverse
 from datetime import datetime, timezone
 
-from apps.inbound.models import Agent, ServiceType, Team
+from apps.inbound.models import Agent, OutboundInteraction, ServiceType, Team
 from apps.dashboards.views.helpers import _annotate_mobile_adjusted_metrics
 
 
@@ -86,7 +86,6 @@ def test_dashboard_forbids_authenticated_user_without_dashboard_group(ungrouped_
         'dashboards:overview_fixed',
         'dashboards:outbound',
         'dashboards:churn_reasons',
-        'dashboards:retention_actions',
         'dashboards:services',
         'dashboards:assistants',
         'dashboards:monthly_rates',
@@ -110,7 +109,6 @@ def test_base_pages_allow_all_dashboard_groups(request, client_fixture_name, rou
         'dashboards:overview_fixed',
         'dashboards:outbound',
         'dashboards:churn_reasons',
-        'dashboards:retention_actions',
         'dashboards:services',
         'dashboards:assistants',
         'dashboards:monthly_rates',
@@ -271,17 +269,29 @@ def test_outbound_view_separates_cc_ret_outbound_from_other_tabs(client, interac
         subcategory='CC RET Fibra',
         final_outcome=base_dimensions['retained'],
     )
-    interaction_factory(
-        call_id_external='out-1',
-        category='CC RET Outbound',
-        subcategory='Subcategoria nao outbound',
-        final_outcome=base_dimensions['not_retained'],
-    )
-    interaction_factory(
+    inbound_row = interaction_factory(
         call_id_external='out-2-should-not-enter',
         category='CC RET Fibra',
         subcategory='CC RET Outbound',
         final_outcome=base_dimensions['not_retained'],
+    )
+    OutboundInteraction.objects.create(
+        batch=inbound_row.batch,
+        call_id_external='out-1',
+        team=inbound_row.team,
+        agent=inbound_row.agent,
+        start_at=inbound_row.start_at,
+        end_at=inbound_row.end_at,
+        occurred_on=inbound_row.start_at.date(),
+        final_outcome=base_dimensions['not_retained'],
+        retention_action=base_dimensions['action'],
+        churn_reason=base_dimensions['reason'],
+        service_type=base_dimensions['service'],
+        is_call_drop=False,
+        category='CC RET Outbound',
+        subcategory='Subcategoria nao outbound',
+        observations='',
+        metadata={},
     )
 
     query_params = {
@@ -295,7 +305,7 @@ def test_outbound_view_separates_cc_ret_outbound_from_other_tabs(client, interac
 
     assert overview_response.status_code == 200
     assert outbound_response.status_code == 200
-    assert overview_response.context['dashboard']['general_kpis']['total_calls'] == 2
+    assert overview_response.context['dashboard']['general_kpis']['total_calls'] == 1
     assert outbound_response.context['dashboard']['general_kpis']['total_calls'] == 1
     assert outbound_response.context['active_section'] == 'outbound'
 
@@ -378,7 +388,6 @@ def test_legacy_team_redirect_keeps_querystring(client):
     ('route_name', 'context_key', 'active_section'),
     [
         ('dashboards:churn_reasons', 'rows', 'churn'),
-        ('dashboards:retention_actions', 'rows', 'actions'),
         ('dashboards:services', 'rows', 'services'),
         ('dashboards:inconsistencies', 'section', 'inconsistencies'),
         ('dashboards:insights', 'insights', 'insights'),
@@ -455,7 +464,6 @@ def test_overview_keeps_new_global_filters_in_navigation_querystring(client, int
         {
             'service_type_id': str(interaction.service_type_id),
             'churn_reason_id': str(interaction.churn_reason_id),
-            'retention_action_id': str(interaction.retention_action_id),
             'final_outcome_id': str(interaction.final_outcome_id),
             'date_preset': 'custom',
             'start_date': '2026-01-01',
@@ -467,7 +475,6 @@ def test_overview_keeps_new_global_filters_in_navigation_querystring(client, int
     querystring = response.context['dashboard_querystring']
     assert f"service_type_id={interaction.service_type_id}" in querystring
     assert f"churn_reason_id={interaction.churn_reason_id}" in querystring
-    assert f"retention_action_id={interaction.retention_action_id}" in querystring
     assert f"final_outcome_id={interaction.final_outcome_id}" in querystring
 
 
@@ -710,30 +717,6 @@ def test_churn_reasons_context_includes_comparison_rows(client, interaction_fact
     assert response.context['rows']
     assert 'total_calls_delta' in response.context['rows'][0]
     assert 'retention_rate_delta_pp' in response.context['rows'][0]
-
-
-@pytest.mark.django_db
-def test_retention_actions_context_includes_comparison_rows(client, interaction_factory):
-    interaction_factory(
-        call_id_external='view-action-cmp-current',
-        start_at=datetime(2026, 1, 10, 10, 0, tzinfo=timezone.utc),
-        end_at=datetime(2026, 1, 10, 10, 5, tzinfo=timezone.utc),
-    )
-
-    response = client.get(
-        reverse('dashboards:retention_actions'),
-        {
-            'date_preset': 'custom',
-            'start_date': '2026-01-10',
-            'end_date': '2026-01-10',
-        },
-    )
-
-    assert response.status_code == 200
-    assert response.context['dashboard']['comparison_context']['enabled'] is True
-    assert response.context['rows']
-    assert 'total_used_delta' in response.context['rows'][0]
-    assert 'success_rate_delta_pp' in response.context['rows'][0]
 
 
 @pytest.mark.django_db
