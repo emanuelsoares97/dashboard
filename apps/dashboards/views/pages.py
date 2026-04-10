@@ -108,7 +108,7 @@ def churn_reasons(request):
     payload = _build_dashboard_payload_from_filters(filters)
 
     context = _build_common_context(
-        page_title='Motivos de Corte',
+        page_title='Motivos de Cancelamento',
         active_section='churn',
         filters=filters,
         dashboard_payload=payload,
@@ -128,7 +128,7 @@ def retention_actions(request):
     payload = _build_dashboard_payload_from_filters(filters)
 
     context = _build_common_context(
-        page_title='Acoes de Retencao',
+        page_title='Estrategias de Retencao',
         active_section='actions',
         filters=filters,
         dashboard_payload=payload,
@@ -148,7 +148,7 @@ def services(request):
     payload = _build_dashboard_payload_from_filters(filters)
 
     context = _build_common_context(
-        page_title='Servicos',
+        page_title='Performance por Servico',
         active_section='services',
         filters=filters,
         dashboard_payload=payload,
@@ -168,7 +168,7 @@ def assistants(request):
     payload = _build_dashboard_payload_from_filters(filters)
 
     context = _build_common_context(
-        page_title='Assistentes',
+        page_title='Performance por Assistente',
         active_section='assistants',
         filters=filters,
         dashboard_payload=payload,
@@ -217,7 +217,7 @@ def inconsistencies(request):
     payload = _build_dashboard_payload_from_filters(filters)
 
     context = _build_common_context(
-        page_title='Inconsistencias',
+        page_title='Qualidade de Dados',
         active_section='inconsistencies',
         filters=filters,
         dashboard_payload=payload,
@@ -237,7 +237,7 @@ def insights(request):
     payload = _build_dashboard_payload_from_filters(filters)
 
     context = _build_common_context(
-        page_title='Insights Automaticos',
+        page_title='Insights Executivos',
         active_section='insights',
         filters=filters,
         dashboard_payload=payload,
@@ -292,7 +292,7 @@ def previous_day(request):
     payload = _build_dashboard_payload_from_filters(filters)
 
     context = _build_common_context(
-        page_title='Dia anterior',
+        page_title='Operacao D-1',
         active_section='previous_day',
         filters=filters,
         dashboard_payload=payload,
@@ -344,7 +344,7 @@ def monthly_rates(request):
     payload = _build_dashboard_payload_from_filters(filters, use_filter_dates=False)
 
     context = _build_common_context(
-        page_title='Taxas Mensais',
+        page_title='Evolucao Mensal',
         active_section='monthly_rates',
         filters=filters,
         dashboard_payload=payload,
@@ -365,7 +365,7 @@ def daily_rates(request):
     payload = _build_dashboard_payload_from_filters(filters)
 
     context = _build_common_context(
-        page_title='Taxas Diarias',
+        page_title='Evolucao Diaria',
         active_section='daily_rates',
         filters=filters,
         dashboard_payload=payload,

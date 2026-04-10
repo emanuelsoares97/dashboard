@@ -102,7 +102,7 @@ def typing_analysis(request):
     filter_options = _build_filter_options(filters)
 
     context = _build_common_context(
-        page_title='Análise de Tipificações',
+        page_title='Auditoria de Tipificacao',
         active_section='typing_analysis',
         filters=filters,
         dashboard_payload={},
