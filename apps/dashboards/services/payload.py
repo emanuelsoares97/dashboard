@@ -221,6 +221,7 @@ def build_dashboard_payload(
     final_outcome_id=None,
     subcategory_exact_values=None,
     subcategory_exclude_values=None,
+    churn_reason_exclude_labels=None,
 ):
     """Constroi todo o payload do dashboard sem logica nas views."""
     base_qs = selectors.get_inbound_queryset()
@@ -236,6 +237,7 @@ def build_dashboard_payload(
         final_outcome_id=final_outcome_id,
         subcategory_exact_values=subcategory_exact_values,
         subcategory_exclude_values=subcategory_exclude_values,
+        churn_reason_exclude_labels=churn_reason_exclude_labels,
     )
 
     general_kpis = calculate_general_kpis(base_qs)
@@ -303,6 +305,7 @@ def build_dashboard_payload(
             final_outcome_id=final_outcome_id,
             subcategory_exact_values=subcategory_exact_values,
             subcategory_exclude_values=subcategory_exclude_values,
+            churn_reason_exclude_labels=churn_reason_exclude_labels,
             current_kpis=general_kpis,
         )
     )
@@ -319,6 +322,7 @@ def build_dashboard_payload(
         final_outcome_id=final_outcome_id,
         subcategory_exact_values=subcategory_exact_values,
         subcategory_exclude_values=subcategory_exclude_values,
+        churn_reason_exclude_labels=churn_reason_exclude_labels,
     )
 
     payload['churn_reason_comparison_table'] = _build_churn_reason_comparison_table(
@@ -333,6 +337,7 @@ def build_dashboard_payload(
         final_outcome_id=final_outcome_id,
         subcategory_exact_values=subcategory_exact_values,
         subcategory_exclude_values=subcategory_exclude_values,
+        churn_reason_exclude_labels=churn_reason_exclude_labels,
     )
 
     payload['retention_action_comparison_table'] = _build_retention_action_comparison_table(
@@ -347,6 +352,7 @@ def build_dashboard_payload(
         final_outcome_id=final_outcome_id,
         subcategory_exact_values=subcategory_exact_values,
         subcategory_exclude_values=subcategory_exclude_values,
+        churn_reason_exclude_labels=churn_reason_exclude_labels,
     )
 
     payload['inconsistency_comparison_section'] = _build_inconsistency_comparison_section(
@@ -361,6 +367,7 @@ def build_dashboard_payload(
         final_outcome_id=final_outcome_id,
         subcategory_exact_values=subcategory_exact_values,
         subcategory_exclude_values=subcategory_exclude_values,
+        churn_reason_exclude_labels=churn_reason_exclude_labels,
     )
 
     payload['assistant_comparison_table'] = _build_assistant_comparison_table(
@@ -375,6 +382,7 @@ def build_dashboard_payload(
         final_outcome_id=final_outcome_id,
         subcategory_exact_values=subcategory_exact_values,
         subcategory_exclude_values=subcategory_exclude_values,
+        churn_reason_exclude_labels=churn_reason_exclude_labels,
     )
 
     resolved_assistant_id = assistant_id or selectors.get_single_assistant_id(base_qs, assistant_name)
@@ -396,6 +404,7 @@ def build_dashboard_payload(
             final_outcome_id=final_outcome_id,
             subcategory_exact_values=subcategory_exact_values,
             subcategory_exclude_values=subcategory_exclude_values,
+            churn_reason_exclude_labels=churn_reason_exclude_labels,
             granularity=granularity,
         )
 

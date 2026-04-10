@@ -22,6 +22,7 @@ def apply_filters(
     final_outcome_id=None,
     subcategory_exact_values=None,
     subcategory_exclude_values=None,
+    churn_reason_exclude_labels=None,
 ):
     """Aplica filtros opcionais comuns a todas as analises."""
     if assistant_id:
@@ -60,6 +61,16 @@ def apply_filters(
             queryset = queryset.annotate(_subcategory_normalized=Lower(Trim('subcategory'))).exclude(
                 _subcategory_normalized__in=normalized_excluded_values
             )
+    if churn_reason_exclude_labels:
+        normalized_excluded_labels = {
+            str(label).strip().lower()
+            for label in churn_reason_exclude_labels
+            if str(label).strip()
+        }
+        if normalized_excluded_labels:
+            queryset = queryset.annotate(
+                _churn_reason_normalized=Lower(Trim('churn_reason__label'))
+            ).exclude(_churn_reason_normalized__in=normalized_excluded_labels)
     return queryset
 
 

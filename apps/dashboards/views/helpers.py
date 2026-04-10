@@ -27,6 +27,7 @@ FIXED_SUBCATEGORY_FILTERS = (
 MOBILE_ADJUSTED_EXCLUDED_ACTION = 'retido migracao pre pago'
 OUTBOUND_SUBCATEGORY_FILTER = 'CC RET Outbound'
 DEFAULT_EXCLUDED_SUBCATEGORY_FILTERS = (OUTBOUND_SUBCATEGORY_FILTER,)
+OUTBOUND_EXCLUDED_CHURN_LABELS = ('nao atende', 'Cliente sem disponibilidade')
 
 
 def _resolve_date_range(start_date_raw, end_date_raw, preset):
@@ -111,6 +112,7 @@ def _build_filter_options(filters):
         end_date=filters['end_date'],
         subcategory_exact_values=filters.get('subcategory_exact_values'),
         subcategory_exclude_values=filters.get('subcategory_exclude_values'),
+        churn_reason_exclude_labels=filters.get('churn_reason_exclude_labels'),
     )
     return selectors.select_global_filter_options(base_qs)
 
@@ -132,6 +134,7 @@ def _build_dashboard_payload_from_filters(filters, *, assistant_id=None, use_fil
         final_outcome_id=filters['final_outcome_id'],
         subcategory_exact_values=filters.get('subcategory_exact_values'),
         subcategory_exclude_values=filters.get('subcategory_exclude_values'),
+        churn_reason_exclude_labels=filters.get('churn_reason_exclude_labels'),
     )
 
 

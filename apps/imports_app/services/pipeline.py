@@ -5,6 +5,12 @@ from apps.inbound.models import Interaction
 
 PROGRESS_SAVE_EVERY_ROWS = 200
 
+OUTBOUND_SUBCATEGORY_VALUE = 'cc ret outbound'
+OUTBOUND_IRRELEVANT_CHURN_REASONS = {
+    'nao atende',
+    'cliente sem disponibilidade',
+}
+
 
 def _build_client_month_key(row_data):
     external_call_id = (row_data.external_call_id or '').strip()
@@ -97,6 +103,13 @@ def _select_rows_to_persist(mapped_rows, summary: ImportSummary, *, is_retention
             summary.skipped_non_retention_rows += 1
             continue
 
+        if (
+            row_data.subcategory.strip().lower() == OUTBOUND_SUBCATEGORY_VALUE
+            and row_data.churn_reason.strip().lower() in OUTBOUND_IRRELEVANT_CHURN_REASONS
+        ):
+            summary.skipped_outbound_irrelevant_rows += 1
+            continue
+
         key = _build_client_month_key(row_data)
         if key is None:
             selected_rows.append(row_data)
@@ -169,6 +182,7 @@ def _finalize_batch(*, batch, summary):
     batch.notes = (
         f'Linhas importadas: {summary.imported_rows} | '
         f'Fora de retencao ignoradas: {summary.skipped_non_retention_rows} | '
+        f'Outbound sem resposta ignoradas: {summary.skipped_outbound_irrelevant_rows} | '
         f'Consolidadas na base (cliente/mes): {summary.consolidated_existing_rows} | '
         f'Duplicadas ignoradas: {summary.duplicate_rows} | '
         f'Dup. mesmo ficheiro: {summary.duplicate_in_file_rows} | '

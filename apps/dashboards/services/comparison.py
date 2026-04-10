@@ -136,6 +136,7 @@ def _build_comparison_block(
     final_outcome_id,
     subcategory_exact_values,
     subcategory_exclude_values,
+    churn_reason_exclude_labels,
     current_kpis,
 ):
     """Constroi contexto e KPIs de comparacao com o periodo anterior."""
@@ -172,6 +173,7 @@ def _build_comparison_block(
         final_outcome_id=final_outcome_id,
         subcategory_exact_values=subcategory_exact_values,
         subcategory_exclude_values=subcategory_exclude_values,
+        churn_reason_exclude_labels=churn_reason_exclude_labels,
     )
     previous_kpis = calculate_general_kpis(previous_qs)
 
@@ -206,6 +208,7 @@ def _build_service_type_comparison_table(
     final_outcome_id,
     subcategory_exact_values,
     subcategory_exclude_values,
+    churn_reason_exclude_labels,
 ):
     """Enriquece a tabela atual de servicos com comparacao ao periodo anterior."""
     from apps.dashboards.services import build_service_type_table  # noqa: PLC0415
@@ -229,6 +232,7 @@ def _build_service_type_comparison_table(
         final_outcome_id=final_outcome_id,
         subcategory_exact_values=subcategory_exact_values,
         subcategory_exclude_values=subcategory_exclude_values,
+        churn_reason_exclude_labels=churn_reason_exclude_labels,
     )
     previous_rows = build_service_type_table(previous_qs)
     previous_by_service = {row['service_type']: row for row in previous_rows}
@@ -281,6 +285,7 @@ def _build_churn_reason_comparison_table(
     final_outcome_id,
     subcategory_exact_values,
     subcategory_exclude_values,
+    churn_reason_exclude_labels,
 ):
     """Enriquece a tabela atual de motivos de corte com comparacao ao periodo anterior."""
     from apps.dashboards.services import build_churn_reason_table  # noqa: PLC0415
@@ -304,6 +309,7 @@ def _build_churn_reason_comparison_table(
         final_outcome_id=final_outcome_id,
         subcategory_exact_values=subcategory_exact_values,
         subcategory_exclude_values=subcategory_exclude_values,
+        churn_reason_exclude_labels=churn_reason_exclude_labels,
     )
     previous_rows = build_churn_reason_table(previous_qs)
 
@@ -363,6 +369,7 @@ def _build_retention_action_comparison_table(
     final_outcome_id,
     subcategory_exact_values,
     subcategory_exclude_values,
+    churn_reason_exclude_labels,
 ):
     """Enriquece a tabela atual de acoes de retencao com comparacao ao periodo anterior."""
     from apps.dashboards.services import build_retention_action_table  # noqa: PLC0415
@@ -386,6 +393,7 @@ def _build_retention_action_comparison_table(
         final_outcome_id=final_outcome_id,
         subcategory_exact_values=subcategory_exact_values,
         subcategory_exclude_values=subcategory_exclude_values,
+        churn_reason_exclude_labels=churn_reason_exclude_labels,
     )
     previous_rows = build_retention_action_table(previous_qs)
 
@@ -440,6 +448,7 @@ def _build_assistant_comparison_table(
     final_outcome_id,
     subcategory_exact_values,
     subcategory_exclude_values,
+    churn_reason_exclude_labels,
 ):
     """Enriquece a tabela atual de assistentes com comparacao ao periodo anterior."""
     from apps.dashboards.services import build_assistant_ranking_table  # noqa: PLC0415
@@ -463,6 +472,7 @@ def _build_assistant_comparison_table(
         final_outcome_id=final_outcome_id,
         subcategory_exact_values=subcategory_exact_values,
         subcategory_exclude_values=subcategory_exclude_values,
+        churn_reason_exclude_labels=churn_reason_exclude_labels,
     )
     previous_rows = build_assistant_ranking_table(previous_qs)
     previous_by_assistant_id = {row['assistant_id']: row for row in previous_rows}
@@ -525,6 +535,7 @@ def _build_inconsistency_comparison_section(
     final_outcome_id,
     subcategory_exact_values,
     subcategory_exclude_values,
+    churn_reason_exclude_labels,
 ):
     """Enriquece a secao de inconsistencias com comparacao ao periodo anterior."""
     from apps.dashboards.services import build_inconsistency_section  # noqa: PLC0415
@@ -545,6 +556,7 @@ def _build_inconsistency_comparison_section(
         final_outcome_id=final_outcome_id,
         subcategory_exact_values=subcategory_exact_values,
         subcategory_exclude_values=subcategory_exclude_values,
+        churn_reason_exclude_labels=churn_reason_exclude_labels,
     )
     previous_section = build_inconsistency_section(previous_qs)
 
@@ -618,6 +630,7 @@ def _build_assistant_detail_comparison(
     final_outcome_id,
     subcategory_exact_values,
     subcategory_exclude_values,
+    churn_reason_exclude_labels,
     granularity,
 ):
     """Enriquece o detalhe do assistente com comparacao ao periodo anterior."""
@@ -639,6 +652,7 @@ def _build_assistant_detail_comparison(
         final_outcome_id=final_outcome_id,
         subcategory_exact_values=subcategory_exact_values,
         subcategory_exclude_values=subcategory_exclude_values,
+        churn_reason_exclude_labels=churn_reason_exclude_labels,
     )
     previous_detail = build_assistant_detail(previous_qs, assistant_id, granularity=granularity)
     prev_kpis = previous_detail['kpis']

@@ -23,6 +23,7 @@ from .helpers import _annotate_mobile_adjusted_metrics
 from .helpers import FIXED_SUBCATEGORY_FILTERS
 from .helpers import MOBILE_SUBCATEGORY_FILTERS
 from .helpers import OUTBOUND_SUBCATEGORY_FILTER
+from .helpers import OUTBOUND_EXCLUDED_CHURN_LABELS
 from .helpers import _resolve_filters
 
 
@@ -84,6 +85,7 @@ def outbound(request):
     filters = _resolve_filters(request, force_assistant_name='')
     filters['subcategory_exact_values'] = (OUTBOUND_SUBCATEGORY_FILTER,)
     filters['subcategory_exclude_values'] = ()
+    filters['churn_reason_exclude_labels'] = OUTBOUND_EXCLUDED_CHURN_LABELS
     payload = _build_dashboard_payload_from_filters(filters)
 
     context = _build_common_context(
