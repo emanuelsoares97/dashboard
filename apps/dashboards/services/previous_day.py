@@ -234,20 +234,18 @@ def _build_audit_calls(queryset, *, assistant_rows, low_retention_tipifications)
         if not audit_reasons:
             continue
 
-        action_label = interaction.retention_action.label if interaction.retention_action_id else 'Sem acao'
-        
         calls.append(
             {
                 'interaction_id': interaction.id,
                 'call_id_external': interaction.call_id_external or f'#{interaction.id}',
                 'assistant_name': interaction.agent.name,
+                'start_at': interaction.start_at,
                 'occurred_on': interaction.occurred_on,
                 'observations': interaction.observations,
                 'category': interaction.category,
                 'subcategory': interaction.subcategory,
                 'third_category': interaction.churn_reason.label if interaction.churn_reason_id else '',
                 'churn_reason': interaction.churn_reason.label if interaction.churn_reason_id else 'Sem motivo',
-                'retention_action': action_label,
                 'final_outcome': interaction.final_outcome.label,
                 'audit_priority_score': priority_score,
                 'audit_reasons': audit_reasons,
@@ -326,6 +324,15 @@ def build_previous_day_payload(
 
     return {
         'day': selected_day,
+        'audit_score_description': [
+            'Base de 25 pontos para chamadas com resultado final Nao Retido.',
+            'Soma 30 pontos quando nao existe acao de retencao registada.',
+            'Soma 20 pontos quando o motivo de corte tem potencial de retencao.',
+            'Soma 15 pontos quando o assistente ficou abaixo da media do dia.',
+            'Soma 10 pontos quando existe inconsistencia de registo.',
+            'Soma 10 pontos quando a tipificacao teve baixa retencao no dia.',
+            'O score final e limitado a 100 pontos.',
+        ],
         'kpis': {
             **kpis,
             'no_action_pct': _pct(no_action_calls, total_calls),

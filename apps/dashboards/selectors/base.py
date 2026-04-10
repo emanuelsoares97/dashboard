@@ -1,7 +1,11 @@
+from django.db.models import Q
 from django.db.models.functions import Lower
 from django.db.models.functions import Trim
 
 from apps.inbound.models import Interaction
+
+
+OUTBOUND_CATEGORY_VALUE = 'cc ret outbound'
 
 
 def get_inbound_queryset():
@@ -48,9 +52,22 @@ def apply_filters(
             if str(value).strip()
         }
         if normalized_values:
-            queryset = queryset.annotate(_subcategory_normalized=Lower(Trim('subcategory'))).filter(
-                _subcategory_normalized__in=normalized_values
+            queryset = queryset.annotate(
+                _subcategory_normalized=Lower(Trim('subcategory')),
+                _category_normalized=Lower(Trim('category')),
             )
+            outbound_requested = OUTBOUND_CATEGORY_VALUE in normalized_values
+            remaining_values = normalized_values - {OUTBOUND_CATEGORY_VALUE}
+
+            if outbound_requested and remaining_values:
+                queryset = queryset.filter(
+                    Q(_category_normalized=OUTBOUND_CATEGORY_VALUE)
+                    | Q(_subcategory_normalized__in=remaining_values)
+                )
+            elif outbound_requested:
+                queryset = queryset.filter(_category_normalized=OUTBOUND_CATEGORY_VALUE)
+            else:
+                queryset = queryset.filter(_subcategory_normalized__in=remaining_values)
     if subcategory_exclude_values:
         normalized_excluded_values = {
             str(value).strip().lower()
@@ -58,9 +75,17 @@ def apply_filters(
             if str(value).strip()
         }
         if normalized_excluded_values:
-            queryset = queryset.annotate(_subcategory_normalized=Lower(Trim('subcategory'))).exclude(
-                _subcategory_normalized__in=normalized_excluded_values
+            queryset = queryset.annotate(
+                _subcategory_normalized=Lower(Trim('subcategory')),
+                _category_normalized=Lower(Trim('category')),
             )
+            outbound_excluded = OUTBOUND_CATEGORY_VALUE in normalized_excluded_values
+            remaining_excluded = normalized_excluded_values - {OUTBOUND_CATEGORY_VALUE}
+
+            if outbound_excluded:
+                queryset = queryset.exclude(_category_normalized=OUTBOUND_CATEGORY_VALUE)
+            if remaining_excluded:
+                queryset = queryset.exclude(_subcategory_normalized__in=remaining_excluded)
     if churn_reason_exclude_labels:
         normalized_excluded_labels = {
             str(label).strip().lower()

@@ -262,47 +262,139 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const sortableTables = document.querySelectorAll('.table-sortable');
     sortableTables.forEach((table) => {
-        const headers = table.querySelectorAll('thead th');
+        const headers = Array.from(table.querySelectorAll('thead th'));
+        const tbody = table.querySelector('tbody');
+        if (!tbody || !headers.length) {
+            return;
+        }
+
+        const normalizeNumericText = (value) => {
+            return String(value || '')
+                .trim()
+                .replace(/\s+/g, '')
+                .replace('%', '')
+                .replace(/\.(?=\d{3}(\D|$))/g, '')
+                .replace(',', '.');
+        };
+
+        const parseDateValue = (value) => {
+            const text = String(value || '').trim();
+
+            // dd/mm/yyyy [hh:mm]
+            const ptDateTime = text.match(/^(\d{2})\/(\d{2})\/(\d{4})(?:\s+(\d{2}):(\d{2}))?$/);
+            if (ptDateTime) {
+                const [, day, month, year, hour = '00', minute = '00'] = ptDateTime;
+                const date = new Date(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute));
+                return Number.isNaN(date.getTime()) ? null : date.getTime();
+            }
+
+            // yyyy-mm-dd [hh:mm]
+            const isoDateTime = text.match(/^(\d{4})-(\d{2})-(\d{2})(?:\s+(\d{2}):(\d{2}))?$/);
+            if (isoDateTime) {
+                const [, year, month, day, hour = '00', minute = '00'] = isoDateTime;
+                const date = new Date(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute));
+                return Number.isNaN(date.getTime()) ? null : date.getTime();
+            }
+
+            return null;
+        };
+
+        const readCellSortValue = (row, columnIndex) => {
+            const cell = row.children[columnIndex];
+            if (!cell) {
+                return { type: 'text', value: '' };
+            }
+
+            const raw = cell.dataset.sortValue || cell.textContent || '';
+            const parsedDate = parseDateValue(raw);
+            if (parsedDate !== null) {
+                return { type: 'number', value: parsedDate };
+            }
+
+            const numeric = Number(normalizeNumericText(raw));
+            if (!Number.isNaN(numeric)) {
+                return { type: 'number', value: numeric };
+            }
+
+            return { type: 'text', value: String(raw).trim().toLocaleLowerCase('pt-PT') };
+        };
+
+        const sortRows = (columnIndex, order) => {
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+            const dataRows = rows.filter((row) => !row.querySelector('.table-empty'));
+
+            dataRows.sort((rowA, rowB) => {
+                const valueA = readCellSortValue(rowA, columnIndex);
+                const valueB = readCellSortValue(rowB, columnIndex);
+
+                if (valueA.type === 'number' && valueB.type === 'number') {
+                    return order === 'asc' ? valueA.value - valueB.value : valueB.value - valueA.value;
+                }
+
+                return order === 'asc'
+                    ? String(valueA.value).localeCompare(String(valueB.value), 'pt-PT')
+                    : String(valueB.value).localeCompare(String(valueA.value), 'pt-PT');
+            });
+
+            dataRows.forEach((row) => tbody.appendChild(row));
+            applyMetricHighlights(table);
+        };
+
+        const resolveDefaultSort = () => {
+            const explicitIndex = Number(table.dataset.defaultSortColumn || 0);
+            if (explicitIndex > 0 && explicitIndex <= headers.length) {
+                return {
+                    index: explicitIndex - 1,
+                    order: table.dataset.defaultSortOrder === 'asc' ? 'asc' : 'desc',
+                };
+            }
+
+            const headerTexts = headers.map((header) => (header.textContent || '').trim().toLowerCase());
+
+            const findHeader = (predicate) => headerTexts.findIndex(predicate);
+            const retentionIdx = findHeader((text) => text.includes('taxa reten'));
+            if (retentionIdx >= 0) {
+                return { index: retentionIdx, order: 'desc' };
+            }
+
+            const errorIdx = findHeader((text) => text.includes('erro') || text.includes('inconsist') || text.includes('flags'));
+            if (errorIdx >= 0) {
+                return { index: errorIdx, order: 'desc' };
+            }
+
+            const scoreIdx = findHeader((text) => text.includes('score'));
+            if (scoreIdx >= 0) {
+                return { index: scoreIdx, order: 'desc' };
+            }
+
+            const volumeIdx = findHeader((text) => text.includes('total') || text.includes('chamada') || text.includes('volume'));
+            if (volumeIdx >= 0) {
+                return { index: volumeIdx, order: 'desc' };
+            }
+
+            return { index: 0, order: 'asc' };
+        };
+
         headers.forEach((header, columnIndex) => {
             header.classList.add('is-sortable');
             header.addEventListener('click', () => {
-                const currentOrder = header.dataset.sortOrder === 'asc' ? 'asc' : 'desc';
+                const currentOrder = header.dataset.sortOrder === 'asc' ? 'asc' : header.dataset.sortOrder === 'desc' ? 'desc' : null;
                 const nextOrder = currentOrder === 'asc' ? 'desc' : 'asc';
 
                 headers.forEach((item) => {
                     item.removeAttribute('data-sort-order');
                 });
                 header.dataset.sortOrder = nextOrder;
-
-                const tbody = table.querySelector('tbody');
-                if (!tbody) {
-                    return;
-                }
-
-                const rows = Array.from(tbody.querySelectorAll('tr'));
-                const dataRows = rows.filter((row) => !row.querySelector('.table-empty'));
-
-                dataRows.sort((rowA, rowB) => {
-                    const cellA = rowA.children[columnIndex]?.textContent?.trim() || '';
-                    const cellB = rowB.children[columnIndex]?.textContent?.trim() || '';
-
-                    const numA = Number(cellA.replace('%', '').replace(',', '.'));
-                    const numB = Number(cellB.replace('%', '').replace(',', '.'));
-                    const isNumeric = !Number.isNaN(numA) && !Number.isNaN(numB);
-
-                    if (isNumeric) {
-                        return nextOrder === 'asc' ? numA - numB : numB - numA;
-                    }
-
-                    return nextOrder === 'asc'
-                        ? cellA.localeCompare(cellB, 'pt-PT')
-                        : cellB.localeCompare(cellA, 'pt-PT');
-                });
-
-                dataRows.forEach((row) => tbody.appendChild(row));
-                applyMetricHighlights(table);
+                sortRows(columnIndex, nextOrder);
             });
         });
+
+        const defaultSort = resolveDefaultSort();
+        headers.forEach((item) => {
+            item.removeAttribute('data-sort-order');
+        });
+        headers[defaultSort.index].dataset.sortOrder = defaultSort.order;
+        sortRows(defaultSort.index, defaultSort.order);
 
         applyMetricHighlights(table);
     });

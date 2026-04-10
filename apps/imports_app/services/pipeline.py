@@ -5,7 +5,7 @@ from apps.inbound.models import Interaction
 
 PROGRESS_SAVE_EVERY_ROWS = 200
 
-OUTBOUND_SUBCATEGORY_VALUE = 'cc ret outbound'
+OUTBOUND_CATEGORY_VALUE = 'cc ret outbound'
 OUTBOUND_IRRELEVANT_CHURN_REASONS = {
     'nao atende',
     'cliente sem disponibilidade',
@@ -104,7 +104,7 @@ def _select_rows_to_persist(mapped_rows, summary: ImportSummary, *, is_retention
             continue
 
         if (
-            row_data.subcategory.strip().lower() == OUTBOUND_SUBCATEGORY_VALUE
+            row_data.category.strip().lower() == OUTBOUND_CATEGORY_VALUE
             and row_data.churn_reason.strip().lower() in OUTBOUND_IRRELEVANT_CHURN_REASONS
         ):
             summary.skipped_outbound_irrelevant_rows += 1

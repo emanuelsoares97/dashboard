@@ -204,6 +204,39 @@ def test_pipeline_keeps_only_newest_by_client_month(db):
     assert summary['duplicate_in_file_rows'] == 1
 
 
+def test_pipeline_skips_outbound_irrelevant_by_category_not_subcategory(db):
+    batch = ImportBatch.objects.create(original_filename='outbound-category-skip.csv')
+
+    rows = [
+        {
+            'external_call_id': 'out-skip-1',
+            'agent_name': 'Ana',
+            'start_date': '2026-01-10T10:00:00Z',
+            'end_date': '2026-01-10T10:10:00Z',
+            'retention_action': 'Nao Retido',
+            'category': 'CC RET Outbound',
+            'subcategory': 'Qualquer Subcategoria',
+            'churn_reason': 'nao atende',
+        },
+        {
+            'external_call_id': 'out-keep-1',
+            'agent_name': 'Ana',
+            'start_date': '2026-01-10T11:00:00Z',
+            'end_date': '2026-01-10T11:05:00Z',
+            'retention_action': 'Nao Retido',
+            'category': 'CC RET Outbound',
+            'subcategory': 'Qualquer Subcategoria',
+            'churn_reason': 'Retencao Fibra',
+        },
+    ]
+
+    summary = _run_import(batch, rows)
+
+    assert summary['total_rows'] == 2
+    assert summary['imported_rows'] == 1
+    assert summary['skipped_outbound_irrelevant_rows'] == 1
+
+
 def test_pipeline_handles_mixed_naive_and_aware_datetimes_in_monthly_dedup(db):
     previous = ImportBatch.objects.create(original_filename='aware.csv')
     current = ImportBatch.objects.create(original_filename='naive.csv')

@@ -130,22 +130,22 @@
         </button>
         <nav class="dashboard-menu" id="dashboard-menu-nav" data-dashboard-menu>
             {% if request.user|user_is_assistant and request.user|linked_agent_id %}
-            <a class="dashboard-menu-link is-active" href="{% url 'dashboards:assistant_detail' request.user|linked_agent_id %}?{{ dashboard_querystring }}">Assistentes</a>
+            <a class="dashboard-menu-link is-active" href="{% url 'dashboards:assistant_detail' request.user|linked_agent_id %}">Assistentes</a>
             {% else %}
             <details class="dashboard-menu-group" {% if active_section == 'overview' or active_section == 'overview_mobile' or active_section == 'overview_fixed' %}open{% endif %}>
                 <summary class="dashboard-menu-group-title">Visão Geral</summary>
                 <div class="dashboard-menu-group-links">
-                    <a class="dashboard-menu-link {% if active_section == 'overview' %}is-active{% endif %}" href="{% url 'dashboards:overview' %}?{{ dashboard_querystring }}">Geral</a>
-                    <a class="dashboard-menu-link {% if active_section == 'overview_mobile' %}is-active{% endif %}" href="{% url 'dashboards:overview_mobile' %}?{{ dashboard_querystring }}">Móvel</a>
-                    <a class="dashboard-menu-link {% if active_section == 'overview_fixed' %}is-active{% endif %}" href="{% url 'dashboards:overview_fixed' %}?{{ dashboard_querystring }}">Fixo</a>
+                    <a class="dashboard-menu-link {% if active_section == 'overview' %}is-active{% endif %}" href="{% url 'dashboards:overview' %}">Geral</a>
+                    <a class="dashboard-menu-link {% if active_section == 'overview_mobile' %}is-active{% endif %}" href="{% url 'dashboards:overview_mobile' %}">Móvel</a>
+                    <a class="dashboard-menu-link {% if active_section == 'overview_fixed' %}is-active{% endif %}" href="{% url 'dashboards:overview_fixed' %}">Fixo</a>
                 </div>
             </details>
 
             <details class="dashboard-menu-group" {% if active_section == 'daily_rates' or active_section == 'monthly_rates' or active_section == 'previous_day' %}open{% endif %}>
                 <summary class="dashboard-menu-group-title">Evolução Temporal</summary>
                 <div class="dashboard-menu-group-links">
-                    <a class="dashboard-menu-link {% if active_section == 'daily_rates' %}is-active{% endif %}" href="{% url 'dashboards:daily_rates' %}?{{ dashboard_querystring }}">Evolução Diária</a>
-                    <a class="dashboard-menu-link {% if active_section == 'monthly_rates' %}is-active{% endif %}" href="{% url 'dashboards:monthly_rates' %}?{{ dashboard_querystring }}">Evolução Mensal</a>
+                    <a class="dashboard-menu-link {% if active_section == 'daily_rates' %}is-active{% endif %}" href="{% url 'dashboards:daily_rates' %}">Evolução Diária</a>
+                    <a class="dashboard-menu-link {% if active_section == 'monthly_rates' %}is-active{% endif %}" href="{% url 'dashboards:monthly_rates' %}">Evolução Mensal</a>
                     <a class="dashboard-menu-link {% if active_section == 'previous_day' %}is-active{% endif %}" href="{% url 'dashboards:previous_day' %}">Operação D-1</a>
                 </div>
             </details>
@@ -153,20 +153,20 @@
             <details class="dashboard-menu-group" {% if active_section == 'assistants' or active_section == 'services' or active_section == 'churn' or active_section == 'actions' or active_section == 'outbound' %}open{% endif %}>
                 <summary class="dashboard-menu-group-title">Performance Operacional</summary>
                 <div class="dashboard-menu-group-links">
-                    <a class="dashboard-menu-link {% if active_section == 'assistants' %}is-active{% endif %}" href="{% url 'dashboards:assistants' %}?{{ dashboard_querystring }}">Performance por Assistente</a>
-                    <a class="dashboard-menu-link {% if active_section == 'services' %}is-active{% endif %}" href="{% url 'dashboards:services' %}?{{ dashboard_querystring }}">Performance por Serviço</a>
-                    <a class="dashboard-menu-link {% if active_section == 'churn' %}is-active{% endif %}" href="{% url 'dashboards:churn_reasons' %}?{{ dashboard_querystring }}">Motivos de Cancelamento</a>
-                    <a class="dashboard-menu-link {% if active_section == 'actions' %}is-active{% endif %}" href="{% url 'dashboards:retention_actions' %}?{{ dashboard_querystring }}">Estratégias de Retenção</a>
-                    <a class="dashboard-menu-link {% if active_section == 'outbound' %}is-active{% endif %}" href="{% url 'dashboards:outbound' %}?{{ dashboard_querystring }}">Outbound</a>
+                    <a class="dashboard-menu-link {% if active_section == 'assistants' %}is-active{% endif %}" href="{% url 'dashboards:assistants' %}">Performance por Assistente</a>
+                    <a class="dashboard-menu-link {% if active_section == 'services' %}is-active{% endif %}" href="{% url 'dashboards:services' %}">Performance por Serviço</a>
+                    <a class="dashboard-menu-link {% if active_section == 'churn' %}is-active{% endif %}" href="{% url 'dashboards:churn_reasons' %}">Motivos de Cancelamento</a>
+                    <a class="dashboard-menu-link {% if active_section == 'actions' %}is-active{% endif %}" href="{% url 'dashboards:retention_actions' %}">Estratégias de Retenção</a>
+                    <a class="dashboard-menu-link {% if active_section == 'outbound' %}is-active{% endif %}" href="{% url 'dashboards:outbound' %}">Outbound</a>
                 </div>
             </details>
 
             <details class="dashboard-menu-group" {% if active_section == 'inconsistencies' or active_section == 'typing_analysis' or active_section == 'insights' %}open{% endif %}>
                 <summary class="dashboard-menu-group-title">Qualidade e Auditoria</summary>
                 <div class="dashboard-menu-group-links">
-                    <a class="dashboard-menu-link {% if active_section == 'inconsistencies' %}is-active{% endif %}" href="{% url 'dashboards:inconsistencies' %}?{{ dashboard_querystring }}">Qualidade de Dados</a>
-                    <a class="dashboard-menu-link {% if active_section == 'typing_analysis' %}is-active{% endif %}" href="{% url 'dashboards:typing_analysis' %}?{{ dashboard_querystring }}">Auditoria de Tipificação</a>
-                    <a class="dashboard-menu-link {% if active_section == 'insights' %}is-active{% endif %}" href="{% url 'dashboards:insights' %}?{{ dashboard_querystring }}">Insights Executivos</a>
+                    <a class="dashboard-menu-link {% if active_section == 'inconsistencies' %}is-active{% endif %}" href="{% url 'dashboards:inconsistencies' %}">Qualidade de Dados</a>
+                    <a class="dashboard-menu-link {% if active_section == 'typing_analysis' %}is-active{% endif %}" href="{% url 'dashboards:typing_analysis' %}">Auditoria de Tipificação</a>
+                    <a class="dashboard-menu-link {% if active_section == 'insights' %}is-active{% endif %}" href="{% url 'dashboards:insights' %}">Insights Executivos</a>
                 </div>
             </details>
             {% endif %}

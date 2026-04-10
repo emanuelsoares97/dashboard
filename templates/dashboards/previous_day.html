@@ -167,7 +167,9 @@
             <div class="panel-header">
                 <div>
                     <h3 class="card-title">Chamadas prioritárias para auditoria</h3>
-                    <p class="panel-subtitle">Top 15 ordenadas por score de prioridade. Critérios: sem ação, assistente abaixo da média, inconsistências, serviço com baixa retenção.</p>
+                    <p class="panel-subtitle">Top 15 ordenadas por score de prioridade. Critérios: cliente não retido, sem ação registada, assistente abaixo da média, inconsistências e tipificação com baixa retenção.</p>
+                    <p class="panel-subtitle">A data apresentada usa o startDate do ficheiro (dia e hora) para facilitar a localização exata da chamada.</p>
+                    <p class="panel-subtitle">Como o score funciona: {% for item in previous_day.audit_score_description %}{{ item }}{% if not forloop.last %} {% endif %}{% endfor %}</p>
                 </div>
             </div>
             <div class="table-wrap table-wrap-compact">
@@ -175,13 +177,12 @@
                     <thead>
                         <tr>
                             <th style="width: 8%;">Score</th>
-                            <th style="width: 10%;">Chamada</th>
-                            <th style="width: 12%;">Assistente</th>
-                            <th style="width: 10%;">Data</th>
-                            <th style="width: 15%;">Motivo</th>
-                            <th style="width: 12%;">Ação</th>
+                            <th style="width: 14%;">ID cliente</th>
+                            <th style="width: 14%;">Assistente</th>
+                            <th style="width: 16%;">Data/Hora</th>
+                            <th style="width: 14%;">Motivo</th>
                             <th style="width: 12%;">Resultado</th>
-                            <th style="width: 25%;">Motivos de auditoria</th>
+                            <th style="width: 22%;">Motivos de auditoria</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -194,9 +195,8 @@
                             </td>
                             <td>{{ call.call_id_external }}</td>
                             <td>{{ call.assistant_name }}</td>
-                            <td>{{ call.occurred_on|date:'d/m/Y' }}</td>
+                            <td>{{ call.start_at|date:'d/m/Y H:i' }}</td>
                             <td>{{ call.churn_reason }}</td>
-                            <td>{{ call.retention_action }}</td>
                             <td>{{ call.final_outcome }}</td>
                             <td>
                                 <ul style="margin: 0; padding-left: 20px; font-size: 0.9em;">
@@ -207,7 +207,7 @@
                             </td>
                         </tr>
                         {% empty %}
-                        <tr><td class="table-empty" colspan="8">Sem chamadas prioritárias para auditoria no dia anterior.</td></tr>
+                        <tr><td class="table-empty" colspan="7">Sem chamadas prioritárias para auditoria no dia anterior.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>

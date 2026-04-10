@@ -267,11 +267,19 @@ def test_overview_view_returns_200(client):
 def test_outbound_view_separates_cc_ret_outbound_from_other_tabs(client, interaction_factory, base_dimensions):
     interaction_factory(
         call_id_external='in-1',
+        category='CC RET Fibra',
         subcategory='CC RET Fibra',
         final_outcome=base_dimensions['retained'],
     )
     interaction_factory(
         call_id_external='out-1',
+        category='CC RET Outbound',
+        subcategory='Subcategoria nao outbound',
+        final_outcome=base_dimensions['not_retained'],
+    )
+    interaction_factory(
+        call_id_external='out-2-should-not-enter',
+        category='CC RET Fibra',
         subcategory='CC RET Outbound',
         final_outcome=base_dimensions['not_retained'],
     )
@@ -287,7 +295,7 @@ def test_outbound_view_separates_cc_ret_outbound_from_other_tabs(client, interac
 
     assert overview_response.status_code == 200
     assert outbound_response.status_code == 200
-    assert overview_response.context['dashboard']['general_kpis']['total_calls'] == 1
+    assert overview_response.context['dashboard']['general_kpis']['total_calls'] == 2
     assert outbound_response.context['dashboard']['general_kpis']['total_calls'] == 1
     assert outbound_response.context['active_section'] == 'outbound'
 

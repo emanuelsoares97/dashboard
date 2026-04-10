@@ -18,9 +18,9 @@
                 </strong>
             </div>
             <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;justify-content:flex-end;">
-                <a class="btn {% if overview_tab == 'general' %}btn-primary{% else %}btn-secondary{% endif %}" href="{% url 'dashboards:overview' %}?{{ dashboard_querystring }}">Geral</a>
-                <a class="btn {% if overview_tab == 'mobile' %}btn-primary{% else %}btn-secondary{% endif %}" href="{% url 'dashboards:overview_mobile' %}?{{ dashboard_querystring }}">Móvel</a>
-                <a class="btn {% if overview_tab == 'fixed' %}btn-primary{% else %}btn-secondary{% endif %}" href="{% url 'dashboards:overview_fixed' %}?{{ dashboard_querystring }}">Fixo</a>
+                <a class="btn {% if overview_tab == 'general' %}btn-primary{% else %}btn-secondary{% endif %}" href="{% url 'dashboards:overview' %}">Geral</a>
+                <a class="btn {% if overview_tab == 'mobile' %}btn-primary{% else %}btn-secondary{% endif %}" href="{% url 'dashboards:overview_mobile' %}">Móvel</a>
+                <a class="btn {% if overview_tab == 'fixed' %}btn-primary{% else %}btn-secondary{% endif %}" href="{% url 'dashboards:overview_fixed' %}">Fixo</a>
             </div>
         </div>
     </section>
