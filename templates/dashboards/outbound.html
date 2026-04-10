@@ -1,0 +1,152 @@
+{% extends 'dashboards/layout.html' %}
+
+{% block dashboard_content %}
+<div class="dashboard-page">
+    {% if dashboard.comparison_context.enabled %}
+    <section class="card panel comparison-context-panel">
+        <div class="comparison-context-grid">
+            <div>
+                <span class="kpi-label">Período atual</span>
+                <strong>{{ dashboard.comparison_context.current_start|date:'Y-m-d' }} até {{ dashboard.comparison_context.current_end|date:'Y-m-d' }}</strong>
+            </div>
+            <div>
+                <span class="kpi-label">Período anterior</span>
+                <strong>{{ dashboard.comparison_context.previous_start|date:'Y-m-d' }} até {{ dashboard.comparison_context.previous_end|date:'Y-m-d' }}</strong>
+            </div>
+        </div>
+    </section>
+    {% endif %}
+
+    <section class="kpi-grid">
+        <article class="kpi-card kpi-card-neutral card">
+            <span class="kpi-label">Total chamadas outbound</span>
+            <strong class="kpi-value">{{ dashboard.general_kpis.total_calls }}</strong>
+        </article>
+        <article class="kpi-card kpi-card-success card">
+            <span class="kpi-label">Taxa retenção outbound</span>
+            <strong class="kpi-value">{{ dashboard.general_kpis.retention_rate|floatformat:2 }}%</strong>
+        </article>
+        <article class="kpi-card kpi-card-danger card">
+            <span class="kpi-label">Taxa não retenção outbound</span>
+            <strong class="kpi-value">{{ dashboard.general_kpis.non_retention_rate|floatformat:2 }}%</strong>
+        </article>
+        <article class="kpi-card kpi-card-warning card">
+            <span class="kpi-label">Call drop outbound</span>
+            <strong class="kpi-value">{{ dashboard.general_kpis.call_drop_rate|floatformat:2 }}%</strong>
+        </article>
+        <article class="kpi-card kpi-card-primary card">
+            <span class="kpi-label">Duração média</span>
+            <strong class="kpi-value">{{ dashboard.general_kpis.avg_duration_seconds|floatformat:2 }}s</strong>
+        </article>
+    </section>
+
+    <section class="analytics-grid analytics-grid-middle">
+        <article class="card panel">
+            <div class="panel-header"><div><h3 class="card-title">Tipificações outbound com mais não retidos</h3></div></div>
+            <div class="table-wrap table-wrap-compact">
+                <table class="table table-sortable table-analytic">
+                    <thead><tr><th>Tipificação</th><th>Total</th><th>Retidos</th><th>Não retidos</th><th>% do total</th></tr></thead>
+                    <tbody>
+                        {% for row in dashboard.tipification_tables.non_retained %}
+                        <tr>
+                            <td>{{ row.tipification_label }}</td>
+                            <td>{{ row.total_calls }}</td>
+                            <td>{{ row.total_retained }}</td>
+                            <td>{{ row.total_non_retained }}</td>
+                            <td>{{ row.pct_total|floatformat:2 }}</td>
+                        </tr>
+                        {% empty %}<tr><td class="table-empty" colspan="5">Sem dados outbound para o período atual.</td></tr>{% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </article>
+        <article class="card panel">
+            <div class="panel-header"><div><h3 class="card-title">Tipificações outbound com mais retidos</h3></div></div>
+            <div class="table-wrap table-wrap-compact">
+                <table class="table table-sortable table-analytic">
+                    <thead><tr><th>Tipificação</th><th>Total</th><th>Retidos</th><th>Não retidos</th><th>% do total</th></tr></thead>
+                    <tbody>
+                        {% for row in dashboard.tipification_tables.retained %}
+                        <tr>
+                            <td>{{ row.tipification_label }}</td>
+                            <td>{{ row.total_calls }}</td>
+                            <td>{{ row.total_retained }}</td>
+                            <td>{{ row.total_non_retained }}</td>
+                            <td>{{ row.pct_total|floatformat:2 }}</td>
+                        </tr>
+                        {% empty %}<tr><td class="table-empty" colspan="5">Sem dados outbound para o período atual.</td></tr>{% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </article>
+    </section>
+
+    <section class="analytics-grid analytics-grid-middle">
+        <article class="card panel">
+            <div class="panel-header"><div><h3 class="card-title">Ações de retenção outbound</h3></div></div>
+            <div class="table-wrap table-wrap-tall">
+                <table class="table table-sortable table-analytic" data-highlight-column="5">
+                    <thead>
+                        <tr>
+                            <th>Ação</th>
+                            <th>Total vezes usada</th>
+                            <th>Total retidos</th>
+                            <th>Total não retidos</th>
+                            <th>% sucesso</th>
+                            <th>% falha</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in dashboard.retention_action_comparison_table %}
+                        <tr>
+                            <td>{{ row.retention_action }}</td>
+                            <td>{{ row.total_used }}</td>
+                            <td>{{ row.total_retained }}</td>
+                            <td>{{ row.total_non_retained }}</td>
+                            <td>{{ row.success_rate|floatformat:2 }}</td>
+                            <td>{{ row.failure_rate|floatformat:2 }}</td>
+                        </tr>
+                        {% empty %}<tr><td class="table-empty" colspan="6">Sem dados outbound para o período atual.</td></tr>{% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </article>
+
+        <article class="card panel">
+            <div class="panel-header"><div><h3 class="card-title">Motivos de cancelamento outbound</h3></div></div>
+            <div class="table-wrap table-wrap-tall">
+                <table class="table table-sortable table-analytic" data-highlight-column="7">
+                    <thead>
+                        <tr>
+                            <th>Motivo</th>
+                            <th>Total chamadas</th>
+                            <th>% do total</th>
+                            <th>Total retidos</th>
+                            <th>Total não retidos</th>
+                            <th>Total call drop</th>
+                            <th>% retenção</th>
+                            <th>% não retenção</th>
+                            <th>% call drop</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in dashboard.churn_reason_comparison_table %}
+                        <tr>
+                            <td>{{ row.churn_reason }}</td>
+                            <td>{{ row.total_calls }}</td>
+                            <td>{{ row.pct_total|floatformat:2 }}</td>
+                            <td>{{ row.total_retained }}</td>
+                            <td>{{ row.total_non_retained }}</td>
+                            <td>{{ row.total_call_drop }}</td>
+                            <td>{{ row.retention_rate|floatformat:2 }}</td>
+                            <td>{{ row.non_retention_rate|floatformat:2 }}</td>
+                            <td>{{ row.call_drop_rate|floatformat:2 }}</td>
+                        </tr>
+                        {% empty %}<tr><td class="table-empty" colspan="9">Sem dados outbound para o período atual.</td></tr>{% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </article>
+    </section>
+</div>
+{% endblock %}

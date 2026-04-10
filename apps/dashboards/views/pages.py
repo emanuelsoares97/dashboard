@@ -22,6 +22,7 @@ from .helpers import _build_dashboard_payload_from_filters
 from .helpers import _annotate_mobile_adjusted_metrics
 from .helpers import FIXED_SUBCATEGORY_FILTERS
 from .helpers import MOBILE_SUBCATEGORY_FILTERS
+from .helpers import OUTBOUND_SUBCATEGORY_FILTER
 from .helpers import _resolve_filters
 
 
@@ -71,6 +72,27 @@ def overview_mobile(request):
 def overview_fixed(request):
     """Renderiza a visao principal filtrada para a subcategoria Fixo."""
     return _render_overview_segment(request, active_section='overview_fixed')
+
+
+@require_dashboard_access
+def outbound(request):
+    """Renderiza visao dedicada de chamadas outbound sem mistura com inbound."""
+    assistant_redirect = _redirect_assistant_to_own_detail_if_needed(request)
+    if assistant_redirect:
+        return assistant_redirect
+
+    filters = _resolve_filters(request, force_assistant_name='')
+    filters['subcategory_exact_values'] = (OUTBOUND_SUBCATEGORY_FILTER,)
+    filters['subcategory_exclude_values'] = ()
+    payload = _build_dashboard_payload_from_filters(filters)
+
+    context = _build_common_context(
+        page_title='Outbound',
+        active_section='outbound',
+        filters=filters,
+        dashboard_payload=payload,
+    )
+    return render(request, 'dashboards/outbound.html', context)
 
 
 def _render_overview_segment(request, *, active_section):

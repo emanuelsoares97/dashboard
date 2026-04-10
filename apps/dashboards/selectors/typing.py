@@ -13,5 +13,7 @@ def get_typing_queryset(filters: dict):
         end_date=filters.get('end_date'),
         service_type_id=filters.get('service_type_id'),
         churn_reason_id=filters.get('churn_reason_id'),
+        subcategory_exact_values=filters.get('subcategory_exact_values'),
+        subcategory_exclude_values=filters.get('subcategory_exclude_values'),
     )
     return qs.select_related('agent', 'churn_reason').order_by('-occurred_on')

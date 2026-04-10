@@ -25,6 +25,8 @@ FIXED_SUBCATEGORY_FILTERS = (
 )
 
 MOBILE_ADJUSTED_EXCLUDED_ACTION = 'retido migracao pre pago'
+OUTBOUND_SUBCATEGORY_FILTER = 'CC RET Outbound'
+DEFAULT_EXCLUDED_SUBCATEGORY_FILTERS = (OUTBOUND_SUBCATEGORY_FILTER,)
 
 
 def _resolve_date_range(start_date_raw, end_date_raw, preset):
@@ -94,6 +96,8 @@ def _resolve_filters(request, *, force_assistant_name=None):
         'churn_reason_id': _parse_optional_int(churn_reason_id_raw),
         'retention_action_id': _parse_optional_int(retention_action_id_raw),
         'final_outcome_id': _parse_optional_int(final_outcome_id_raw),
+        'subcategory_exact_values': None,
+        'subcategory_exclude_values': DEFAULT_EXCLUDED_SUBCATEGORY_FILTERS,
     }
 
 
@@ -106,6 +110,7 @@ def _build_filter_options(filters):
         start_date=filters['start_date'],
         end_date=filters['end_date'],
         subcategory_exact_values=filters.get('subcategory_exact_values'),
+        subcategory_exclude_values=filters.get('subcategory_exclude_values'),
     )
     return selectors.select_global_filter_options(base_qs)
 
@@ -126,14 +131,24 @@ def _build_dashboard_payload_from_filters(filters, *, assistant_id=None, use_fil
         retention_action_id=filters['retention_action_id'],
         final_outcome_id=filters['final_outcome_id'],
         subcategory_exact_values=filters.get('subcategory_exact_values'),
+        subcategory_exclude_values=filters.get('subcategory_exclude_values'),
     )
 
 
 def _annotate_mobile_adjusted_metrics(payload):
-    """Calcula taxa ajustada sem contabilizar Retido Migracao Pre Pago como retido."""
+    """Calcula taxa ajustada sem contabilizar Retido Migracao Pre Pago como retido.
+
+    Denominador: general_kpis.total_calls (total real de chamadas, inclui pre-pago).
+    Numerador: general_kpis.total_retained - retidos_pre_pago_da_tabela.
+
+    Usar o denominador da tabela seria errado porque build_retention_action_table
+    aplica _exclude_outcome_labels() internamente, excluindo chamadas cujo
+    retention_action coincide com labels de OutcomeFinal (ex: 'Nao Retido').
+    Essas chamadas sao maioritariamente nao-retidas e a sua exclusao inflaria
+    artificialmente a taxa ajustada, podendo torna-la maior que a taxa geral.
+    """
     rows = []
-    total_used = 0
-    total_adjusted_retained = 0
+    pre_pago_retained = 0
 
     for row in payload.get('retention_action_table', []):
         used = row.get('total_used', 0) or 0
@@ -141,11 +156,11 @@ def _annotate_mobile_adjusted_metrics(payload):
         action_label = str(row.get('retention_action', '')).strip().lower()
         is_excluded = action_label == MOBILE_ADJUSTED_EXCLUDED_ACTION
 
+        if is_excluded:
+            pre_pago_retained += retained
+
         adjusted_retained = 0 if is_excluded else retained
         adjusted_rate = round((adjusted_retained / used) * 100, 2) if used else 0.0
-
-        total_used += used
-        total_adjusted_retained += adjusted_retained
 
         rows.append(
             {
@@ -155,7 +170,12 @@ def _annotate_mobile_adjusted_metrics(payload):
             }
         )
 
-    adjusted_global_rate = round((total_adjusted_retained / total_used) * 100, 2) if total_used else 0.0
+    general_kpis = payload.get('general_kpis', {})
+    total_calls = general_kpis.get('total_calls') or 0
+    total_retained = general_kpis.get('total_retained') or 0
+    adjusted_retained_global = max(total_retained - pre_pago_retained, 0)
+    adjusted_global_rate = round((adjusted_retained_global / total_calls) * 100, 2) if total_calls else 0.0
+
     payload['retention_action_table'] = rows
     payload.setdefault('general_kpis', {})['retention_rate_adjusted_mobile'] = adjusted_global_rate
     return payload

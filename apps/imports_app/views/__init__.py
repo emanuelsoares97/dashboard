@@ -2,6 +2,7 @@ from apps.imports_app.services import import_excel
 
 from .pages import import_batch_detail
 from .pages import import_history
+from .upload import import_status
 from .upload import handle_upload_excel
 
 

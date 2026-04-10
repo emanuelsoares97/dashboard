@@ -281,6 +281,82 @@
         </article>
     </section>
 </div>
+
+{% if is_mobile_overview %}
+<section class="segment-info-note">
+    <h4 class="segment-info-note__title">O que está a ser contabilizado nesta aba</h4>
+    <div class="segment-info-note__body">
+        <div class="segment-info-note__block">
+            <span class="segment-info-note__label">Subcategorias incluídas</span>
+            <ul class="segment-info-note__list">
+                <li>CC RET Móvel</li>
+                <li>CC RET Cancelamento Móvel</li>
+            </ul>
+        </div>
+        <div class="segment-info-note__block">
+            <span class="segment-info-note__label">Excluídas automaticamente</span>
+            <ul class="segment-info-note__list">
+                <li>CC RET Outbound &mdash; dados visíveis na aba Outbound</li>
+                <li>Todas as subcategorias de Fixo, Fibra e TV</li>
+            </ul>
+        </div>
+        <div class="segment-info-note__block">
+            <span class="segment-info-note__label">Taxa sem pré-pago</span>
+            <p class="segment-info-note__text">
+                A taxa ajustada usa o mesmo total de chamadas da taxa geral.
+                As chamadas com resolução <strong>Retido Migração Pré Pago</strong>
+                continuam a contar no volume total mas deixam de ser contadas
+                como retidas &mdash; tratadas como não retidas na leitura ajustada.
+                A taxa ajustada é sempre menor ou igual à taxa geral.
+            </p>
+        </div>
+    </div>
+</section>
+{% elif overview_tab == 'fixed' %}
+<section class="segment-info-note">
+    <h4 class="segment-info-note__title">O que está a ser contabilizado nesta aba</h4>
+    <div class="segment-info-note__body">
+        <div class="segment-info-note__block">
+            <span class="segment-info-note__label">Subcategorias incluídas</span>
+            <ul class="segment-info-note__list">
+                <li>CC RET Fibra</li>
+                <li>CC RET Fibra e Móvel</li>
+                <li>CC RET Cancelamento Fibra</li>
+                <li>CC RET Cancelamento Fibra e Móvel</li>
+                <li>CC RET TV</li>
+                <li>CC RET TV e Fixo</li>
+                <li>CC RET TV Fibra e Móvel</li>
+                <li>CC RET TV Fixo Fibra e Móvel</li>
+                <li>CC RET Fixo</li>
+            </ul>
+        </div>
+        <div class="segment-info-note__block">
+            <span class="segment-info-note__label">Excluídas automaticamente</span>
+            <ul class="segment-info-note__list">
+                <li>CC RET Outbound &mdash; dados visíveis na aba Outbound</li>
+                <li>CC RET Móvel e CC RET Cancelamento Móvel &mdash; dados visíveis na aba Móvel</li>
+            </ul>
+        </div>
+    </div>
+</section>
+{% else %}
+<section class="segment-info-note">
+    <h4 class="segment-info-note__title">O que está a ser contabilizado nesta aba</h4>
+    <div class="segment-info-note__body">
+        <div class="segment-info-note__block">
+            <span class="segment-info-note__label">Subcategorias incluídas</span>
+            <p class="segment-info-note__text">Todas as subcategorias de retenção inbound &mdash; Móvel, Fixo, Fibra, TV e respetivos cancelamentos.</p>
+        </div>
+        <div class="segment-info-note__block">
+            <span class="segment-info-note__label">Excluídas automaticamente</span>
+            <ul class="segment-info-note__list">
+                <li>CC RET Outbound &mdash; dados visíveis na aba Outbound</li>
+            </ul>
+        </div>
+    </div>
+</section>
+{% endif %}
+
 {{ dashboard.frontend_payload|json_script:'dashboard-data' }}
 {% endblock %}
 

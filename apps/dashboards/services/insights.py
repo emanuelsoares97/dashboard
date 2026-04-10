@@ -230,6 +230,8 @@ def generate_insights(filters):
         churn_reason_id=filters.get('churn_reason_id'),
         retention_action_id=filters.get('retention_action_id'),
         final_outcome_id=filters.get('final_outcome_id'),
+        subcategory_exact_values=filters.get('subcategory_exact_values'),
+        subcategory_exclude_values=filters.get('subcategory_exclude_values'),
     )
 
     general_kpis = calculate_general_kpis(filtered_qs)

@@ -150,13 +150,14 @@
                 </div>
             </details>
 
-            <details class="dashboard-menu-group" {% if active_section == 'assistants' or active_section == 'services' or active_section == 'churn' or active_section == 'actions' %}open{% endif %}>
+            <details class="dashboard-menu-group" {% if active_section == 'assistants' or active_section == 'services' or active_section == 'churn' or active_section == 'actions' or active_section == 'outbound' %}open{% endif %}>
                 <summary class="dashboard-menu-group-title">Performance Operacional</summary>
                 <div class="dashboard-menu-group-links">
                     <a class="dashboard-menu-link {% if active_section == 'assistants' %}is-active{% endif %}" href="{% url 'dashboards:assistants' %}?{{ dashboard_querystring }}">Performance por Assistente</a>
                     <a class="dashboard-menu-link {% if active_section == 'services' %}is-active{% endif %}" href="{% url 'dashboards:services' %}?{{ dashboard_querystring }}">Performance por Serviço</a>
                     <a class="dashboard-menu-link {% if active_section == 'churn' %}is-active{% endif %}" href="{% url 'dashboards:churn_reasons' %}?{{ dashboard_querystring }}">Motivos de Cancelamento</a>
                     <a class="dashboard-menu-link {% if active_section == 'actions' %}is-active{% endif %}" href="{% url 'dashboards:retention_actions' %}?{{ dashboard_querystring }}">Estratégias de Retenção</a>
+                    <a class="dashboard-menu-link {% if active_section == 'outbound' %}is-active{% endif %}" href="{% url 'dashboards:outbound' %}?{{ dashboard_querystring }}">Outbound</a>
                 </div>
             </details>
 

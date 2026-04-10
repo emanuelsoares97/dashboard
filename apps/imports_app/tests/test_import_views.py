@@ -1,5 +1,6 @@
 from io import BytesIO
 from unittest.mock import patch
+import json
 
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.contrib.auth import get_user_model
@@ -107,6 +108,56 @@ class ImportViewsTests(TestCase):
 
         batch = ImportBatch.objects.get(original_filename='sample_empty.csv')
         self.assertEqual(batch.status, ImportBatch.Status.PENDING)
+
+    @patch('apps.imports_app.views.upload.threading.Thread')
+    @patch('apps.imports_app.views.import_excel')
+    def test_upload_view_ajax_starts_background_job_and_returns_status_url(self, import_excel_mock, thread_cls_mock):
+        content = BytesIO(b'dummy csv content').getvalue()
+        uploaded = SimpleUploadedFile(
+            'sample_async.csv',
+            content,
+            content_type='text/csv',
+        )
+
+        response = self.client.post(
+            reverse('imports_app:upload_excel'),
+            {'file': uploaded},
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+        )
+
+        self.assertEqual(response.status_code, 202)
+        payload = json.loads(response.content.decode('utf-8'))
+        self.assertIn('batch_id', payload)
+        self.assertIn('status_url', payload)
+        self.assertIn('/imports/status/', payload['status_url'])
+
+        import_excel_mock.assert_not_called()
+        thread_cls_mock.assert_called_once()
+        thread_cls_mock.return_value.start.assert_called_once()
+
+    def test_import_status_endpoint_returns_progress_payload(self):
+        batch = ImportBatch.objects.create(
+            original_filename='status.csv',
+            status=ImportBatch.Status.PROCESSING,
+            total_rows=100,
+            success_rows=20,
+            duplicate_rows=5,
+            failed_rows=1,
+            notes='PROGRESS|processed=30|total=100|skipped=4',
+        )
+
+        response = self.client.get(
+            reverse('imports_app:import_status', args=[batch.id]),
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = json.loads(response.content.decode('utf-8'))
+        self.assertEqual(payload['batch_id'], batch.id)
+        self.assertEqual(payload['status'], ImportBatch.Status.PROCESSING)
+        self.assertEqual(payload['processed_rows'], 30)
+        self.assertEqual(payload['total_rows'], 100)
+        self.assertGreaterEqual(payload['progress_pct'], 0)
 
     def test_history_view_renders_batches(self):
         ImportBatch.objects.create(original_filename='a.xlsx')

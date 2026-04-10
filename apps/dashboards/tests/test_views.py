@@ -7,6 +7,7 @@ from django.urls import reverse
 from datetime import datetime, timezone
 
 from apps.inbound.models import Agent, ServiceType, Team
+from apps.dashboards.views.helpers import _annotate_mobile_adjusted_metrics
 
 
 @pytest.fixture
@@ -54,6 +55,7 @@ def superuser_client(django_user_model):
         'dashboards:overview',
         'dashboards:overview_mobile',
         'dashboards:overview_fixed',
+        'dashboards:outbound',
         'dashboards:services',
         'dashboards:assistants',
         'dashboards:monthly_rates',
@@ -82,6 +84,7 @@ def test_dashboard_forbids_authenticated_user_without_dashboard_group(ungrouped_
         'dashboards:overview',
         'dashboards:overview_mobile',
         'dashboards:overview_fixed',
+        'dashboards:outbound',
         'dashboards:churn_reasons',
         'dashboards:retention_actions',
         'dashboards:services',
@@ -105,6 +108,7 @@ def test_base_pages_allow_all_dashboard_groups(request, client_fixture_name, rou
         'dashboards:overview',
         'dashboards:overview_mobile',
         'dashboards:overview_fixed',
+        'dashboards:outbound',
         'dashboards:churn_reasons',
         'dashboards:retention_actions',
         'dashboards:services',
@@ -257,6 +261,35 @@ def test_overview_view_returns_200(client):
     assert 'insights' not in response.context
     assert response.context['active_section'] == 'overview'
     assert response.context['period'] == 'day'
+
+
+@pytest.mark.django_db
+def test_outbound_view_separates_cc_ret_outbound_from_other_tabs(client, interaction_factory, base_dimensions):
+    interaction_factory(
+        call_id_external='in-1',
+        subcategory='CC RET Fibra',
+        final_outcome=base_dimensions['retained'],
+    )
+    interaction_factory(
+        call_id_external='out-1',
+        subcategory='CC RET Outbound',
+        final_outcome=base_dimensions['not_retained'],
+    )
+
+    query_params = {
+        'date_preset': 'custom',
+        'start_date': '2026-01-01',
+        'end_date': '2026-01-31',
+    }
+
+    overview_response = client.get(reverse('dashboards:overview'), query_params)
+    outbound_response = client.get(reverse('dashboards:outbound'), query_params)
+
+    assert overview_response.status_code == 200
+    assert outbound_response.status_code == 200
+    assert overview_response.context['dashboard']['general_kpis']['total_calls'] == 1
+    assert outbound_response.context['dashboard']['general_kpis']['total_calls'] == 1
+    assert outbound_response.context['active_section'] == 'outbound'
 
 
 @pytest.mark.django_db
@@ -739,3 +772,176 @@ def test_assistant_detail_context_includes_comparison_kpis(client, interaction_f
     assert 'kpis' in detail['typing_analysis']
 
 
+# ---------------------------------------------------------------------------
+# Unit tests: _annotate_mobile_adjusted_metrics (taxa movel sem pre pago PF)
+# ---------------------------------------------------------------------------
+
+def _make_action_row(action, used, retained):
+    non_retained = max(used - retained, 0)
+    return {
+        'retention_action': action,
+        'total_used': used,
+        'total_retained': retained,
+        'total_non_retained': non_retained,
+        'success_rate': round((retained / used) * 100, 2) if used else 0.0,
+    }
+
+
+def test_prepago_calls_counted_in_denominator_but_not_as_retained():
+    """Chamadas 'Retido Migracao Pre Pago' devem entrar no total (denominador) da
+    taxa ajustada mas NAO devem ser contadas como retidas (numerador).
+
+    Cenario:
+      - 60 chamadas normais, 40 retidas  → taxa normal = 66.67%
+      - 40 chamadas pre-pago, 40 'retidas' (mas excluidas do ajuste)
+      - general_kpis: total_calls=100, total_retained=80 → taxa geral = 80%
+      - Taxa ajustada = (80 - 40) / 100 = 40.0%
+
+    Se o denominador fosse so as chamadas normais (60), o resultado seria
+    40/60 = 66.67% — o teste rejeitaria esse valor.
+    """
+    payload = {
+        'retention_action_table': [
+            _make_action_row('Desconto aplicado', used=60, retained=40),
+            _make_action_row('Retido Migracao Pre Pago', used=40, retained=40),
+        ],
+        'general_kpis': {'total_calls': 100, 'total_retained': 80, 'retention_rate': 80.0},
+    }
+
+    result = _annotate_mobile_adjusted_metrics(payload)
+
+    adjusted_global = result['general_kpis']['retention_rate_adjusted_mobile']
+    assert adjusted_global == 40.0, (
+        f"Esperado 40.0% (pre-pago no denominador, nao no numerador) mas obteve {adjusted_global}%"
+    )
+    assert adjusted_global <= result['general_kpis']['retention_rate']
+
+
+def test_prepago_row_has_zero_adjusted_retained_and_zero_adjusted_rate():
+    """A linha 'Retido Migracao Pre Pago' deve ter adjusted_total_retained=0 e
+    adjusted_success_rate=0.0 para indicar que nao conta como retencao real.
+    """
+    payload = {
+        'retention_action_table': [
+            _make_action_row('Retido Migracao Pre Pago', used=25, retained=25),
+        ],
+    }
+
+    result = _annotate_mobile_adjusted_metrics(payload)
+    row = result['retention_action_table'][0]
+
+    assert row['adjusted_total_retained'] == 0
+    assert row['adjusted_success_rate'] == 0.0
+
+
+def test_non_prepago_rows_keep_original_retained_count():
+    """Linhas de accoes normais (nao pre-pago) nao devem ser alteradas pelo ajuste."""
+    payload = {
+        'retention_action_table': [
+            _make_action_row('Desconto aplicado', used=100, retained=70),
+        ],
+    }
+
+    result = _annotate_mobile_adjusted_metrics(payload)
+    row = result['retention_action_table'][0]
+
+    assert row['adjusted_total_retained'] == 70
+    assert row['adjusted_success_rate'] == 70.0
+
+
+def test_prepago_matching_is_case_insensitive():
+    """A comparacao do label de pre-pago deve ser insensivel a maiusculas/minusculas."""
+    payload = {
+        'retention_action_table': [
+            _make_action_row('RETIDO MIGRACAO PRE PAGO', used=10, retained=10),
+            _make_action_row('retido migracao pre pago', used=10, retained=10),
+            _make_action_row('Retido Migracao Pre Pago', used=10, retained=10),
+        ],
+    }
+
+    result = _annotate_mobile_adjusted_metrics(payload)
+
+    for row in result['retention_action_table']:
+        assert row['adjusted_total_retained'] == 0
+        assert row['adjusted_success_rate'] == 0.0
+    assert result['general_kpis']['retention_rate_adjusted_mobile'] == 0.0
+
+
+def test_adjusted_global_rate_zero_when_no_table_rows():
+    """Payload sem linhas na tabela deve produzir taxa ajustada 0.0 sem erros."""
+    payload = {'retention_action_table': []}
+
+    result = _annotate_mobile_adjusted_metrics(payload)
+
+    assert result['general_kpis']['retention_rate_adjusted_mobile'] == 0.0
+
+
+def test_mixed_scenario_global_adjusted_rate():
+    """Cenario misto: pre-pago + normais + sem accao.
+
+    - 50 chamadas normais, 30 retidas
+    - 20 chamadas pre-pago, 20 'retidas'
+    - 30 chamadas sem accao, 0 retidas
+    general_kpis: total_calls=100, total_retained=50
+    Taxa ajustada = (50 - 20) / 100 = 30.0%
+    """
+    payload = {
+        'retention_action_table': [
+            _make_action_row('Desconto aplicado', used=50, retained=30),
+            _make_action_row('Retido Migracao Pre Pago', used=20, retained=20),
+            _make_action_row('Sem acao', used=30, retained=0),
+        ],
+        'general_kpis': {'total_calls': 100, 'total_retained': 50, 'retention_rate': 50.0},
+    }
+
+    result = _annotate_mobile_adjusted_metrics(payload)
+
+    adjusted = result['general_kpis']['retention_rate_adjusted_mobile']
+    assert adjusted == 30.0
+    assert adjusted <= result['general_kpis']['retention_rate']
+
+
+def test_adjusted_rate_uses_general_kpis_not_table_sum():
+    """Regresso: a taxa ajustada usa general_kpis.total_calls como denominador,
+    NAO a soma de total_used da retention_action_table.
+
+    O problema ocorre porque build_retention_action_table aplica
+    _exclude_outcome_labels() internamente, excluindo chamadas com retention_action
+    igual a labels de OutcomeFinal (ex: 'Nao Retido'). Essas chamadas ficam fora
+    da tabela mas existem em general_kpis.total_calls.
+
+    Cenario:
+      - 200 chamadas excluidas da tabela (retention_action='Nao Retido'), 0 retidas
+      - 200 chamadas normais (na tabela), 190 retidas
+      - 100 chamadas pre-pago (na tabela), 100 retidas
+      - general_kpis: total_calls=500, total_retained=290 → taxa geral = 58%
+
+    Com denominador ERRADO (soma da tabela = 300):
+      (290 - 100) / 300 = 190/300 = 63.33%  > 58%  [BUG: ajustada > geral]
+
+    Com denominador CORRETO (general_kpis.total_calls = 500):
+      (290 - 100) / 500 = 190/500 = 38.0%   < 58%  [CORRETO]
+    """
+    payload = {
+        'retention_action_table': [
+            # Apenas 300 das 500 chamadas aparecem na tabela
+            _make_action_row('Desconto aplicado', used=200, retained=190),
+            _make_action_row('Retido Migracao Pre Pago', used=100, retained=100),
+        ],
+        'general_kpis': {
+            'total_calls': 500,
+            'total_retained': 290,
+            'retention_rate': 58.0,
+        },
+    }
+
+    result = _annotate_mobile_adjusted_metrics(payload)
+    adjusted = result['general_kpis']['retention_rate_adjusted_mobile']
+
+    assert adjusted == 38.0, (
+        f"Esperado 38.0% com denominador correto (500), obteve {adjusted}%. "
+        "Se o valor fosse 63.33%, o denominador esta a usar a soma da tabela (300) em vez de total_calls (500)."
+    )
+    assert adjusted <= result['general_kpis']['retention_rate'], (
+        "A taxa sem pre-pago nunca pode ser maior do que a taxa geral."
+    )

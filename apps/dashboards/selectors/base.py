@@ -21,6 +21,7 @@ def apply_filters(
     retention_action_id=None,
     final_outcome_id=None,
     subcategory_exact_values=None,
+    subcategory_exclude_values=None,
 ):
     """Aplica filtros opcionais comuns a todas as analises."""
     if assistant_id:
@@ -48,6 +49,16 @@ def apply_filters(
         if normalized_values:
             queryset = queryset.annotate(_subcategory_normalized=Lower(Trim('subcategory'))).filter(
                 _subcategory_normalized__in=normalized_values
+            )
+    if subcategory_exclude_values:
+        normalized_excluded_values = {
+            str(value).strip().lower()
+            for value in subcategory_exclude_values
+            if str(value).strip()
+        }
+        if normalized_excluded_values:
+            queryset = queryset.annotate(_subcategory_normalized=Lower(Trim('subcategory'))).exclude(
+                _subcategory_normalized__in=normalized_excluded_values
             )
     return queryset
 

@@ -79,6 +79,12 @@
     font-size: 0.92rem;
 }
 
+.import-progress-meta {
+    color: var(--color-muted);
+    font-size: 0.82rem;
+    min-height: 1rem;
+}
+
 .import-progress-track {
     width: 100%;
     height: 10px;

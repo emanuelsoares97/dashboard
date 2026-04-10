@@ -1,8 +1,9 @@
-from django.db import transaction
-
 from apps.imports_app.models import ImportBatch, ImportRowRaw
 from apps.imports_app.types import ImportSummary
 from apps.inbound.models import Interaction
+
+
+PROGRESS_SAVE_EVERY_ROWS = 200
 
 
 def _build_client_month_key(row_data):
@@ -189,6 +190,37 @@ def _finalize_batch(*, batch, summary):
     )
 
 
+def _save_processing_progress(*, batch, summary):
+    processed_rows = (
+        summary.imported_rows
+        + summary.duplicate_rows
+        + summary.failed_rows
+        + summary.skipped_non_retention_rows
+    )
+
+    batch.success_rows = summary.imported_rows
+    batch.duplicate_rows = summary.duplicate_rows
+    batch.duplicate_in_file_rows = summary.duplicate_in_file_rows
+    batch.duplicate_previous_rows = summary.duplicate_previous_rows
+    batch.failed_rows = summary.failed_rows
+    batch.flagged_rows = summary.inconsistencies
+    batch.notes = (
+        f'PROGRESS|processed={processed_rows}|total={summary.total_rows}|'
+        f'skipped={summary.skipped_non_retention_rows}'
+    )
+    batch.save(
+        update_fields=[
+            'success_rows',
+            'duplicate_rows',
+            'duplicate_in_file_rows',
+            'duplicate_previous_rows',
+            'failed_rows',
+            'flagged_rows',
+            'notes',
+        ]
+    )
+
+
 def run_import_excel(
     file_path,
     batch,
@@ -210,92 +242,103 @@ def run_import_excel(
     summary = ImportSummary(total_rows=len(dataframe))
     seen_hashes: set[str] = set()
 
-    with transaction.atomic():
-        batch.status = ImportBatch.Status.PROCESSING
-        batch.total_rows = summary.total_rows
-        batch.save(update_fields=['status', 'total_rows'])
+    batch.status = ImportBatch.Status.PROCESSING
+    batch.total_rows = summary.total_rows
+    batch.save(update_fields=['status', 'total_rows'])
 
-        summary.consolidated_existing_rows = _consolidate_existing_monthly_duplicates()
+    summary.consolidated_existing_rows = _consolidate_existing_monthly_duplicates()
 
-        mapped_rows = []
-        for row_number, row_payload in iter_row_payloads(dataframe):
-            mapped_rows.append(map_row(row_number, row_payload))
+    mapped_rows = []
+    for row_number, row_payload in iter_row_payloads(dataframe):
+        mapped_rows.append(map_row(row_number, row_payload))
 
-        rows_to_persist = _select_rows_to_persist(
-            mapped_rows,
-            summary,
-            is_retention_category=is_retention_category,
+    rows_to_persist = _select_rows_to_persist(
+        mapped_rows,
+        summary,
+        is_retention_category=is_retention_category,
+    )
+
+    _save_processing_progress(batch=batch, summary=summary)
+
+    for index, row_data in enumerate(rows_to_persist, start=1):
+
+        row_hash = build_raw_hash(row_data.raw_payload)
+
+        client_month_key = _build_client_month_key(row_data)
+        if client_month_key:
+            existing_latest = _get_existing_latest_for_key(client_month_key)
+            if existing_latest is not None:
+                if row_data.start_at is None or existing_latest.start_at >= row_data.start_at:
+                    _create_duplicate_previous_row(
+                        batch=batch,
+                        row_data=row_data,
+                        row_hash=row_hash,
+                        create_raw_row=create_raw_row,
+                    )
+                    summary.duplicate_rows += 1
+                    summary.duplicate_previous_rows += 1
+                    if index % PROGRESS_SAVE_EVERY_ROWS == 0:
+                        _save_processing_progress(batch=batch, summary=summary)
+                    continue
+                summary.consolidated_existing_rows += _delete_existing_rows_for_key(client_month_key)
+
+        if row_hash in seen_hashes:
+            _create_duplicate_in_file_row(
+                batch=batch,
+                row_data=row_data,
+                row_hash=row_hash,
+                create_raw_row=create_raw_row,
+            )
+            summary.duplicate_rows += 1
+            summary.duplicate_in_file_rows += 1
+            if index % PROGRESS_SAVE_EVERY_ROWS == 0:
+                _save_processing_progress(batch=batch, summary=summary)
+            continue
+
+        if ImportRowRaw.objects.filter(raw_hash=row_hash, processed_interaction__isnull=False).exists():
+            _create_duplicate_previous_row(
+                batch=batch,
+                row_data=row_data,
+                row_hash=row_hash,
+                create_raw_row=create_raw_row,
+            )
+            summary.duplicate_rows += 1
+            summary.duplicate_previous_rows += 1
+            if index % PROGRESS_SAVE_EVERY_ROWS == 0:
+                _save_processing_progress(batch=batch, summary=summary)
+            continue
+
+        raw_row = create_raw_row(
+            batch=batch,
+            row_number=row_data.row_number,
+            raw_payload=row_data.raw_payload,
+            raw_hash=row_hash,
         )
 
-        for row_data in rows_to_persist:
+        try:
+            validation_result = validate_row(row_data)
+            if not validation_result.is_valid:
+                raise ValueError('; '.join(validation_result.errors))
 
-            row_hash = build_raw_hash(row_data.raw_payload)
-
-            client_month_key = _build_client_month_key(row_data)
-            if client_month_key:
-                existing_latest = _get_existing_latest_for_key(client_month_key)
-                if existing_latest is not None:
-                    if row_data.start_at is None or existing_latest.start_at >= row_data.start_at:
-                        _create_duplicate_previous_row(
-                            batch=batch,
-                            row_data=row_data,
-                            row_hash=row_hash,
-                            create_raw_row=create_raw_row,
-                        )
-                        summary.duplicate_rows += 1
-                        summary.duplicate_previous_rows += 1
-                        continue
-                    summary.consolidated_existing_rows += _delete_existing_rows_for_key(client_month_key)
-
-            if row_hash in seen_hashes:
-                _create_duplicate_in_file_row(
-                    batch=batch,
-                    row_data=row_data,
-                    row_hash=row_hash,
-                    create_raw_row=create_raw_row,
-                )
-                summary.duplicate_rows += 1
-                summary.duplicate_in_file_rows += 1
-                continue
-
-            if ImportRowRaw.objects.filter(raw_hash=row_hash, processed_interaction__isnull=False).exists():
-                _create_duplicate_previous_row(
-                    batch=batch,
-                    row_data=row_data,
-                    row_hash=row_hash,
-                    create_raw_row=create_raw_row,
-                )
-                summary.duplicate_rows += 1
-                summary.duplicate_previous_rows += 1
-                continue
-
-            raw_row = create_raw_row(
+            quality_flags = detect_inconsistencies(validation_result.row_data)
+            _, created_flags = persist_interaction(
                 batch=batch,
-                row_number=row_data.row_number,
-                raw_payload=row_data.raw_payload,
-                raw_hash=row_hash,
+                raw_row=raw_row,
+                row_data=validation_result.row_data,
+                quality_flags=quality_flags,
             )
 
-            try:
-                validation_result = validate_row(row_data)
-                if not validation_result.is_valid:
-                    raise ValueError('; '.join(validation_result.errors))
+            summary.imported_rows += 1
+            summary.inconsistencies += created_flags
+            seen_hashes.add(row_hash)
+        except Exception as exc:
+            _handle_failed_row(batch=batch, raw_row=raw_row, row_number=row_data.row_number, exc=exc)
+            summary.failed_rows += 1
 
-                quality_flags = detect_inconsistencies(validation_result.row_data)
-                _, created_flags = persist_interaction(
-                    batch=batch,
-                    raw_row=raw_row,
-                    row_data=validation_result.row_data,
-                    quality_flags=quality_flags,
-                )
+        if index % PROGRESS_SAVE_EVERY_ROWS == 0:
+            _save_processing_progress(batch=batch, summary=summary)
 
-                summary.imported_rows += 1
-                summary.inconsistencies += created_flags
-                seen_hashes.add(row_hash)
-            except Exception as exc:
-                _handle_failed_row(batch=batch, raw_row=raw_row, row_number=row_data.row_number, exc=exc)
-                summary.failed_rows += 1
-
-        _finalize_batch(batch=batch, summary=summary)
+    _save_processing_progress(batch=batch, summary=summary)
+    _finalize_batch(batch=batch, summary=summary)
 
     return summary.as_dict()

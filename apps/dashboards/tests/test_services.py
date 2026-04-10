@@ -67,6 +67,34 @@ def test_build_dashboard_payload_with_assistant_filter(interaction_factory, base
     assert payload['frontend_payload']['temporal_chart']['labels']
 
 
+def test_build_dashboard_payload_excludes_outbound_by_default(interaction_factory, base_dimensions):
+    interaction_factory(
+        call_id_external='mix-inbound',
+        subcategory='CC RET Fibra',
+        final_outcome=base_dimensions['retained'],
+    )
+    interaction_factory(
+        call_id_external='mix-outbound',
+        subcategory='CC RET Outbound',
+        final_outcome=base_dimensions['not_retained'],
+    )
+
+    inbound_payload = build_dashboard_payload(
+        start_date=date(2026, 1, 1),
+        end_date=date(2026, 1, 31),
+        subcategory_exclude_values=('CC RET Outbound',),
+    )
+    outbound_payload = build_dashboard_payload(
+        start_date=date(2026, 1, 1),
+        end_date=date(2026, 1, 31),
+        subcategory_exact_values=('CC RET Outbound',),
+        subcategory_exclude_values=(),
+    )
+
+    assert inbound_payload['general_kpis']['total_calls'] == 1
+    assert outbound_payload['general_kpis']['total_calls'] == 1
+
+
 def test_build_dashboard_payload_includes_assistant_detail(interaction_factory):
     interaction = interaction_factory(call_id_external='detail-1')
 
