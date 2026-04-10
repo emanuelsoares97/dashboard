@@ -40,10 +40,14 @@ def _resolve_date_range(start_date_raw, end_date_raw, preset):
         return today, today
 
     if preset == 'last_7_days':
-        return today - timedelta(days=6), today
+        yesterday = today - timedelta(days=1)
+        return yesterday - timedelta(days=6), yesterday
 
     if preset == 'current_month':
-        return today.replace(day=1), today
+        yesterday = today - timedelta(days=1)
+        start = today.replace(day=1)
+        end = yesterday if yesterday >= start else today
+        return start, end
 
     if preset == 'previous_month':
         last_day_previous_month = today.replace(day=1) - timedelta(days=1)
