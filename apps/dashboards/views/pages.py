@@ -117,8 +117,19 @@ def _render_overview_segment(request, *, active_section):
     if segment_config['overview_tab'] == 'mobile':
         payload = _annotate_mobile_adjusted_metrics(payload)
 
+    # Título dinâmico conforme canal
+    channel_label = 'Inbound' if channel == 'inbound' else 'Outbound'
+    if segment_config['overview_tab'] == 'general':
+        page_title = f"Visão Geral | {channel_label}"
+    elif segment_config['overview_tab'] == 'mobile':
+        page_title = f"Visão Geral | Móvel ({channel_label})"
+    elif segment_config['overview_tab'] == 'fixed':
+        page_title = f"Visão Geral | Fixo ({channel_label})"
+    else:
+        page_title = segment_config['page_title']
+
     context = _build_common_context(
-        page_title=segment_config['page_title'],
+        page_title=page_title,
         active_section=active_section,
         filters=filters,
         dashboard_payload=payload,
@@ -126,6 +137,7 @@ def _render_overview_segment(request, *, active_section):
     context['overview_tab'] = segment_config['overview_tab']
     context['is_mobile_overview'] = segment_config['overview_tab'] == 'mobile'
     context['channel'] = channel
+    context['channel_label'] = channel_label
     return render(request, 'dashboards/overview.html', context)
 
 

@@ -110,6 +110,15 @@
     {% endif %}
 
     <aside class="dashboard-sidebar card">
+        <div class="dashboard-channel-switcher" style="margin: 1.5rem 1rem 1rem 1rem; text-align:center;">
+            <span style="font-weight:600; margin-right:0.5rem;">Canal:</span>
+            <a class="btn btn-sm {% if channel == 'inbound' or not channel %}btn-primary{% else %}btn-outline-secondary{% endif %}"
+               style="min-width:90px; margin-right:0.5rem;"
+               href="?channel=inbound">Inbound</a>
+            <a class="btn btn-sm {% if channel == 'outbound' %}btn-primary{% else %}btn-outline-secondary{% endif %}"
+               style="min-width:90px;"
+               href="?channel=outbound">Outbound</a>
+        </div>
         <button
             class="dashboard-menu-toggle"
             type="button"
@@ -129,39 +138,34 @@
                     <a class="dashboard-menu-link {% if active_section == 'overview' %}is-active{% endif %}" href="{% url 'dashboards:overview' %}?channel={{ channel|default:'inbound' }}">Geral</a>
                     <a class="dashboard-menu-link {% if active_section == 'overview_mobile' %}is-active{% endif %}" href="{% url 'dashboards:overview_mobile' %}?channel={{ channel|default:'inbound' }}">Móvel</a>
                     <a class="dashboard-menu-link {% if active_section == 'overview_fixed' %}is-active{% endif %}" href="{% url 'dashboards:overview_fixed' %}?channel={{ channel|default:'inbound' }}">Fixo</a>
-                            <div class="dashboard-channel-switcher" style="margin: 1rem 0;">
-                                <span>Canal:</span>
-                                <a class="btn btn-sm {% if channel == 'inbound' or not channel %}btn-primary{% else %}btn-secondary{% endif %}" href="?channel=inbound">Inbound</a>
-                                <a class="btn btn-sm {% if channel == 'outbound' %}btn-primary{% else %}btn-secondary{% endif %}" href="?channel=outbound">Outbound</a>
-                            </div>
                 </div>
             </details>
 
             <details class="dashboard-menu-group" {% if active_section == 'daily_rates' or active_section == 'monthly_rates' or active_section == 'previous_day' %}open{% endif %}>
                 <summary class="dashboard-menu-group-title">Evolução Temporal</summary>
                 <div class="dashboard-menu-group-links">
-                    <a class="dashboard-menu-link {% if active_section == 'daily_rates' %}is-active{% endif %}" href="{% url 'dashboards:daily_rates' %}">Evolução Diária</a>
-                    <a class="dashboard-menu-link {% if active_section == 'monthly_rates' %}is-active{% endif %}" href="{% url 'dashboards:monthly_rates' %}">Evolução Mensal</a>
-                    <a class="dashboard-menu-link {% if active_section == 'previous_day' %}is-active{% endif %}" href="{% url 'dashboards:previous_day' %}">Operação D-1</a>
+                    <a class="dashboard-menu-link {% if active_section == 'daily_rates' %}is-active{% endif %}" href="{% url 'dashboards:daily_rates' %}?channel={{ channel|default:'inbound' }}">Evolução Diária</a>
+                    <a class="dashboard-menu-link {% if active_section == 'monthly_rates' %}is-active{% endif %}" href="{% url 'dashboards:monthly_rates' %}?channel={{ channel|default:'inbound' }}">Evolução Mensal</a>
+                    <a class="dashboard-menu-link {% if active_section == 'previous_day' %}is-active{% endif %}" href="{% url 'dashboards:previous_day' %}?channel={{ channel|default:'inbound' }}">Operação D-1</a>
                 </div>
             </details>
 
             <details class="dashboard-menu-group" {% if active_section == 'assistants' or active_section == 'services' or active_section == 'churn' or active_section == 'outbound' %}open{% endif %}>
                 <summary class="dashboard-menu-group-title">Performance Operacional</summary>
                 <div class="dashboard-menu-group-links">
-                    <a class="dashboard-menu-link {% if active_section == 'assistants' %}is-active{% endif %}" href="{% url 'dashboards:assistants' %}">Performance por Assistente</a>
-                    <a class="dashboard-menu-link {% if active_section == 'services' %}is-active{% endif %}" href="{% url 'dashboards:services' %}">Performance por Serviço</a>
-                    <a class="dashboard-menu-link {% if active_section == 'churn' %}is-active{% endif %}" href="{% url 'dashboards:churn_reasons' %}">Motivos de Cancelamento</a>
-                    <a class="dashboard-menu-link {% if active_section == 'outbound' %}is-active{% endif %}" href="{% url 'dashboards:outbound' %}">Outbound</a>
+                    <a class="dashboard-menu-link {% if active_section == 'assistants' %}is-active{% endif %}" href="{% url 'dashboards:assistants' %}?channel={{ channel|default:'inbound' }}">Performance por Assistente</a>
+                    <a class="dashboard-menu-link {% if active_section == 'services' %}is-active{% endif %}" href="{% url 'dashboards:services' %}?channel={{ channel|default:'inbound' }}">Performance por Serviço</a>
+                    <a class="dashboard-menu-link {% if active_section == 'churn' %}is-active{% endif %}" href="{% url 'dashboards:churn_reasons' %}?channel={{ channel|default:'inbound' }}">Motivos de Cancelamento</a>
+                    <a class="dashboard-menu-link {% if active_section == 'outbound' %}is-active{% endif %}" href="{% url 'dashboards:outbound' %}?channel={{ channel|default:'inbound' }}">Outbound</a>
                 </div>
             </details>
 
             <details class="dashboard-menu-group" {% if active_section == 'inconsistencies' or active_section == 'typing_analysis' or active_section == 'insights' %}open{% endif %}>
                 <summary class="dashboard-menu-group-title">Qualidade e Auditoria</summary>
                 <div class="dashboard-menu-group-links">
-                    <a class="dashboard-menu-link {% if active_section == 'inconsistencies' %}is-active{% endif %}" href="{% url 'dashboards:inconsistencies' %}">Qualidade de Dados</a>
-                    <a class="dashboard-menu-link {% if active_section == 'typing_analysis' %}is-active{% endif %}" href="{% url 'dashboards:typing_analysis' %}">Auditoria de Tipificação</a>
-                    <a class="dashboard-menu-link {% if active_section == 'insights' %}is-active{% endif %}" href="{% url 'dashboards:insights' %}">Insights Executivos</a>
+                    <a class="dashboard-menu-link {% if active_section == 'inconsistencies' %}is-active{% endif %}" href="{% url 'dashboards:inconsistencies' %}?channel={{ channel|default:'inbound' }}">Qualidade de Dados</a>
+                    <a class="dashboard-menu-link {% if active_section == 'typing_analysis' %}is-active{% endif %}" href="{% url 'dashboards:typing_analysis' %}?channel={{ channel|default:'inbound' }}">Auditoria de Tipificação</a>
+                    <a class="dashboard-menu-link {% if active_section == 'insights' %}is-active{% endif %}" href="{% url 'dashboards:insights' %}?channel={{ channel|default:'inbound' }}">Insights Executivos</a>
                 </div>
             </details>
             {% endif %}
