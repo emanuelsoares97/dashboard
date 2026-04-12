@@ -68,7 +68,7 @@ def _parse_optional_int(raw_value):
         return None
 
 
-def _resolve_filters(request, *, force_assistant_name=None):
+def _resolve_filters(request, *, force_assistant_name=None, channel=None):
     """Extrai e normaliza os filtros globais usados em todas as paginas."""
     granularity = request.GET.get('period', '').strip().lower()
     if granularity not in {'day', 'week', 'month'}:
@@ -84,6 +84,17 @@ def _resolve_filters(request, *, force_assistant_name=None):
     churn_reason_id_raw = request.GET.get('churn_reason_id', '').strip()
     final_outcome_id_raw = request.GET.get('final_outcome_id', '').strip()
     start_date, end_date = _resolve_date_range(start_date_raw, end_date_raw, date_preset)
+
+    # Recebe channel já normalizado e define queryset_source
+    if channel is None:
+        channel = 'inbound'
+    queryset_source = 'outbound' if channel == 'outbound' else 'inbound'
+
+    if queryset_source == 'inbound':
+        subcategory_exclude_values = DEFAULT_EXCLUDED_SUBCATEGORY_FILTERS
+    else:
+        subcategory_exclude_values = None
+
     return {
         'period': granularity,
         'assistant_name': assistant_name,
@@ -100,8 +111,8 @@ def _resolve_filters(request, *, force_assistant_name=None):
         'retention_action_id': None,
         'final_outcome_id': _parse_optional_int(final_outcome_id_raw),
         'subcategory_exact_values': None,
-        'subcategory_exclude_values': DEFAULT_EXCLUDED_SUBCATEGORY_FILTERS,
-        'queryset_source': 'inbound',
+        'subcategory_exclude_values': subcategory_exclude_values,
+        'queryset_source': queryset_source,
     }
 
 

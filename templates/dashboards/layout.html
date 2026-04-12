@@ -126,9 +126,14 @@
             <details class="dashboard-menu-group" {% if active_section == 'overview' or active_section == 'overview_mobile' or active_section == 'overview_fixed' %}open{% endif %}>
                 <summary class="dashboard-menu-group-title">Visão Geral</summary>
                 <div class="dashboard-menu-group-links">
-                    <a class="dashboard-menu-link {% if active_section == 'overview' %}is-active{% endif %}" href="{% url 'dashboards:overview' %}">Geral</a>
-                    <a class="dashboard-menu-link {% if active_section == 'overview_mobile' %}is-active{% endif %}" href="{% url 'dashboards:overview_mobile' %}">Móvel</a>
-                    <a class="dashboard-menu-link {% if active_section == 'overview_fixed' %}is-active{% endif %}" href="{% url 'dashboards:overview_fixed' %}">Fixo</a>
+                    <a class="dashboard-menu-link {% if active_section == 'overview' %}is-active{% endif %}" href="{% url 'dashboards:overview' %}?channel={{ channel|default:'inbound' }}">Geral</a>
+                    <a class="dashboard-menu-link {% if active_section == 'overview_mobile' %}is-active{% endif %}" href="{% url 'dashboards:overview_mobile' %}?channel={{ channel|default:'inbound' }}">Móvel</a>
+                    <a class="dashboard-menu-link {% if active_section == 'overview_fixed' %}is-active{% endif %}" href="{% url 'dashboards:overview_fixed' %}?channel={{ channel|default:'inbound' }}">Fixo</a>
+                            <div class="dashboard-channel-switcher" style="margin: 1rem 0;">
+                                <span>Canal:</span>
+                                <a class="btn btn-sm {% if channel == 'inbound' or not channel %}btn-primary{% else %}btn-secondary{% endif %}" href="?channel=inbound">Inbound</a>
+                                <a class="btn btn-sm {% if channel == 'outbound' %}btn-primary{% else %}btn-secondary{% endif %}" href="?channel=outbound">Outbound</a>
+                            </div>
                 </div>
             </details>
 

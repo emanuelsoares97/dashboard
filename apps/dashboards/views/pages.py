@@ -105,7 +105,13 @@ def _render_overview_segment(request, *, active_section):
         return assistant_redirect
 
     segment_config = OVERVIEW_SEGMENTS[active_section]
-    filters = _resolve_filters(request, force_assistant_name='')
+    # 1. Ler e validar channel do query param
+    channel = request.GET.get('channel', 'inbound').strip().lower()
+    if channel not in ('inbound', 'outbound'):
+        channel = 'inbound'
+
+    # 2. Passar channel já normalizado ao helper
+    filters = _resolve_filters(request, force_assistant_name='', channel=channel)
     filters['subcategory_exact_values'] = segment_config['subcategory_exact_values']
     payload = _build_dashboard_payload_from_filters(filters)
     if segment_config['overview_tab'] == 'mobile':
@@ -119,6 +125,7 @@ def _render_overview_segment(request, *, active_section):
     )
     context['overview_tab'] = segment_config['overview_tab']
     context['is_mobile_overview'] = segment_config['overview_tab'] == 'mobile'
+    context['channel'] = channel
     return render(request, 'dashboards/overview.html', context)
 
 
