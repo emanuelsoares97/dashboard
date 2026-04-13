@@ -107,10 +107,11 @@ def _render_overview_segment(request, *, active_section):
     segment_config = OVERVIEW_SEGMENTS[active_section]
     # 1. Ler e validar channel do query param
     channel = request.GET.get('channel', 'inbound').strip().lower()
-    if channel not in ('inbound', 'outbound'):
+    if channel not in ('inbound', 'outbound', 'geral'):
         channel = 'inbound'
 
     # 2. Passar channel já normalizado ao helper
+
     filters = _resolve_filters(request, force_assistant_name='', channel=channel)
     filters['subcategory_exact_values'] = segment_config['subcategory_exact_values']
     payload = _build_dashboard_payload_from_filters(filters)
@@ -118,7 +119,13 @@ def _render_overview_segment(request, *, active_section):
         payload = _annotate_mobile_adjusted_metrics(payload)
 
     # Título dinâmico conforme canal
-    channel_label = 'Inbound' if channel == 'inbound' else 'Outbound'
+    if channel == 'geral':
+        channel_label = 'Geral'
+    elif channel == 'inbound':
+        channel_label = 'Inbound'
+    else:
+        channel_label = 'Outbound'
+
     if segment_config['overview_tab'] == 'general':
         page_title = f"Visão Geral | {channel_label}"
     elif segment_config['overview_tab'] == 'mobile':

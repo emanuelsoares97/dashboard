@@ -110,15 +110,6 @@
     {% endif %}
 
     <aside class="dashboard-sidebar card">
-        <div class="dashboard-channel-switcher" style="margin: 1.5rem 1rem 1rem 1rem; text-align:center;">
-            <span style="font-weight:600; margin-right:0.5rem;">Canal:</span>
-            <a class="btn btn-sm {% if channel == 'inbound' or not channel %}btn-primary{% else %}btn-outline-secondary{% endif %}"
-               style="min-width:90px; margin-right:0.5rem;"
-               href="?channel=inbound">Inbound</a>
-            <a class="btn btn-sm {% if channel == 'outbound' %}btn-primary{% else %}btn-outline-secondary{% endif %}"
-               style="min-width:90px;"
-               href="?channel=outbound">Outbound</a>
-        </div>
         <button
             class="dashboard-menu-toggle"
             type="button"

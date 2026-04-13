@@ -3,31 +3,24 @@
 
 {% block dashboard_content %}
 <div class="dashboard-page">
-    <div class="dashboard-channel-context" style="margin-bottom:1rem;">
-        <span class="kpi-label">Canal selecionado:</span>
-        <strong>{{ channel_label }}</strong>
-    </div>
-    <section class="card panel comparison-context-panel">
-        <div class="comparison-context-grid">
-            <div>
-                <span class="kpi-label">Segmento</span>
-                <strong>
-                    {% if overview_tab == 'mobile' %}
-                        Móvel ({{ channel_label }})
-                    {% elif overview_tab == 'fixed' %}
-                        Fixo ({{ channel_label }})
-                    {% else %}
-                        Geral ({{ channel_label }})
-                    {% endif %}
-                </strong>
-            </div>
-            <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;justify-content:flex-end;">
-                <a class="btn {% if overview_tab == 'general' %}btn-primary{% else %}btn-secondary{% endif %}" href="{% url 'dashboards:overview' %}">Geral</a>
-                <a class="btn {% if overview_tab == 'mobile' %}btn-primary{% else %}btn-secondary{% endif %}" href="{% url 'dashboards:overview_mobile' %}">Móvel</a>
-                <a class="btn {% if overview_tab == 'fixed' %}btn-primary{% else %}btn-secondary{% endif %}" href="{% url 'dashboards:overview_fixed' %}">Fixo</a>
+        {% comment %} NOVO BLOCO DE CONTEXTO PROFISSIONAL {% endcomment %}
+        <div class="dashboard-context">
+            <div class="channel-group">
+                <span class="channel-label">Canal</span>
+                <div class="channel-options">
+                    {% with current_params=request.GET.urlencode %}
+                        {% with other_params=current_params|cut:'channel=inbound'|cut:'channel=outbound'|cut:'&&'|cut:'&' %}
+                               <a href="?channel=geral{% if other_params %}&{{ other_params|urlencode }}{% endif %}"
+                                   class="channel-btn {% if channel == 'geral' %}active{% endif %}">Geral</a>
+                               <a href="?channel=inbound{% if other_params %}&{{ other_params|urlencode }}{% endif %}"
+                                   class="channel-btn {% if channel == 'inbound' %}active{% endif %}">Inbound</a>
+                               <a href="?channel=outbound{% if other_params %}&{{ other_params|urlencode }}{% endif %}"
+                                   class="channel-btn {% if channel == 'outbound' %}active{% endif %}">Outbound</a>
+                        {% endwith %}
+                    {% endwith %}
+                </div>
             </div>
         </div>
-    </section>
 
     {% if dashboard.comparison_context.enabled %}
     <section class="card panel comparison-context-panel">
@@ -58,6 +51,9 @@
         <article class="kpi-card kpi-card-success card">
             <span class="kpi-label">Taxa retenção</span>
             <strong class="kpi-value">{{ dashboard.general_kpis.retention_rate|floatformat:2 }}%</strong>
+            <div class="kpi-subvalue">
+                Retidos: {{ dashboard.general_kpis.total_retained }}
+            </div>
             {% if is_mobile_overview %}
             <span class="kpi-comparison">
                 Sem pré-pago: {{ dashboard.general_kpis.retention_rate_adjusted_mobile|floatformat:2 }}%

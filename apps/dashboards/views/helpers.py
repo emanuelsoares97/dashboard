@@ -86,9 +86,15 @@ def _resolve_filters(request, *, force_assistant_name=None, channel=None):
     start_date, end_date = _resolve_date_range(start_date_raw, end_date_raw, date_preset)
 
     # Recebe channel já normalizado e define queryset_source
+
     if channel is None:
         channel = 'inbound'
-    queryset_source = 'outbound' if channel == 'outbound' else 'inbound'
+    if channel == 'geral':
+        queryset_source = 'geral'
+    elif channel == 'outbound':
+        queryset_source = 'outbound'
+    else:
+        queryset_source = 'inbound'
 
     if queryset_source == 'inbound':
         subcategory_exclude_values = DEFAULT_EXCLUDED_SUBCATEGORY_FILTERS
@@ -137,25 +143,64 @@ def _build_dashboard_payload_from_filters(filters, *, assistant_id=None, use_fil
     resolved_start_date = filters['start_date'] if use_filter_dates else None
     resolved_end_date = filters['end_date'] if use_filter_dates else None
     source = filters.get('queryset_source', 'inbound')
-    base_queryset = selectors.get_outbound_queryset() if source == 'outbound' else selectors.get_inbound_queryset()
-    previous_queryset_factory = selectors.get_outbound_queryset if source == 'outbound' else selectors.get_inbound_queryset
-    return build_dashboard_payload(
-        granularity=filters['period'],
-        date_preset=filters['date_preset'],
-        assistant_name=filters['assistant_name'],
-        assistant_id=assistant_id,
-        start_date=resolved_start_date,
-        end_date=resolved_end_date,
-        service_type_id=filters['service_type_id'],
-        churn_reason_id=filters['churn_reason_id'],
-        retention_action_id=None,
-        final_outcome_id=filters['final_outcome_id'],
-        subcategory_exact_values=filters.get('subcategory_exact_values'),
-        subcategory_exclude_values=filters.get('subcategory_exclude_values'),
-        churn_reason_exclude_labels=filters.get('churn_reason_exclude_labels'),
-        base_queryset=base_queryset,
-        previous_queryset_factory=previous_queryset_factory,
-    )
+    if source == 'geral':
+        inbound_qs = selectors.get_inbound_queryset()
+        outbound_qs = selectors.get_outbound_queryset()
+        inbound_qs = selectors.apply_filters(
+            inbound_qs,
+            assistant_name=filters['assistant_name'],
+            start_date=resolved_start_date,
+            end_date=resolved_end_date,
+            subcategory_exact_values=filters.get('subcategory_exact_values'),
+            subcategory_exclude_values=filters.get('subcategory_exclude_values'),
+            churn_reason_exclude_labels=filters.get('churn_reason_exclude_labels'),
+        )
+        outbound_qs = selectors.apply_filters(
+            outbound_qs,
+            assistant_name=filters['assistant_name'],
+            start_date=resolved_start_date,
+            end_date=resolved_end_date,
+            subcategory_exact_values=filters.get('subcategory_exact_values'),
+            subcategory_exclude_values=None,
+            churn_reason_exclude_labels=filters.get('churn_reason_exclude_labels'),
+        )
+        return build_dashboard_payload(
+            granularity=filters['period'],
+            date_preset=filters['date_preset'],
+            assistant_name=filters['assistant_name'],
+            assistant_id=assistant_id,
+            start_date=resolved_start_date,
+            end_date=resolved_end_date,
+            service_type_id=filters['service_type_id'],
+            churn_reason_id=filters['churn_reason_id'],
+            retention_action_id=None,
+            final_outcome_id=filters['final_outcome_id'],
+            subcategory_exact_values=filters.get('subcategory_exact_values'),
+            subcategory_exclude_values=filters.get('subcategory_exclude_values'),
+            churn_reason_exclude_labels=filters.get('churn_reason_exclude_labels'),
+            inbound_queryset=inbound_qs,
+            outbound_queryset=outbound_qs,
+        )
+    else:
+        base_queryset = selectors.get_outbound_queryset() if source == 'outbound' else selectors.get_inbound_queryset()
+        previous_queryset_factory = selectors.get_outbound_queryset if source == 'outbound' else selectors.get_inbound_queryset
+        return build_dashboard_payload(
+            granularity=filters['period'],
+            date_preset=filters['date_preset'],
+            assistant_name=filters['assistant_name'],
+            assistant_id=assistant_id,
+            start_date=resolved_start_date,
+            end_date=resolved_end_date,
+            service_type_id=filters['service_type_id'],
+            churn_reason_id=filters['churn_reason_id'],
+            retention_action_id=None,
+            final_outcome_id=filters['final_outcome_id'],
+            subcategory_exact_values=filters.get('subcategory_exact_values'),
+            subcategory_exclude_values=filters.get('subcategory_exclude_values'),
+            churn_reason_exclude_labels=filters.get('churn_reason_exclude_labels'),
+            base_queryset=base_queryset,
+            previous_queryset_factory=previous_queryset_factory,
+        )
 
 
 def _annotate_mobile_adjusted_metrics(payload):

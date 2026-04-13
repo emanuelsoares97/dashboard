@@ -209,6 +209,7 @@ def build_frontend_payload(*, general_kpis, temporal_table, churn_reason_table, 
 
 def build_dashboard_payload(
     *,
+    source='inbound',
     granularity='day',
     date_preset='current_month',
     assistant_name=None,
@@ -224,12 +225,153 @@ def build_dashboard_payload(
     churn_reason_exclude_labels=None,
     base_queryset=None,
     previous_queryset_factory=None,
+    inbound_queryset=None,
+    outbound_queryset=None,
 ):
     """Constroi todo o payload do dashboard sem logica nas views."""
-    base_qs = base_queryset if base_queryset is not None else selectors.get_inbound_queryset()
-    previous_queryset_factory = previous_queryset_factory or selectors.get_inbound_queryset
+
+    def sum_kpis(a, b):
+        total_calls = (a['total_calls'] or 0) + (b['total_calls'] or 0)
+        total_retained = (a['total_retained'] or 0) + (b['total_retained'] or 0)
+        total_call_drop = (a['total_call_drop'] or 0) + (b['total_call_drop'] or 0)
+        total_non_retained = (a['total_non_retained'] or 0) + (b['total_non_retained'] or 0)
+        avg_duration = 0.0
+        if total_calls > 0:
+            avg_duration = (
+                ((a['avg_duration_seconds'] or 0) * (a['total_calls'] or 0))
+                + ((b['avg_duration_seconds'] or 0) * (b['total_calls'] or 0))
+            ) / total_calls
+        return {
+            'total_calls': total_calls,
+            'total_retained': total_retained,
+            'total_non_retained': total_non_retained,
+            'total_call_drop': total_call_drop,
+            'retention_rate': _pct(total_retained, total_calls),
+            'non_retention_rate': _pct(total_non_retained, total_calls),
+            'call_drop_rate': _pct(total_call_drop, total_calls),
+            'avg_duration_seconds': _round2(avg_duration),
+        }
+
+    if inbound_queryset is not None and outbound_queryset is not None:
+        # Agregação real para o canal geral
+        # Para tabelas e KPIs, soma e concatenação dos dois querysets
+        kpis_in = calculate_general_kpis(inbound_queryset)
+        kpis_out = calculate_general_kpis(outbound_queryset)
+        general_kpis = sum_kpis(kpis_in, kpis_out)
+
+        churn_reason_table = (
+            build_churn_reason_table(inbound_queryset)
+            + build_churn_reason_table(outbound_queryset)
+        )
+        retention_action_table = (
+            build_retention_action_table(inbound_queryset)
+            + build_retention_action_table(outbound_queryset)
+        )
+        service_type_table = (
+            build_service_type_table(inbound_queryset)
+            + build_service_type_table(outbound_queryset)
+        )
+        temporal_table = (
+            build_temporal_table(
+                inbound_queryset,
+                granularity=granularity,
+                start_date=start_date,
+                end_date=end_date,
+            )
+            + build_temporal_table(
+                outbound_queryset,
+                granularity=granularity,
+                start_date=start_date,
+                end_date=end_date,
+            )
+        )
+        monthly_rates_table = (
+            build_monthly_rates_table(
+                inbound_queryset,
+                start_date=start_date,
+                end_date=end_date,
+            )
+            + build_monthly_rates_table(
+                outbound_queryset,
+                start_date=start_date,
+                end_date=end_date,
+            )
+        )
+        daily_rates_table = (
+            build_daily_rates_table(
+                inbound_queryset,
+                start_date=start_date,
+                end_date=end_date,
+            )
+            + build_daily_rates_table(
+                outbound_queryset,
+                start_date=start_date,
+                end_date=end_date,
+            )
+        )
+        assistant_ranking_table = (
+            build_assistant_ranking_table(inbound_queryset)
+            + build_assistant_ranking_table(outbound_queryset)
+        )
+
+        # Mantidos só no inbound por enquanto, conforme teu comentário
+        inconsistency_section = build_inconsistency_section(inbound_queryset)
+        tipification_tables = build_tipification_tables(inbound_queryset)
+
+        # Para assistant_detail e comparações, documenta-se que só inbound é detalhado
+        base_qs = inbound_queryset
+        # Para o canal geral, previous_queryset_factory só será usado para inbound
+        # (Se quiser comparar geral, precisaria lógica extra para unir os dois querysets)
+        # Aqui mantemos previous_queryset_factory como None para não montar comparação geral
+        previous_queryset_factory = None
+
+        payload = {
+            'general_kpis': general_kpis,
+            'churn_reason_table': churn_reason_table,
+            'retention_action_table': retention_action_table,
+            'service_type_table': service_type_table,
+            'temporal_table': temporal_table,
+            'monthly_rates_table': monthly_rates_table,
+            'daily_rates_table': daily_rates_table,
+            'assistant_ranking_table': assistant_ranking_table,
+            'inconsistency_section': inconsistency_section,
+            'tipification_tables': tipification_tables,
+            'frontend_payload': build_frontend_payload(
+                general_kpis=general_kpis,
+                temporal_table=temporal_table,
+                churn_reason_table=churn_reason_table,
+                retention_action_table=retention_action_table,
+            ),
+            'ui_state': _build_ui_state(general_kpis),
+            'table_states': _build_table_states(
+                churn_reason_table=churn_reason_table,
+                retention_action_table=retention_action_table,
+                service_type_table=service_type_table,
+                monthly_rates_table=monthly_rates_table,
+                assistant_ranking_table=assistant_ranking_table,
+                inconsistency_section=inconsistency_section,
+            ),
+        }
+
+        return payload
+
+    # Caso padrão: inbound ou outbound
+    if base_queryset is None:
+        base_queryset = (
+            selectors.get_outbound_queryset()
+            if source == 'outbound'
+            else selectors.get_inbound_queryset()
+        )
+
+    if previous_queryset_factory is None:
+        previous_queryset_factory = (
+            selectors.get_outbound_queryset
+            if source == 'outbound'
+            else selectors.get_inbound_queryset
+        )
+
     base_qs = selectors.apply_filters(
-        base_qs,
+        base_queryset,
         assistant_name=assistant_name,
         assistant_id=assistant_id,
         start_date=start_date,
@@ -295,8 +437,9 @@ def build_dashboard_payload(
         ),
     }
 
-    payload.update(
-        _build_comparison_block(
+    # Só monta comparação se houver factory disponível
+    if previous_queryset_factory is not None:
+        comparison_context = _build_comparison_block(
             date_preset=date_preset,
             start_date=start_date,
             end_date=end_date,
@@ -309,104 +452,20 @@ def build_dashboard_payload(
             subcategory_exact_values=subcategory_exact_values,
             subcategory_exclude_values=subcategory_exclude_values,
             churn_reason_exclude_labels=churn_reason_exclude_labels,
-            previous_queryset_factory=previous_queryset_factory,
             current_kpis=general_kpis,
+            previous_queryset_factory=previous_queryset_factory,
         )
-    )
+        payload['comparison_context'] = comparison_context
 
-    payload['service_type_comparison_table'] = _build_service_type_comparison_table(
-        current_rows=service_type_table,
-        previous_start=payload['comparison_context']['previous_start'],
-        previous_end=payload['comparison_context']['previous_end'],
-        assistant_name=assistant_name,
-        assistant_id=assistant_id,
-        service_type_id=service_type_id,
-        churn_reason_id=churn_reason_id,
-        retention_action_id=retention_action_id,
-        final_outcome_id=final_outcome_id,
-        subcategory_exact_values=subcategory_exact_values,
-        subcategory_exclude_values=subcategory_exclude_values,
-        churn_reason_exclude_labels=churn_reason_exclude_labels,
-        previous_queryset_factory=previous_queryset_factory,
-    )
+        prev_start = comparison_context['comparison_context']['previous_start']
+        prev_end = comparison_context['comparison_context']['previous_end']
 
-    payload['churn_reason_comparison_table'] = _build_churn_reason_comparison_table(
-        current_rows=churn_reason_table,
-        previous_start=payload['comparison_context']['previous_start'],
-        previous_end=payload['comparison_context']['previous_end'],
-        assistant_name=assistant_name,
-        assistant_id=assistant_id,
-        service_type_id=service_type_id,
-        churn_reason_id=churn_reason_id,
-        retention_action_id=retention_action_id,
-        final_outcome_id=final_outcome_id,
-        subcategory_exact_values=subcategory_exact_values,
-        subcategory_exclude_values=subcategory_exclude_values,
-        churn_reason_exclude_labels=churn_reason_exclude_labels,
-        previous_queryset_factory=previous_queryset_factory,
-    )
-
-    payload['retention_action_comparison_table'] = _build_retention_action_comparison_table(
-        current_rows=retention_action_table,
-        previous_start=payload['comparison_context']['previous_start'],
-        previous_end=payload['comparison_context']['previous_end'],
-        assistant_name=assistant_name,
-        assistant_id=assistant_id,
-        service_type_id=service_type_id,
-        churn_reason_id=churn_reason_id,
-        retention_action_id=retention_action_id,
-        final_outcome_id=final_outcome_id,
-        subcategory_exact_values=subcategory_exact_values,
-        subcategory_exclude_values=subcategory_exclude_values,
-        churn_reason_exclude_labels=churn_reason_exclude_labels,
-        previous_queryset_factory=previous_queryset_factory,
-    )
-
-    payload['inconsistency_comparison_section'] = _build_inconsistency_comparison_section(
-        current_section=inconsistency_section,
-        previous_start=payload['comparison_context']['previous_start'],
-        previous_end=payload['comparison_context']['previous_end'],
-        assistant_name=assistant_name,
-        assistant_id=assistant_id,
-        service_type_id=service_type_id,
-        churn_reason_id=churn_reason_id,
-        retention_action_id=retention_action_id,
-        final_outcome_id=final_outcome_id,
-        subcategory_exact_values=subcategory_exact_values,
-        subcategory_exclude_values=subcategory_exclude_values,
-        churn_reason_exclude_labels=churn_reason_exclude_labels,
-        previous_queryset_factory=previous_queryset_factory,
-    )
-
-    payload['assistant_comparison_table'] = _build_assistant_comparison_table(
-        current_rows=assistant_ranking_table,
-        previous_start=payload['comparison_context']['previous_start'],
-        previous_end=payload['comparison_context']['previous_end'],
-        assistant_name=assistant_name,
-        assistant_id=assistant_id,
-        service_type_id=service_type_id,
-        churn_reason_id=churn_reason_id,
-        retention_action_id=retention_action_id,
-        final_outcome_id=final_outcome_id,
-        subcategory_exact_values=subcategory_exact_values,
-        subcategory_exclude_values=subcategory_exclude_values,
-        churn_reason_exclude_labels=churn_reason_exclude_labels,
-        previous_queryset_factory=previous_queryset_factory,
-    )
-
-    resolved_assistant_id = assistant_id or selectors.get_single_assistant_id(base_qs, assistant_name)
-    if resolved_assistant_id:
-        current_detail = build_assistant_detail(
-            base_qs,
-            resolved_assistant_id,
-            granularity=granularity,
-        )
-        payload['assistant_detail'] = _build_assistant_detail_comparison(
-            current_detail=current_detail,
-            previous_start=payload['comparison_context']['previous_start'],
-            previous_end=payload['comparison_context']['previous_end'],
-            assistant_id=resolved_assistant_id,
+        payload['retention_action_comparison_table'] = _build_retention_action_comparison_table(
+            current_rows=retention_action_table,
+            previous_start=prev_start,
+            previous_end=prev_end,
             assistant_name=assistant_name,
+            assistant_id=assistant_id,
             service_type_id=service_type_id,
             churn_reason_id=churn_reason_id,
             retention_action_id=retention_action_id,
@@ -415,7 +474,65 @@ def build_dashboard_payload(
             subcategory_exclude_values=subcategory_exclude_values,
             churn_reason_exclude_labels=churn_reason_exclude_labels,
             previous_queryset_factory=previous_queryset_factory,
-            granularity=granularity,
         )
+
+        payload['inconsistency_comparison_section'] = _build_inconsistency_comparison_section(
+            current_section=inconsistency_section,
+            previous_start=prev_start,
+            previous_end=prev_end,
+            assistant_name=assistant_name,
+            assistant_id=assistant_id,
+            service_type_id=service_type_id,
+            churn_reason_id=churn_reason_id,
+            retention_action_id=retention_action_id,
+            final_outcome_id=final_outcome_id,
+            subcategory_exact_values=subcategory_exact_values,
+            subcategory_exclude_values=subcategory_exclude_values,
+            churn_reason_exclude_labels=churn_reason_exclude_labels,
+            previous_queryset_factory=previous_queryset_factory,
+        )
+
+        payload['assistant_comparison_table'] = _build_assistant_comparison_table(
+            current_rows=assistant_ranking_table,
+            previous_start=prev_start,
+            previous_end=prev_end,
+            assistant_name=assistant_name,
+            assistant_id=assistant_id,
+            service_type_id=service_type_id,
+            churn_reason_id=churn_reason_id,
+            retention_action_id=retention_action_id,
+            final_outcome_id=final_outcome_id,
+            subcategory_exact_values=subcategory_exact_values,
+            subcategory_exclude_values=subcategory_exclude_values,
+            churn_reason_exclude_labels=churn_reason_exclude_labels,
+            previous_queryset_factory=previous_queryset_factory,
+        )
+
+        resolved_assistant_id = assistant_id or selectors.get_single_assistant_id(
+            base_qs,
+            assistant_name,
+        )
+        if resolved_assistant_id:
+            current_detail = build_assistant_detail(
+                base_qs,
+                resolved_assistant_id,
+                granularity=granularity,
+            )
+            payload['assistant_detail'] = _build_assistant_detail_comparison(
+                current_detail=current_detail,
+                previous_start=prev_start,
+                previous_end=prev_end,
+                assistant_id=resolved_assistant_id,
+                assistant_name=assistant_name,
+                service_type_id=service_type_id,
+                churn_reason_id=churn_reason_id,
+                retention_action_id=retention_action_id,
+                final_outcome_id=final_outcome_id,
+                subcategory_exact_values=subcategory_exact_values,
+                subcategory_exclude_values=subcategory_exclude_values,
+                churn_reason_exclude_labels=churn_reason_exclude_labels,
+                previous_queryset_factory=previous_queryset_factory,
+                granularity=granularity,
+            )
 
     return payload

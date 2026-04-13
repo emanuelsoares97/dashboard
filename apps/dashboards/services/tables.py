@@ -1,3 +1,24 @@
+def _merge_rows_by_key(rows_a, rows_b, key, sum_fields, rate_fields=None):
+    """Utilitário para merge de listas de dicts por chave, somando volumes e recalculando percentuais/taxas."""
+    merged = {}
+    for row in rows_a + rows_b:
+        k = row[key]
+        if k not in merged:
+            merged[k] = row.copy()
+        else:
+            for f in sum_fields:
+                merged[k][f] = (merged[k].get(f, 0) or 0) + (row.get(f, 0) or 0)
+    # Após somar, recalcular percentuais/taxas se necessário
+    if rate_fields:
+        total_field = sum_fields[0]
+        total_sum = sum(r[total_field] for r in merged.values())
+        for r in merged.values():
+            for rf, num, denom in rate_fields:
+                r[rf] = _pct(r.get(num, 0), r.get(denom, 0))
+            # pct_total (se existir)
+            if 'pct_total' in r:
+                r['pct_total'] = _pct(r[total_field], total_sum)
+    return list(merged.values())
 from datetime import timedelta
 
 from apps.dashboards import selectors
@@ -118,15 +139,38 @@ def calculate_general_kpis(queryset):
 
 def build_churn_reason_table(queryset, sort='volume'):
     """Gera tabela por motivo de churn com percentagens prontas para frontend."""
+    # Suporte a channel=geral: aceitar lista de querysets
+    if isinstance(queryset, (list, tuple)) and len(queryset) == 2:
+        rows_in = build_churn_reason_table(queryset[0], sort=sort)
+        rows_out = build_churn_reason_table(queryset[1], sort=sort)
+        merged = _merge_rows_by_key(
+            rows_in, rows_out,
+            key='churn_reason_id',
+            sum_fields=['total_calls', 'total_retained', 'total_non_retained', 'total_call_drop'],
+            rate_fields=[
+                ('retention_rate', 'total_retained', 'total_calls'),
+                ('non_retention_rate', 'total_non_retained', 'total_calls'),
+                ('call_drop_rate', 'total_call_drop', 'total_calls'),
+            ],
+        )
+        # Recalcular pct_total
+        total_sum = sum(r['total_calls'] for r in merged)
+        for r in merged:
+            r['pct_total'] = _pct(r['total_calls'], total_sum)
+        if sort == 'retention_asc':
+            merged.sort(key=lambda item: (item['retention_rate'], -item['total_calls']))
+        else:
+            merged.sort(key=lambda item: (-item['total_calls'], item['retention_rate']))
+        _apply_status_badges(merged, metric_key='retention_rate', status_key='retention_status_class')
+        return merged
+    # Caso normal (inbound/outbound)
     rows = []
     total_calls = queryset.count()
-
     for row in selectors.select_by_churn_reason(queryset):
         reason_calls = row['total_calls'] or 0
         retained = row['total_retained'] or 0
         call_drop = row['total_call_drop'] or 0
         non_retained = _totals_with_non_retained(reason_calls, retained, call_drop)
-
         rows.append(
             {
                 'churn_reason_id': row.get('churn_reason_id'),
@@ -141,27 +185,40 @@ def build_churn_reason_table(queryset, sort='volume'):
                 'call_drop_rate': _pct(call_drop, reason_calls),
             }
         )
-
     if sort == 'retention_asc':
         rows.sort(key=lambda item: (item['retention_rate'], -item['total_calls']))
     else:
         rows.sort(key=lambda item: (-item['total_calls'], item['retention_rate']))
-
     _apply_status_badges(rows, metric_key='retention_rate', status_key='retention_status_class')
     return rows
 
 
 def build_retention_action_table(queryset):
     """Gera tabela por resolucao e respetiva eficacia."""
+    if isinstance(queryset, (list, tuple)) and len(queryset) == 2:
+        rows_in = build_retention_action_table(queryset[0])
+        rows_out = build_retention_action_table(queryset[1])
+        merged = _merge_rows_by_key(
+            rows_in, rows_out,
+            key='retention_action_id',
+            sum_fields=['total_used', 'total_retained', 'total_non_retained'],
+            rate_fields=[
+                ('success_rate', 'total_retained', 'total_used'),
+                ('failure_rate', 'total_non_retained', 'total_used'),
+            ],
+        )
+        total_sum = sum(r['total_used'] for r in merged)
+        for r in merged:
+            r['pct_total'] = _pct(r['total_used'], total_sum)
+        _apply_status_badges(merged, metric_key='success_rate', status_key='success_status_class')
+        return merged
     rows = []
     total_calls = queryset.count()
-
     for row in selectors.select_by_retention_action(queryset):
         used = row['total_used'] or 0
         retained = row['total_retained'] or 0
         call_drop = row['total_call_drop'] or 0
         non_retained = _totals_with_non_retained(used, retained, call_drop)
-
         rows.append(
             {
                 'retention_action_id': row.get('retention_action_id'),
@@ -174,22 +231,37 @@ def build_retention_action_table(queryset):
                 'failure_rate': _pct(non_retained, used),
             }
         )
-
     _apply_status_badges(rows, metric_key='success_rate', status_key='success_status_class')
     return rows
 
 
 def build_service_type_table(queryset):
     """Gera tabela de desempenho por tipo de servico."""
+    if isinstance(queryset, (list, tuple)) and len(queryset) == 2:
+        rows_in = build_service_type_table(queryset[0])
+        rows_out = build_service_type_table(queryset[1])
+        merged = _merge_rows_by_key(
+            rows_in, rows_out,
+            key='service_type',
+            sum_fields=['total_calls', 'total_retained', 'total_non_retained', 'total_call_drop'],
+            rate_fields=[
+                ('retention_rate', 'total_retained', 'total_calls'),
+                ('non_retention_rate', 'total_non_retained', 'total_calls'),
+                ('call_drop_rate', 'total_call_drop', 'total_calls'),
+            ],
+        )
+        total_sum = sum(r['total_calls'] for r in merged)
+        for r in merged:
+            r['pct_total'] = _pct(r['total_calls'], total_sum)
+        _apply_status_badges(merged, metric_key='retention_rate', status_key='retention_status_class')
+        return merged
     rows = []
     total_all_calls = queryset.count()
-
     for row in selectors.select_by_service_type(queryset):
         total_calls = row['total_calls'] or 0
         retained = row['total_retained'] or 0
         call_drop = row['total_call_drop'] or 0
         non_retained = _totals_with_non_retained(total_calls, retained, call_drop)
-
         rows.append(
             {
                 'service_type': row['service_type__label'] or 'Sem tipo de servico',
@@ -200,7 +272,6 @@ def build_service_type_table(queryset):
                 'call_drop_rate': _pct(call_drop, total_calls),
             }
         )
-
     _apply_status_badges(rows, metric_key='retention_rate', status_key='retention_status_class')
     return rows
 
@@ -382,16 +453,43 @@ def build_daily_rates_summary(rows):
 
 def build_assistant_ranking_table(queryset):
     """Gera ranking de assistentes com taxas e inconsistencias."""
+    if isinstance(queryset, (list, tuple)) and len(queryset) == 2:
+        rows_in = build_assistant_ranking_table(queryset[0])
+        rows_out = build_assistant_ranking_table(queryset[1])
+        merged = _merge_rows_by_key(
+            rows_in, rows_out,
+            key='assistant_id',
+            sum_fields=['total_calls', 'total_retained', 'total_non_retained', 'total_call_drop'],
+            rate_fields=[
+                ('retention_rate', 'total_retained', 'total_calls'),
+                ('non_retention_rate', 'total_non_retained', 'total_calls'),
+                ('call_drop_rate', 'total_call_drop', 'total_calls'),
+                ('inconsistency_rate', 'inconsistencies', 'total_calls'),
+            ],
+        )
+        # avg_duration_seconds: média ponderada
+        for r in merged:
+            in_row = next((x for x in rows_in if x['assistant_id'] == r['assistant_id']), None)
+            out_row = next((x for x in rows_out if x['assistant_id'] == r['assistant_id']), None)
+            dur_sum = 0
+            dur_count = 0
+            if in_row:
+                dur_sum += in_row['avg_duration_seconds'] * in_row['total_calls']
+                dur_count += in_row['total_calls']
+            if out_row:
+                dur_sum += out_row['avg_duration_seconds'] * out_row['total_calls']
+                dur_count += out_row['total_calls']
+            r['avg_duration_seconds'] = _round2(dur_sum / dur_count) if dur_count else 0.0
+        _apply_status_badges(merged, metric_key='retention_rate', status_key='retention_status_class')
+        return merged
     rows = []
     inconsistencies_by_agent = selectors.select_inconsistency_count_by_agent(queryset)
-
     for row in selectors.select_assistant_ranking_base(queryset):
         total_calls = row['total_calls'] or 0
         retained = row['total_retained'] or 0
         call_drop = row['total_call_drop'] or 0
         non_retained = _totals_with_non_retained(total_calls, retained, call_drop)
         inconsistencies = inconsistencies_by_agent.get(row['agent_id'], 0)
-
         rows.append(
             {
                 'assistant_id': row['agent_id'],
@@ -400,13 +498,13 @@ def build_assistant_ranking_table(queryset):
                 'avg_duration_seconds': _round2(row['avg_duration_seconds']),
                 'total_retained': retained,
                 'total_non_retained': non_retained,
+                'total_call_drop': call_drop,
                 'retention_rate': _pct(retained, total_calls),
                 'non_retention_rate': _pct(non_retained, total_calls),
                 'call_drop_rate': _pct(call_drop, total_calls),
                 'inconsistency_rate': _pct(inconsistencies, total_calls),
             }
         )
-
     _apply_status_badges(rows, metric_key='retention_rate', status_key='retention_status_class')
     return rows
 
