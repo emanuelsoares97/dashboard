@@ -186,6 +186,12 @@ python -m venv .venv
 & ".\.venv\Scripts\python.exe" manage.py runserver
 ```
 
+## Testes e cobertura
+
+- Ultima medicao de cobertura (pytest + coverage): **86.63%** (2026-04-13).
+- Meta minima configurada em `.coveragerc`: **85%**.
+
+
 ## Base de dados (PostgreSQL / Supabase)
 
 O projeto usa `DATABASE_URL` como configuracao principal de base de dados.

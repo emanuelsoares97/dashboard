@@ -3,27 +3,24 @@
 
 {% block dashboard_content %}
 <div class="dashboard-page">
-    <section class="card panel comparison-context-panel">
-        <div class="comparison-context-grid">
-            <div>
-                <span class="kpi-label">Segmento</span>
-                <strong>
-                    {% if overview_tab == 'mobile' %}
-                        Móvel
-                    {% elif overview_tab == 'fixed' %}
-                        Fixo
-                    {% else %}
-                        Geral
-                    {% endif %}
-                </strong>
-            </div>
-            <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;justify-content:flex-end;">
-                <a class="btn {% if overview_tab == 'general' %}btn-primary{% else %}btn-secondary{% endif %}" href="{% url 'dashboards:overview' %}">Geral</a>
-                <a class="btn {% if overview_tab == 'mobile' %}btn-primary{% else %}btn-secondary{% endif %}" href="{% url 'dashboards:overview_mobile' %}">Móvel</a>
-                <a class="btn {% if overview_tab == 'fixed' %}btn-primary{% else %}btn-secondary{% endif %}" href="{% url 'dashboards:overview_fixed' %}">Fixo</a>
+        {% comment %} NOVO BLOCO DE CONTEXTO PROFISSIONAL {% endcomment %}
+        <div class="dashboard-context">
+            <div class="channel-group">
+                <span class="channel-label">Canal</span>
+                <div class="channel-options">
+                    {% with current_params=request.GET.urlencode %}
+                        {% with other_params=current_params|cut:'channel=inbound'|cut:'channel=outbound'|cut:'&&'|cut:'&' %}
+                               <a href="?channel=geral{% if other_params %}&{{ other_params|urlencode }}{% endif %}"
+                                   class="channel-btn {% if channel == 'geral' %}active{% endif %}">Geral</a>
+                               <a href="?channel=inbound{% if other_params %}&{{ other_params|urlencode }}{% endif %}"
+                                   class="channel-btn {% if channel == 'inbound' %}active{% endif %}">Inbound</a>
+                               <a href="?channel=outbound{% if other_params %}&{{ other_params|urlencode }}{% endif %}"
+                                   class="channel-btn {% if channel == 'outbound' %}active{% endif %}">Outbound</a>
+                        {% endwith %}
+                    {% endwith %}
+                </div>
             </div>
         </div>
-    </section>
 
     {% if dashboard.comparison_context.enabled %}
     <section class="card panel comparison-context-panel">
@@ -54,10 +51,16 @@
         <article class="kpi-card kpi-card-success card">
             <span class="kpi-label">Taxa retenção</span>
             <strong class="kpi-value">{{ dashboard.general_kpis.retention_rate|floatformat:2 }}%</strong>
+            <div class="kpi-subvalue">
+                Retidos: {{ dashboard.general_kpis.total_retained }}
+            </div>
             {% if is_mobile_overview %}
-            <span class="kpi-comparison">
-                Sem pré-pago: {{ dashboard.general_kpis.retention_rate_adjusted_mobile|floatformat:2 }}%
-            </span>
+                <div class="kpi-subvalue kpi-subvalue-adjusted">
+                    <span>Sem pré-pago: <span class="kpi-value-adjusted">{{ dashboard.general_kpis.retention_rate_adjusted_mobile|floatformat:2 }}%</span></span>
+                </div>
+                <div class="kpi-subvalue kpi-subvalue-adjusted">
+                    <span>Total retidos sem pré-pago: <span class="kpi-value-adjusted">{{ dashboard.general_kpis.total_retained_no_pre|default_if_none:'—' }}</span></span>
+                </div>
             {% endif %}
             {% if dashboard.comparison_kpis.retention_rate %}
             <span class="kpi-comparison">
@@ -126,6 +129,7 @@
     </section>
 
     <section class="executive-grid">
+        {% if channel == 'geral' %}
         <article class="card panel executive-panel">
             <div class="panel-header"><div><h3 class="card-title">Pedidos de corte por serviço</h3></div></div>
             <div class="table-wrap table-wrap-compact">
@@ -139,6 +143,7 @@
                 </table>
             </div>
         </article>
+        {% endif %}
         <article class="card panel executive-panel">
             <div class="panel-header"><div><h3 class="card-title">Motivos de corte</h3></div></div>
             <div class="table-wrap table-wrap-compact">
@@ -282,80 +287,86 @@
     </section>
 </div>
 
-{% if is_mobile_overview %}
+
 <section class="segment-info-note">
     <h4 class="segment-info-note__title">O que está a ser contabilizado nesta aba</h4>
     <div class="segment-info-note__body">
-        <div class="segment-info-note__block">
-            <span class="segment-info-note__label">Subcategorias incluídas</span>
-            <ul class="segment-info-note__list">
-                <li>CC RET Móvel</li>
-                <li>CC RET Cancelamento Móvel</li>
-            </ul>
-        </div>
-        <div class="segment-info-note__block">
-            <span class="segment-info-note__label">Excluídas automaticamente</span>
-            <ul class="segment-info-note__list">
-                <li>CC RET Outbound &mdash; dados visíveis na aba Outbound</li>
-                <li>Todas as subcategorias de Fixo, Fibra e TV</li>
-            </ul>
-        </div>
-        <div class="segment-info-note__block">
-            <span class="segment-info-note__label">Taxa sem pré-pago</span>
-            <p class="segment-info-note__text">
-                A taxa ajustada usa o mesmo total de chamadas da taxa geral.
-                As chamadas com resolução <strong>Retido Migração Pré Pago</strong>
-                continuam a contar no volume total mas deixam de ser contadas
-                como retidas &mdash; tratadas como não retidas na leitura ajustada.
-                A taxa ajustada é sempre menor ou igual à taxa geral.
-            </p>
-        </div>
+        {% if channel == 'outbound' %}
+            <div class="segment-info-note__block">
+                <span class="segment-info-note__label">Subcategorias incluídas</span>
+                <ul class="segment-info-note__list">
+                    <li>CC RET Outbound</li>
+                </ul>
+            </div>
+            <div class="segment-info-note__block">
+                <span class="segment-info-note__label">Excluídas automaticamente</span>
+                <ul class="segment-info-note__list">
+                    <li>Todas as subcategorias inbound &mdash; Móvel, Fixo, Fibra, TV e respetivos cancelamentos</li>
+                </ul>
+            </div>
+        {% elif overview_tab == 'mobile' %}
+            <div class="segment-info-note__block">
+                <span class="segment-info-note__label">Subcategorias incluídas</span>
+                <ul class="segment-info-note__list">
+                    <li>CC RET Móvel</li>
+                    <li>CC RET Cancelamento Móvel</li>
+                </ul>
+            </div>
+            <div class="segment-info-note__block">
+                <span class="segment-info-note__label">Excluídas automaticamente</span>
+                <ul class="segment-info-note__list">
+                    <li>CC RET Outbound &mdash; dados visíveis na aba Outbound</li>
+                    <li>Todas as subcategorias de Fixo, Fibra e TV</li>
+                </ul>
+            </div>
+            {% if channel == 'inbound' %}
+            <div class="segment-info-note__block">
+                <span class="segment-info-note__label">Taxa sem pré-pago</span>
+                <p class="segment-info-note__text">
+                    A taxa ajustada usa o mesmo total de chamadas da taxa geral.
+                    As chamadas com resolução <strong>Retido Migração Pré Pago</strong>
+                    continuam a contar no volume total mas deixam de ser contadas
+                    como retidas &mdash; tratadas como não retidas na leitura ajustada.
+                    A taxa ajustada é sempre menor ou igual à taxa geral.
+                </p>
+            </div>
+            {% endif %}
+        {% elif overview_tab == 'fixed' %}
+            <div class="segment-info-note__block">
+                <span class="segment-info-note__label">Subcategorias incluídas</span>
+                <ul class="segment-info-note__list">
+                    <li>CC RET Fibra</li>
+                    <li>CC RET Fibra e Móvel</li>
+                    <li>CC RET Cancelamento Fibra</li>
+                    <li>CC RET Cancelamento Fibra e Móvel</li>
+                    <li>CC RET TV</li>
+                    <li>CC RET TV e Fixo</li>
+                    <li>CC RET TV Fibra e Móvel</li>
+                    <li>CC RET TV Fixo Fibra e Móvel</li>
+                    <li>CC RET Fixo</li>
+                </ul>
+            </div>
+            <div class="segment-info-note__block">
+                <span class="segment-info-note__label">Excluídas automaticamente</span>
+                <ul class="segment-info-note__list">
+                    <li>CC RET Outbound &mdash; dados visíveis na aba Outbound</li>
+                    <li>CC RET Móvel e CC RET Cancelamento Móvel &mdash; dados visíveis na aba Móvel</li>
+                </ul>
+            </div>
+        {% else %}
+            <div class="segment-info-note__block">
+                <span class="segment-info-note__label">Subcategorias incluídas</span>
+                <p class="segment-info-note__text">Todas as subcategorias de retenção inbound &mdash; Móvel, Fixo, Fibra, TV e respetivos cancelamentos.</p>
+            </div>
+            <div class="segment-info-note__block">
+                <span class="segment-info-note__label">Excluídas automaticamente</span>
+                <ul class="segment-info-note__list">
+                    <li>CC RET Outbound &mdash; dados visíveis na aba Outbound</li>
+                </ul>
+            </div>
+        {% endif %}
     </div>
 </section>
-{% elif overview_tab == 'fixed' %}
-<section class="segment-info-note">
-    <h4 class="segment-info-note__title">O que está a ser contabilizado nesta aba</h4>
-    <div class="segment-info-note__body">
-        <div class="segment-info-note__block">
-            <span class="segment-info-note__label">Subcategorias incluídas</span>
-            <ul class="segment-info-note__list">
-                <li>CC RET Fibra</li>
-                <li>CC RET Fibra e Móvel</li>
-                <li>CC RET Cancelamento Fibra</li>
-                <li>CC RET Cancelamento Fibra e Móvel</li>
-                <li>CC RET TV</li>
-                <li>CC RET TV e Fixo</li>
-                <li>CC RET TV Fibra e Móvel</li>
-                <li>CC RET TV Fixo Fibra e Móvel</li>
-                <li>CC RET Fixo</li>
-            </ul>
-        </div>
-        <div class="segment-info-note__block">
-            <span class="segment-info-note__label">Excluídas automaticamente</span>
-            <ul class="segment-info-note__list">
-                <li>CC RET Outbound &mdash; dados visíveis na aba Outbound</li>
-                <li>CC RET Móvel e CC RET Cancelamento Móvel &mdash; dados visíveis na aba Móvel</li>
-            </ul>
-        </div>
-    </div>
-</section>
-{% else %}
-<section class="segment-info-note">
-    <h4 class="segment-info-note__title">O que está a ser contabilizado nesta aba</h4>
-    <div class="segment-info-note__body">
-        <div class="segment-info-note__block">
-            <span class="segment-info-note__label">Subcategorias incluídas</span>
-            <p class="segment-info-note__text">Todas as subcategorias de retenção inbound &mdash; Móvel, Fixo, Fibra, TV e respetivos cancelamentos.</p>
-        </div>
-        <div class="segment-info-note__block">
-            <span class="segment-info-note__label">Excluídas automaticamente</span>
-            <ul class="segment-info-note__list">
-                <li>CC RET Outbound &mdash; dados visíveis na aba Outbound</li>
-            </ul>
-        </div>
-    </div>
-</section>
-{% endif %}
 
 {{ dashboard.frontend_payload|json_script:'dashboard-data' }}
 {% endblock %}

@@ -50,6 +50,7 @@ class ImportExcelServiceTests(TestCase):
         self.assertEqual(summary['consolidated_existing_rows'], 0)
         self.assertEqual(summary['duplicate_rows'], 0)
         self.assertEqual(summary['failed_rows'], 0)
+        from apps.inbound.models import Interaction
         self.assertEqual(Interaction.objects.filter(batch=batch).count(), 1)
         self.assertEqual(batch.success_rows, 1)
         self.assertEqual(batch.status, ImportBatch.Status.SUCCESS)
@@ -230,35 +231,35 @@ class ImportExcelServiceTests(TestCase):
         )
         self.assertEqual(failed_rows.count(), 1)
 
+
     def test_skips_non_retention_rows_and_does_not_create_interaction(self):
+        rows = [
+            {
+                'external_call_id': 'nr-1',
+                'agent_name': 'Ana',
+                'start_date': '2026-01-01T10:00:00Z',
+                'end_date': '2026-01-01T10:10:00Z',
+                'retention_action': 'Resolvido',
+                'category': 'CC Informativo',
+            },
+            {
+                'external_call_id': 'ret-1',
+                'agent_name': 'Ana',
+                'start_date': '2026-01-01T11:00:00Z',
+                'end_date': '2026-01-01T11:05:00Z',
+                'retention_action': 'Nao Retido',
+                'category': 'CC RET Outbound',
+            },
+        ]
         batch = self._make_batch('skip-non-retention.csv')
-        summary = self._run_import(
-            batch,
-            [
-                {
-                    'external_call_id': 'nr-1',
-                    'agent_name': 'Ana',
-                    'start_date': '2026-01-01T10:00:00Z',
-                    'end_date': '2026-01-01T10:10:00Z',
-                    'retention_action': 'Resolvido',
-                    'category': 'CC Informativo',
-                },
-                {
-                    'external_call_id': 'ret-1',
-                    'agent_name': 'Ana',
-                    'start_date': '2026-01-01T11:00:00Z',
-                    'end_date': '2026-01-01T11:05:00Z',
-                    'retention_action': 'Nao Retido',
-                    'category': 'CC RET Outbound',
-                },
-            ],
-        )
+        summary = self._run_import(batch, rows)
 
         batch.refresh_from_db()
         self.assertEqual(summary['imported_rows'], 1)
         self.assertEqual(summary['skipped_non_retention_rows'], 1)
         self.assertEqual(summary['consolidated_existing_rows'], 0)
-        self.assertEqual(Interaction.objects.filter(batch=batch).count(), 1)
+        from apps.inbound.models import OutboundInteraction
+        self.assertEqual(OutboundInteraction.objects.filter(batch=batch).count(), 1)
         self.assertIn('Fora de retencao ignoradas: 1', batch.notes)
 
     def test_replaces_existing_older_row_same_client_month(self):

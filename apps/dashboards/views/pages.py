@@ -105,20 +105,46 @@ def _render_overview_segment(request, *, active_section):
         return assistant_redirect
 
     segment_config = OVERVIEW_SEGMENTS[active_section]
-    filters = _resolve_filters(request, force_assistant_name='')
+    # 1. Ler e validar channel do query param
+    channel = request.GET.get('channel', 'inbound').strip().lower()
+    if channel not in ('inbound', 'outbound', 'geral'):
+        channel = 'inbound'
+
+    # 2. Passar channel já normalizado ao helper
+
+    filters = _resolve_filters(request, force_assistant_name='', channel=channel)
     filters['subcategory_exact_values'] = segment_config['subcategory_exact_values']
     payload = _build_dashboard_payload_from_filters(filters)
     if segment_config['overview_tab'] == 'mobile':
         payload = _annotate_mobile_adjusted_metrics(payload)
 
+    # Título dinâmico conforme canal
+    if channel == 'geral':
+        channel_label = 'Geral'
+    elif channel == 'inbound':
+        channel_label = 'Inbound'
+    else:
+        channel_label = 'Outbound'
+
+    if segment_config['overview_tab'] == 'general':
+        page_title = f"Visão Geral | {channel_label}"
+    elif segment_config['overview_tab'] == 'mobile':
+        page_title = f"Visão Geral | Móvel ({channel_label})"
+    elif segment_config['overview_tab'] == 'fixed':
+        page_title = f"Visão Geral | Fixo ({channel_label})"
+    else:
+        page_title = segment_config['page_title']
+
     context = _build_common_context(
-        page_title=segment_config['page_title'],
+        page_title=page_title,
         active_section=active_section,
         filters=filters,
         dashboard_payload=payload,
     )
     context['overview_tab'] = segment_config['overview_tab']
     context['is_mobile_overview'] = segment_config['overview_tab'] == 'mobile'
+    context['channel'] = channel
+    context['channel_label'] = channel_label
     return render(request, 'dashboards/overview.html', context)
 
 
