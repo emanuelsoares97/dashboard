@@ -55,9 +55,12 @@
                 Retidos: {{ dashboard.general_kpis.total_retained }}
             </div>
             {% if is_mobile_overview %}
-            <span class="kpi-comparison">
-                Sem pré-pago: {{ dashboard.general_kpis.retention_rate_adjusted_mobile|floatformat:2 }}%
-            </span>
+                <div class="kpi-subvalue kpi-subvalue-adjusted">
+                    <span>Sem pré-pago: <span class="kpi-value-adjusted">{{ dashboard.general_kpis.retention_rate_adjusted_mobile|floatformat:2 }}%</span></span>
+                </div>
+                <div class="kpi-subvalue kpi-subvalue-adjusted">
+                    <span>Total retidos sem pré-pago: <span class="kpi-value-adjusted">{{ dashboard.general_kpis.total_retained_no_pre|default_if_none:'—' }}</span></span>
+                </div>
             {% endif %}
             {% if dashboard.comparison_kpis.retention_rate %}
             <span class="kpi-comparison">
@@ -126,6 +129,7 @@
     </section>
 
     <section class="executive-grid">
+        {% if channel == 'geral' %}
         <article class="card panel executive-panel">
             <div class="panel-header"><div><h3 class="card-title">Pedidos de corte por serviço</h3></div></div>
             <div class="table-wrap table-wrap-compact">
@@ -139,6 +143,7 @@
                 </table>
             </div>
         </article>
+        {% endif %}
         <article class="card panel executive-panel">
             <div class="panel-header"><div><h3 class="card-title">Motivos de corte</h3></div></div>
             <div class="table-wrap table-wrap-compact">

@@ -125,6 +125,32 @@ def calculate_general_kpis(queryset):
     total_call_drop = raw['total_call_drop'] or 0
     total_non_retained = _totals_with_non_retained(total_calls, total_retained, total_call_drop)
 
+    # Calcula total_retained_no_pre: retidos excluindo 'Retido Migração Pré Pago'
+    # Considera que o campo de resolução é 'retention_action__label' ou similar
+
+    # Filtro robusto para pré-pago: ignora maiúsculas/minúsculas e acentos
+    from django.db.models.functions import Lower
+    from django.db.models import Q
+    import unicodedata
+
+    def normalize_label(label):
+        return unicodedata.normalize('NFKD', label).encode('ASCII', 'ignore').decode('ASCII').lower().strip()
+
+    pre_pago_labels = [
+        'Retido Migração Pré Pago',
+        'Retido Migracao Pre Pago',
+        'retido migracao pre pago',
+    ]
+    pre_pago_labels_norm = [normalize_label(lbl) for lbl in pre_pago_labels]
+
+    qs_retidos = queryset.filter(final_outcome__label='Retido')
+    qs_retidos = qs_retidos.exclude(
+        Q(retention_action__label__isnull=False) & Q(
+            retention_action__label__in=pre_pago_labels
+        )
+    )
+    total_retained_no_pre = qs_retidos.count()
+
     return {
         'total_calls': total_calls,
         'total_retained': total_retained,
@@ -134,6 +160,7 @@ def calculate_general_kpis(queryset):
         'non_retention_rate': _pct(total_non_retained, total_calls),
         'call_drop_rate': _pct(total_call_drop, total_calls),
         'avg_duration_seconds': _round2(raw['avg_duration_seconds']),
+        'total_retained_no_pre': total_retained_no_pre,
     }
 
 

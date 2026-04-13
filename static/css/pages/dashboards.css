@@ -1,3 +1,23 @@
+/* Valores ajustados (sem pré-pago) para KPIs */
+.kpi-subvalue-adjusted {
+    margin-top: 0.15rem;
+    font-size: 0.97em;
+    color: #1f4e79;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.3em;
+}
+
+.kpi-value-adjusted {
+    background: #eaf3fa;
+    color: #1f4e79;
+    border-radius: 6px;
+    padding: 0.08em 0.5em;
+    font-weight: 600;
+    margin-left: 0.3em;
+    font-size: 1em;
+}
 .dashboard-context {
     display: flex;
     align-items: center;

@@ -241,6 +241,10 @@ def build_dashboard_payload(
                 ((a['avg_duration_seconds'] or 0) * (a['total_calls'] or 0))
                 + ((b['avg_duration_seconds'] or 0) * (b['total_calls'] or 0))
             ) / total_calls
+        # Soma total_retained_no_pre se existir nos dois
+        total_retained_no_pre = (
+            (a.get('total_retained_no_pre') or 0) + (b.get('total_retained_no_pre') or 0)
+        )
         return {
             'total_calls': total_calls,
             'total_retained': total_retained,
@@ -250,6 +254,7 @@ def build_dashboard_payload(
             'non_retention_rate': _pct(total_non_retained, total_calls),
             'call_drop_rate': _pct(total_call_drop, total_calls),
             'avg_duration_seconds': _round2(avg_duration),
+            'total_retained_no_pre': total_retained_no_pre,
         }
 
     if inbound_queryset is not None and outbound_queryset is not None:
@@ -435,11 +440,33 @@ def build_dashboard_payload(
             assistant_ranking_table=assistant_ranking_table,
             inconsistency_section=inconsistency_section,
         ),
+        # Always provide churn_reason_comparison_table for template safety
+        'churn_reason_comparison_table': churn_reason_table,
+        # Always provide service_type_comparison_table for template safety
+        'service_type_comparison_table': [],
+        # Always provide assistant_comparison_table for template safety
+        'assistant_comparison_table': [],
+        # Always provide retention_action_comparison_table for template safety
+        'retention_action_comparison_table': [],
+        # Always provide inconsistency_comparison_section for template safety
+        'inconsistency_comparison_section': {},
+        # Always provide comparison_kpis for template safety
+        'comparison_kpis': {},
+        # Always provide comparison_context for template safety
+        'comparison_context': {
+            'enabled': False,
+            'current_start': start_date,
+            'current_end': end_date,
+            'previous_start': None,
+            'previous_end': None,
+        },
     }
 
     # Só monta comparação se houver factory disponível
+    prev_start = None
+    prev_end = None
     if previous_queryset_factory is not None:
-        comparison_context = _build_comparison_block(
+        comparison_block = _build_comparison_block(
             date_preset=date_preset,
             start_date=start_date,
             end_date=end_date,
@@ -455,11 +482,18 @@ def build_dashboard_payload(
             current_kpis=general_kpis,
             previous_queryset_factory=previous_queryset_factory,
         )
-        payload['comparison_context'] = comparison_context
-
-        prev_start = comparison_context['comparison_context']['previous_start']
-        prev_end = comparison_context['comparison_context']['previous_end']
-
+        ctx = comparison_block.get('comparison_context', {})
+        prev_start = ctx.get('previous_start')
+        prev_end = ctx.get('previous_end')
+        # Sempre preenche current_start e current_end, mesmo se previous estiver faltando
+        payload['comparison_context'] = {
+            'enabled': ctx.get('enabled', False),
+            'current_start': start_date,
+            'current_end': end_date,
+            'previous_start': prev_start,
+            'previous_end': prev_end,
+        }
+        payload['comparison_kpis'] = comparison_block.get('comparison_kpis', {})
         payload['retention_action_comparison_table'] = _build_retention_action_comparison_table(
             current_rows=retention_action_table,
             previous_start=prev_start,
@@ -475,7 +509,6 @@ def build_dashboard_payload(
             churn_reason_exclude_labels=churn_reason_exclude_labels,
             previous_queryset_factory=previous_queryset_factory,
         )
-
         payload['inconsistency_comparison_section'] = _build_inconsistency_comparison_section(
             current_section=inconsistency_section,
             previous_start=prev_start,
@@ -491,7 +524,6 @@ def build_dashboard_payload(
             churn_reason_exclude_labels=churn_reason_exclude_labels,
             previous_queryset_factory=previous_queryset_factory,
         )
-
         payload['assistant_comparison_table'] = _build_assistant_comparison_table(
             current_rows=assistant_ranking_table,
             previous_start=prev_start,
@@ -507,7 +539,36 @@ def build_dashboard_payload(
             churn_reason_exclude_labels=churn_reason_exclude_labels,
             previous_queryset_factory=previous_queryset_factory,
         )
-
+        payload['service_type_comparison_table'] = _build_service_type_comparison_table(
+            current_rows=service_type_table,
+            previous_start=prev_start,
+            previous_end=prev_end,
+            assistant_name=assistant_name,
+            assistant_id=assistant_id,
+            service_type_id=service_type_id,
+            churn_reason_id=churn_reason_id,
+            retention_action_id=retention_action_id,
+            final_outcome_id=final_outcome_id,
+            subcategory_exact_values=subcategory_exact_values,
+            subcategory_exclude_values=subcategory_exclude_values,
+            churn_reason_exclude_labels=churn_reason_exclude_labels,
+            previous_queryset_factory=previous_queryset_factory,
+        )
+        payload['churn_reason_comparison_table'] = _build_churn_reason_comparison_table(
+            current_rows=churn_reason_table,
+            previous_start=prev_start,
+            previous_end=prev_end,
+            assistant_name=assistant_name,
+            assistant_id=assistant_id,
+            service_type_id=service_type_id,
+            churn_reason_id=churn_reason_id,
+            retention_action_id=retention_action_id,
+            final_outcome_id=final_outcome_id,
+            subcategory_exact_values=subcategory_exact_values,
+            subcategory_exclude_values=subcategory_exclude_values,
+            churn_reason_exclude_labels=churn_reason_exclude_labels,
+            previous_queryset_factory=previous_queryset_factory,
+        )
         resolved_assistant_id = assistant_id or selectors.get_single_assistant_id(
             base_qs,
             assistant_name,
@@ -534,5 +595,4 @@ def build_dashboard_payload(
                 previous_queryset_factory=previous_queryset_factory,
                 granularity=granularity,
             )
-
     return payload
