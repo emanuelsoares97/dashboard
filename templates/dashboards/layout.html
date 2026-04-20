@@ -141,11 +141,11 @@
                 </div>
             </details>
 
-            <details class="dashboard-menu-group" {% if active_section == 'assistants' or active_section == 'services' or active_section == 'churn' or active_section == 'outbound' %}open{% endif %}>
+            <details class="dashboard-menu-group" {% if active_section == 'assistants' or active_section == 'services' or active_section == 'churn' or active_section == 'outbound' or active_section == 'before_install' %}open{% endif %}>
                 <summary class="dashboard-menu-group-title">Performance Operacional</summary>
                 <div class="dashboard-menu-group-links">
                     <a class="dashboard-menu-link {% if active_section == 'assistants' %}is-active{% endif %}" href="{% url 'dashboards:assistants' %}?channel={{ channel|default:'inbound' }}">Performance por Assistente</a>
-                    <a class="dashboard-menu-link {% if active_section == 'services' %}is-active{% endif %}" href="{% url 'dashboards:services' %}?channel={{ channel|default:'inbound' }}">Performance por Serviço</a>
+                    <a class="dashboard-menu-link {% if active_section == 'services' %}is-active{% endif %}" href="{% url 'dashboards:services' %}?channel={{ channel|default:'inbound' }}">Performance por Servico</a>
                     <a class="dashboard-menu-link {% if active_section == 'churn' %}is-active{% endif %}" href="{% url 'dashboards:churn_reasons' %}?channel={{ channel|default:'inbound' }}">Motivos de Cancelamento</a>
                     <a class="dashboard-menu-link {% if active_section == 'outbound' %}is-active{% endif %}" href="{% url 'dashboards:outbound' %}?channel={{ channel|default:'inbound' }}">Outbound</a>
                 </div>

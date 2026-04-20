@@ -26,6 +26,8 @@ from .helpers import OUTBOUND_SUBCATEGORY_FILTER
 from .helpers import OUTBOUND_EXCLUDED_CHURN_LABELS
 from .helpers import _resolve_filters
 
+from apps.inbound.models import Interaction
+
 
 OVERVIEW_SEGMENTS = {
     'overview': {
@@ -98,6 +100,124 @@ def outbound(request):
     return render(request, 'dashboards/outbound.html', context)
 
 
+@require_dashboard_access
+def before_install_analysis(request):
+    """
+    Análise semanal de BEFORE_INSTALL (CC RET Desiste da adesão).
+    
+    Mostra:
+    - Totais por semana
+    - Distribuição por subcategory
+    - Top motivos (third_category)
+    - Focus em "Nao retido"
+    """
+    from apps.dashboards.selectors.base import apply_filters
+    from apps.dashboards.services import retention_before
+    
+    # 1. Resolver filtros (SEM excluir BEFORE_INSTALL, queremos VER BEFORE_INSTALL)
+    filters = _resolve_filters(request, force_assistant_name='', channel='inbound', exclude_before_install=False)
+    
+    # 2. Query base: ONLY BEFORE_INSTALL
+    base_queryset = Interaction.objects.filter(
+        direction=Interaction.Direction.INBOUND,
+        category=BEFORE_INSTALL_CATEGORY_FILTER
+    )
+    
+    # 3. Aplicar filtros comuns (datas, service_type, etc)
+    base_queryset = apply_filters(
+        base_queryset,
+        assistant_name=filters.get('assistant_name'),
+        assistant_id=filters.get('assistant_id'),
+        start_date=filters.get('start_date'),
+        end_date=filters.get('end_date'),
+        service_type_id=filters.get('service_type_id'),
+        churn_reason_id=filters.get('churn_reason_id'),
+        retention_action_id=filters.get('retention_action_id'),
+        final_outcome_id=filters.get('final_outcome_id'),
+    )
+    
+    # 4. Construir tabelas via services
+    kpis = retention_before.build_before_install_kpis_table(base_queryset)
+    by_subcategory = retention_before.build_before_install_by_subcategory_table(base_queryset)
+    by_third_category = retention_before.build_before_install_by_third_category_table(base_queryset)
+    
+    # 5. Contexto
+    context = _build_common_context(
+        page_title='BEFORE_INSTALL - Analise Semanal',
+        active_section='before_install',
+        filters=filters,
+        dashboard_payload={},
+    )
+    
+    # 6. Adicionar dados específicos
+    context.update({
+        'kpis': kpis,
+        'by_subcategory': by_subcategory,
+        'by_third_category': by_third_category,
+    })
+    
+@require_dashboard_access
+def before_install_weekly_evolution(request):
+    """
+    Evolução semanal de BEFORE_INSTALL.
+    Compara Week N vs Week N-1.
+    
+    Focus: Motivos com maior variação (positiva ou negativa).
+    """
+    from django.utils import timezone
+    from apps.dashboards.selectors.base import apply_filters
+    from apps.dashboards.services import retention_before
+    
+    # 1. Extrair semana/ano do request
+    today = timezone.now().date()
+    week_current = int(request.GET.get('week', today.isocalendar()[1]))
+    year_current = int(request.GET.get('year', today.isocalendar()[0]))
+    
+    # Validação: week não pode ser < 1
+    if week_current < 1:
+        week_current = 1
+    
+    # 2. Resolver filtros
+    filters = _resolve_filters(request, force_assistant_name='', channel='inbound', exclude_before_install=False)
+    
+    # 3. Query base: ONLY BEFORE_INSTALL
+    base_queryset = Interaction.objects.filter(
+        direction=Interaction.Direction.INBOUND,
+        category=BEFORE_INSTALL_CATEGORY_FILTER
+    )
+    
+    # 4. Aplicar filtros comuns
+    from apps.dashboards.selectors.base import apply_filters
+    base_queryset = apply_filters(
+        base_queryset,
+        assistant_name=filters.get('assistant_name'),
+        assistant_id=filters.get('assistant_id'),
+        service_type_id=filters.get('service_type_id'),
+        churn_reason_id=filters.get('churn_reason_id'),
+    )
+    
+    # 5. Construir tabela de comparação
+    comparison = retention_before.build_before_install_weekly_comparison(
+        base_queryset, 
+        week_current, 
+        year_current
+    )
+    
+    # 6. Contexto
+    context = _build_common_context(
+        page_title='BEFORE_INSTALL - Evolucao Semanal',
+        active_section='before_install_evolution',
+        filters=filters,
+        dashboard_payload={},
+    )
+    
+    context.update({
+        'week_current': week_current,
+        'year_current': year_current,
+        'week_previous': week_current - 1,
+        'comparison': comparison,
+    })
+    
 def _render_overview_segment(request, *, active_section):
     """Centraliza a renderizacao das abas Geral, Movel e Fixo."""
     assistant_redirect = _redirect_assistant_to_own_detail_if_needed(request)
@@ -110,8 +230,7 @@ def _render_overview_segment(request, *, active_section):
     if channel not in ('inbound', 'outbound', 'geral'):
         channel = 'inbound'
 
-    # 2. Passar channel já normalizado ao helper
-
+    # 2. Passar channel já normalizado ao helper (phase é lido dentro de _resolve_filters)
     filters = _resolve_filters(request, force_assistant_name='', channel=channel)
     filters['subcategory_exact_values'] = segment_config['subcategory_exact_values']
     payload = _build_dashboard_payload_from_filters(filters)
@@ -145,6 +264,7 @@ def _render_overview_segment(request, *, active_section):
     context['is_mobile_overview'] = segment_config['overview_tab'] == 'mobile'
     context['channel'] = channel
     context['channel_label'] = channel_label
+    context['phase'] = filters['phase']
     return render(request, 'dashboards/overview.html', context)
 
 

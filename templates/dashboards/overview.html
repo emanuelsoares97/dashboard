@@ -9,13 +9,26 @@
                 <span class="channel-label">Canal</span>
                 <div class="channel-options">
                     {% with current_params=request.GET.urlencode %}
-                        {% with other_params=current_params|cut:'channel=inbound'|cut:'channel=outbound'|cut:'&&'|cut:'&' %}
+                        {% with other_params=current_params|cut:'channel=inbound'|cut:'channel=outbound'|cut:'channel=geral'|cut:'&&'|cut:'&' %}
                                <a href="?channel=geral{% if other_params %}&{{ other_params|urlencode }}{% endif %}"
                                    class="channel-btn {% if channel == 'geral' %}active{% endif %}">Geral</a>
                                <a href="?channel=inbound{% if other_params %}&{{ other_params|urlencode }}{% endif %}"
                                    class="channel-btn {% if channel == 'inbound' %}active{% endif %}">Inbound</a>
                                <a href="?channel=outbound{% if other_params %}&{{ other_params|urlencode }}{% endif %}"
                                    class="channel-btn {% if channel == 'outbound' %}active{% endif %}">Outbound</a>
+                        {% endwith %}
+                    {% endwith %}
+                </div>
+            </div>
+            <div class="channel-group">
+                <span class="channel-label">Fase</span>
+                <div class="channel-options">
+                    {% with current_params=request.GET.urlencode %}
+                        {% with other_params=current_params|cut:'phase=before'|cut:'phase=after'|cut:'&&'|cut:'&' %}
+                               <a href="?phase=after{% if other_params %}&{{ other_params|urlencode }}{% endif %}"
+                                   class="channel-btn {% if phase == 'after' or not phase %}active{% endif %}">Depois da adesão</a>
+                               <a href="?phase=before{% if other_params %}&{{ other_params|urlencode }}{% endif %}"
+                                   class="channel-btn {% if phase == 'before' %}active{% endif %}">Antes da adesão</a>
                         {% endwith %}
                     {% endwith %}
                 </div>

@@ -31,6 +31,8 @@ def apply_filters(
     final_outcome_id=None,
     subcategory_exact_values=None,
     subcategory_exclude_values=None,
+    category_exact_values=None,
+    category_exclude_values=None,
     churn_reason_exclude_labels=None,
 ):
     """Aplica filtros opcionais comuns a todas as analises."""
@@ -98,6 +100,26 @@ def apply_filters(
                 )
             if remaining_excluded:
                 queryset = queryset.exclude(_subcategory_normalized__in=remaining_excluded)
+    if category_exclude_values:
+        normalized_excluded_categories = {
+            str(value).strip().lower()
+            for value in category_exclude_values
+            if str(value).strip()
+        }
+        if normalized_excluded_categories:
+            queryset = queryset.annotate(
+                _category_normalized=Lower(Trim('category')),
+            ).exclude(_category_normalized__in=normalized_excluded_categories)
+    if category_exact_values:
+        normalized_exact_categories = {
+            str(value).strip().lower()
+            for value in category_exact_values
+            if str(value).strip()
+        }
+        if normalized_exact_categories:
+            queryset = queryset.annotate(
+                _category_normalized=Lower(Trim('category')),
+            ).filter(_category_normalized__in=normalized_exact_categories)
     if churn_reason_exclude_labels:
         normalized_excluded_labels = {
             str(label).strip().lower()

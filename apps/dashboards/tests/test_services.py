@@ -95,6 +95,27 @@ def test_build_dashboard_payload_excludes_outbound_by_default(interaction_factor
     assert outbound_payload['general_kpis']['total_calls'] == 1
 
 
+def test_build_dashboard_payload_respects_category_exact_filter(interaction_factory, base_dimensions):
+    interaction_factory(
+        call_id_external='cat-exact-1',
+        category='CC RET Desiste da adesao',
+        final_outcome=base_dimensions['retained'],
+    )
+    interaction_factory(
+        call_id_external='cat-other-1',
+        category='CC RET Outra Categoria',
+        final_outcome=base_dimensions['retained'],
+    )
+
+    payload = build_dashboard_payload(
+        start_date=date(2026, 1, 1),
+        end_date=date(2026, 1, 31),
+        category_exact_values=('CC RET Desiste da adesao',),
+    )
+
+    assert payload['general_kpis']['total_calls'] == 1
+
+
 def test_build_dashboard_payload_includes_assistant_detail(interaction_factory):
     interaction = interaction_factory(call_id_external='detail-1')
 

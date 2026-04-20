@@ -26,6 +26,7 @@ FIXED_SUBCATEGORY_FILTERS = (
 
 MOBILE_ADJUSTED_EXCLUDED_ACTION = 'retido migracao pre pago'
 OUTBOUND_SUBCATEGORY_FILTER = 'CC RET Outbound'
+BEFORE_INSTALL_CATEGORY_FILTER = 'CC RET Desiste da adesao'
 DEFAULT_EXCLUDED_SUBCATEGORY_FILTERS = (OUTBOUND_SUBCATEGORY_FILTER,)
 OUTBOUND_EXCLUDED_CHURN_LABELS = ('nao atende', 'Cliente sem disponibilidade')
 
@@ -68,8 +69,12 @@ def _parse_optional_int(raw_value):
         return None
 
 
-def _resolve_filters(request, *, force_assistant_name=None, channel=None):
-    """Extrai e normaliza os filtros globais usados em todas as paginas."""
+def _resolve_filters(request, *, force_assistant_name=None, channel=None, phase=None):
+    """Extrai e normaliza os filtros globais usados em todas as paginas.
+    
+    Args:
+        phase: 'before' para mostrar apenas BEFORE_INSTALL, 'after' (default) para excluir BEFORE_INSTALL
+    """
     granularity = request.GET.get('period', '').strip().lower()
     if granularity not in {'day', 'week', 'month'}:
         granularity = 'day'
@@ -86,7 +91,6 @@ def _resolve_filters(request, *, force_assistant_name=None, channel=None):
     start_date, end_date = _resolve_date_range(start_date_raw, end_date_raw, date_preset)
 
     # Recebe channel já normalizado e define queryset_source
-
     if channel is None:
         channel = 'inbound'
     if channel == 'geral':
@@ -100,6 +104,21 @@ def _resolve_filters(request, *, force_assistant_name=None, channel=None):
         subcategory_exclude_values = DEFAULT_EXCLUDED_SUBCATEGORY_FILTERS
     else:
         subcategory_exclude_values = None
+
+    # PHASE: Determinar se deve filtrar por BEFORE_INSTALL ou excluir
+    if phase is None:
+        phase = request.GET.get('phase', 'after').strip().lower()
+    if phase not in ('before', 'after'):
+        phase = 'after'
+    
+    category_exact_values = None
+    category_exclude_values = None
+    if phase == 'before':
+        # Mostrar apenas BEFORE_INSTALL
+        category_exact_values = (BEFORE_INSTALL_CATEGORY_FILTER,)
+    elif phase == 'after':
+        # Excluir BEFORE_INSTALL (dashboard padrão)
+        category_exclude_values = (BEFORE_INSTALL_CATEGORY_FILTER,)
 
     return {
         'period': granularity,
@@ -118,6 +137,9 @@ def _resolve_filters(request, *, force_assistant_name=None, channel=None):
         'final_outcome_id': _parse_optional_int(final_outcome_id_raw),
         'subcategory_exact_values': None,
         'subcategory_exclude_values': subcategory_exclude_values,
+        'category_exact_values': category_exact_values,
+        'category_exclude_values': category_exclude_values,
+        'phase': phase,
         'queryset_source': queryset_source,
     }
 
@@ -133,6 +155,8 @@ def _build_filter_options(filters):
         end_date=filters['end_date'],
         subcategory_exact_values=filters.get('subcategory_exact_values'),
         subcategory_exclude_values=filters.get('subcategory_exclude_values'),
+        category_exact_values=filters.get('category_exact_values'),
+        category_exclude_values=filters.get('category_exclude_values'),
         churn_reason_exclude_labels=filters.get('churn_reason_exclude_labels'),
     )
     return selectors.select_global_filter_options(base_qs)
@@ -153,6 +177,8 @@ def _build_dashboard_payload_from_filters(filters, *, assistant_id=None, use_fil
             end_date=resolved_end_date,
             subcategory_exact_values=filters.get('subcategory_exact_values'),
             subcategory_exclude_values=filters.get('subcategory_exclude_values'),
+            category_exact_values=filters.get('category_exact_values'),
+            category_exclude_values=filters.get('category_exclude_values'),
             churn_reason_exclude_labels=filters.get('churn_reason_exclude_labels'),
         )
         outbound_qs = selectors.apply_filters(
@@ -162,6 +188,8 @@ def _build_dashboard_payload_from_filters(filters, *, assistant_id=None, use_fil
             end_date=resolved_end_date,
             subcategory_exact_values=filters.get('subcategory_exact_values'),
             subcategory_exclude_values=None,
+            category_exact_values=filters.get('category_exact_values'),
+            category_exclude_values=filters.get('category_exclude_values'),
             churn_reason_exclude_labels=filters.get('churn_reason_exclude_labels'),
         )
         return build_dashboard_payload(
@@ -197,6 +225,8 @@ def _build_dashboard_payload_from_filters(filters, *, assistant_id=None, use_fil
             final_outcome_id=filters['final_outcome_id'],
             subcategory_exact_values=filters.get('subcategory_exact_values'),
             subcategory_exclude_values=filters.get('subcategory_exclude_values'),
+            category_exact_values=filters.get('category_exact_values'),
+            category_exclude_values=filters.get('category_exclude_values'),
             churn_reason_exclude_labels=filters.get('churn_reason_exclude_labels'),
             base_queryset=base_queryset,
             previous_queryset_factory=previous_queryset_factory,

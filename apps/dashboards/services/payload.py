@@ -222,6 +222,8 @@ def build_dashboard_payload(
     final_outcome_id=None,
     subcategory_exact_values=None,
     subcategory_exclude_values=None,
+    category_exact_values=None,
+    category_exclude_values=None,
     churn_reason_exclude_labels=None,
     base_queryset=None,
     previous_queryset_factory=None,
@@ -387,6 +389,8 @@ def build_dashboard_payload(
         final_outcome_id=final_outcome_id,
         subcategory_exact_values=subcategory_exact_values,
         subcategory_exclude_values=subcategory_exclude_values,
+        category_exact_values=category_exact_values,
+        category_exclude_values=category_exclude_values,
         churn_reason_exclude_labels=churn_reason_exclude_labels,
     )
 
